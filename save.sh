@@ -51,6 +51,14 @@ if [ "$ZIP" = "1" ]; then
     echo "Запуск локально: открыть index.html в браузере."
   } > ЧТО-ЭТО.txt
 
+  # папка для заливки на хостинг (Vercel/Netlify)
+  rm -rf deploy && mkdir -p deploy
+  cp index.html deploy/ && cp -r css js assets deploy/
+  rm -f deploy/assets/map/mountain-with-signs.png deploy/assets/scenes/hero-dusk.jpg 2>/dev/null
+  cp vercel.json _headers deploy/ 2>/dev/null
+  rm -f ContextFlow-deploy.zip && (cd deploy && zip -qr ../ContextFlow-deploy.zip .)
+  echo "✔ Для заливки: ContextFlow-deploy.zip ($(du -h ContextFlow-deploy.zip | cut -f1))"
+
   # версия одним файлом — для телефона, работает без интернета
   python3 tools-bundle.py >/dev/null 2>&1 && echo "✔ Один файл для телефона: ContextFlow-offline.html"
 
