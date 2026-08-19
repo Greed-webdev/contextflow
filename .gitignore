@@ -10,3 +10,6 @@ qr-telefon.png
 backup/
 deploy/
 ContextFlow-deploy.zip
+
+# голосовой движок: 40 МБ, качается заново скриптом tools-stt.sh
+assets/stt/
