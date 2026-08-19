@@ -254,6 +254,19 @@
   70%{opacity:0;transform:scale(1.09)}
   100%{opacity:0;transform:scale(1.09)}
 }
+/* полоска громкости — видно, что микрофон реально слышит */
+.say-bar{
+  width:150px;height:4px;border-radius:3px;overflow:hidden;
+  background:rgba(255,255,255,.09);
+  opacity:0;transition:opacity .25s ease;
+}
+.say-bar.on{opacity:1}
+.say-fill{
+  display:block;height:100%;width:100%;border-radius:3px;
+  background:linear-gradient(90deg,#6f9c78,#8fb894);
+  transform:scaleX(.03);transform-origin:left center;
+  transition:transform .09s linear;
+}
 .say-out{
   min-height:18px;font-size:13.5px;line-height:1.35;text-align:center;
   color:var(--text-3);max-width:88%;transition:color .25s ease;

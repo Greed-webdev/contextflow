@@ -390,15 +390,23 @@ const Voice = {
      «Разрешить доступ к микрофону?». Без него распознавание в Telegram
      часто просто молчит и человек не понимает, что случилось. */
   granted:false,
-  ask(){
-    if (this.granted) return Promise.resolve('ok');
+  stream:null, ac:null, analyser:null, levelData:null,
+
+  /* Открыть микрофон ОДИН РАЗ и держать открытым, пока человек в приложении.
+     Если поток отпустить, телефон спрашивает разрешение при каждой попытке. */
+  open(){
+    if (this.stream && this.stream.active) return Promise.resolve('ok');
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
       return Promise.resolve('no-api');
     }
-    return navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-      // разрешение получено — поток сразу отпускаем, писать будет распознавание
-      stream.getTracks().forEach(t=>t.stop());
+    return navigator.mediaDevices.getUserMedia({audio:{
+      echoCancellation:true,     // убрать эхо от динамика
+      noiseSuppression:true,     // подавить шум
+      autoGainControl:true       // выровнять громкость: и шёпот, и крик
+    }}).then(stream=>{
+      this.stream = stream;
       this.granted = true;
+      this.meter(stream);        // индикатор громкости, чтобы было видно: слышит
       return 'ok';
     }).catch(err=>{
       const n = err && err.name;
@@ -407,6 +415,38 @@ const Voice = {
       return 'error';
     });
   },
+  /* измеритель громкости: показывает, доходит ли до приложения звук */
+  meter(stream){
+    try{
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!this.ac) this.ac = new AC();
+      if (this.ac.state === 'suspended') this.ac.resume();
+      const src = this.ac.createMediaStreamSource(stream);
+      this.analyser = this.ac.createAnalyser();
+      this.analyser.fftSize = 512;
+      this.levelData = new Uint8Array(this.analyser.frequencyBinCount);
+      src.connect(this.analyser);
+    }catch(e){}
+  },
+  /* текущая громкость 0..1 */
+  level(){
+    if (!this.analyser || !this.levelData) return 0;
+    this.analyser.getByteTimeDomainData(this.levelData);
+    let peak = 0;
+    for (let i=0;i<this.levelData.length;i++){
+      const v = Math.abs(this.levelData[i] - 128) / 128;
+      if (v > peak) peak = v;
+    }
+    return Math.min(1, peak * 2.2);
+  },
+  /* отпустить микрофон — только при выходе из приложения */
+  release(){
+    if (this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream = null; }
+    this.analyser = null; this.levelData = null;
+  },
+
+  ask(){ return this.open(); },
   /* уже разрешено раньше? спрашиваем тихо, без окна */
   check(){
     if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve('unknown');
@@ -588,8 +628,12 @@ const Voice = {
         <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
       </svg><span class="say-label">Сказать</span>`;
     const out = el('div','say-out','');
-    wrap.appendChild(btn); wrap.appendChild(out);
+    const bar = el('div','say-bar');
+    const fill = el('i','say-fill');
+    bar.appendChild(fill);
+    wrap.appendChild(btn); wrap.appendChild(bar); wrap.appendChild(out);
     host.appendChild(wrap);
+    let vuTimer = null;
 
     const setState = (cls, txt)=>{
       btn.className = 'say-btn' + (cls?' '+cls:'');
@@ -606,12 +650,27 @@ const Voice = {
     const run = ()=>{
       out.className = 'say-out';
       setState('rec', 'Подключаю микрофон…');
+      bar.classList.add('on');
+      let quiet = 0, ticks = 0;
+      clearInterval(vuTimer);
+      vuTimer = setInterval(()=>{
+        const l = this.level();
+        fill.style.transform = `scaleX(${Math.max(.03, l)})`;
+        ticks++;
+        if (l < .05) quiet++; else quiet = 0;
+        // 2.5 секунды полной тишины — микрофон явно не ловит звук
+        if (quiet === 25 && ticks > 30) setState('rec','Не слышу звука. Говори ближе к телефону.');
+      }, 100);
+
       this.listen(target, {
         onstate:(s)=>{
           if (s==='listening') setState('rec','Говори — я слушаю.');
           if (s==='speaking')  setState('rec','Слышу тебя…');
         },
         onresult:(res)=>{
+          clearInterval(vuTimer);
+          bar.classList.remove('on');
+          fill.style.transform = 'scaleX(.03)';
           if (res.err === 'denied'){
             setState('', 'Микрофон не разрешён.');
             out.className='say-out no';
@@ -641,14 +700,26 @@ const Voice = {
     btn.onclick = ()=>{
       if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
       Sound.fx('tap');
-      // Разрешение спрашивает само распознавание — один раз, одним окном.
-      // Отдельный запрос через getUserMedia тут вреден: он занимает микрофон,
-      // а потом система спрашивает доступ повторно.
-      run();
+      // микрофон уже открыт — сразу слушаем, разрешение не переспрашивается
+      if (this.stream && this.stream.active){ run(); return; }
+
+      setState('rec', 'Разреши доступ к микрофону…');
+      this.open().then(res=>{
+        if (res === 'ok'){ run(); return; }
+        setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
+        out.className = 'say-out no';
+        if (res === 'denied' || res === 'no-api') this.help();
+      });
     };
     return wrap;
   }
 };
+
+// уходим со страницы — отпускаем микрофон, чтобы не горел индикатор
+document.addEventListener('visibilitychange', ()=>{
+  if (document.hidden){ Voice.stop(); Voice.release(); }
+});
+window.addEventListener('pagehide', ()=>{ Voice.stop(); Voice.release(); });
 
 /* ---------------- урок ---------------- */
 const Lesson = {
