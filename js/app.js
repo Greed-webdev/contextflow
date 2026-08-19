@@ -386,6 +386,35 @@ const Voice = {
     return 1 - prev[n]/Math.max(m,n);
   },
 
+  /* Спросить микрофон ЯВНО. Именно этот вызов показывает системное окно
+     «Разрешить доступ к микрофону?». Без него распознавание в Telegram
+     часто просто молчит и человек не понимает, что случилось. */
+  granted:false,
+  ask(){
+    if (this.granted) return Promise.resolve('ok');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      return Promise.resolve('no-api');
+    }
+    return navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+      // разрешение получено — поток сразу отпускаем, писать будет распознавание
+      stream.getTracks().forEach(t=>t.stop());
+      this.granted = true;
+      return 'ok';
+    }).catch(err=>{
+      const n = err && err.name;
+      if (n==='NotAllowedError' || n==='PermissionDeniedError') return 'denied';
+      if (n==='NotFoundError' || n==='DevicesNotFoundError') return 'no-mic';
+      return 'error';
+    });
+  },
+  /* уже разрешено раньше? спрашиваем тихо, без окна */
+  check(){
+    if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve('unknown');
+    return navigator.permissions.query({name:'microphone'})
+      .then(p=>{ if (p.state==='granted') this.granted = true; return p.state; })
+      .catch(()=>'unknown');
+  },
+
   /* listen(target, {onresult(res), onstate(state)}) */
   listen(target, cb){
     if (this.busy) { this.stop(); return; }
@@ -461,9 +490,20 @@ const Voice = {
                      && location.protocol !== 'file:';
     let steps, title = 'Как разрешить микрофон';
 
-    if (this.inFrame()){
+    if (this.inTelegram()){
+      title = 'Разреши микрофон Telegram';
+      steps = d === 'ios'
+        ? ['Открой «Настройки» на iPhone.',
+           'Пролистай до «Telegram» и нажми.',
+           'Включи переключатель «Микрофон».',
+           'Вернись сюда, закрой и снова открой приложение.']
+        : ['Зажми иконку Telegram на экране телефона.',
+           'Нажми «О приложении» → «Разрешения».',
+           'Выбери «Микрофон» → «Разрешить».',
+           'Вернись сюда, закрой и снова открой приложение.'];
+    } else if (this.inFrame()){
       title = 'Открой в отдельной вкладке';
-      steps = ['Сейчас приложение показано в маленьком окне предпросмотра.',
+      steps = ['Сейчас приложение показано в маленьком окне.',
                'Браузер намеренно не пускает микрофон внутрь такого окна.',
                'Открой ту же ссылку в обычной вкладке браузера — и всё заработает.'];
     } else if (location.protocol === 'file:'){
@@ -491,8 +531,8 @@ const Voice = {
                'Обнови страницу и нажми «Сказать» ещё раз.'];
     }
 
-    if (this.inTelegram()){
-      steps.push('Открыто внутри Telegram: если не помогло — открой приложение во внешнем браузере через меню «…».');
+    if (this.inTelegram() && title !== 'Разреши микрофон Telegram'){
+      steps.push('Если не помогло — открой приложение во внешнем браузере через меню «…».');
     }
 
     Sheet.open(`
@@ -530,11 +570,9 @@ const Voice = {
       wrap.appendChild(warn);
     }
 
-    btn.onclick = ()=>{
-      if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
+    const run = ()=>{
       out.className = 'say-out';
       setState('rec', 'Слушаю…');
-      Sound.fx('tap');
       this.listen(target, {
         onstate:(s)=>{ if (s==='listening') setState('rec','Говори.'); },
         onresult:(res)=>{
@@ -556,6 +594,22 @@ const Voice = {
           Sound.fx(good?'right':'wrong');
           onScore && onScore(res.score, res.heard);
         }
+      });
+    };
+
+    btn.onclick = ()=>{
+      if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
+      Sound.fx('tap');
+
+      if (this.granted){ run(); return; }
+
+      // первый раз: явно просим доступ — появится системное окно телефона
+      setState('rec', 'Разреши доступ к микрофону…');
+      this.ask().then(res=>{
+        if (res === 'ok'){ run(); return; }
+        setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
+        out.className = 'say-out no';
+        if (res === 'denied' || res === 'no-api') this.help();
       });
     };
     return wrap;
