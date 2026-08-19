@@ -426,39 +426,72 @@ const Voice = {
     this.rec = r; this.busy = true;
 
     r.lang = lang().tts;
-    r.interimResults = false;
+    // промежуточные результаты обязательны: на телефоне распознавание нередко
+    // закрывается раньше, чем отдаст финальный ответ — иначе слышим «тишину»
+    r.interimResults = true;
     r.maxAlternatives = 4;
     r.continuous = false;
 
     let done = false;
+    let bestHeard = '', bestScore = 0;   // копим лучшее за всю попытку
+    let heardAnything = false;
+
+    const consider = (txt)=>{
+      if (!txt) return;
+      heardAnything = true;
+      const s = this.sim(txt, target);
+      if (s > bestScore || !bestHeard){ bestScore = s; bestHeard = txt; }
+    };
+
     const finish = (payload)=>{
       if (done) return; done = true;
       this.busy = false; this.rec = null;
-      clearTimeout(guard);
+      clearTimeout(guard); clearTimeout(softStop);
       cb.onresult && cb.onresult(payload);
     };
-    const guard = setTimeout(()=>{ try{ r.stop(); }catch(e){} }, 7000);
+    const done_ok = ()=> finish({ heard: bestHeard, score: bestScore, target });
 
-    r.onstart  = ()=> cb.onstate && cb.onstate('listening');
+    // мягкая остановка: даём договорить, затем просим результат
+    let softStop = null;
+    const armSoftStop = ()=>{
+      clearTimeout(softStop);
+      softStop = setTimeout(()=>{ try{ r.stop(); }catch(e){} }, 1400);
+    };
+    // жёсткий предел на всю попытку
+    const guard = setTimeout(()=>{ try{ r.stop(); }catch(e){} }, 12000);
+
+    r.onstart      = ()=> cb.onstate && cb.onstate('listening');
     r.onaudiostart = ()=> cb.onstate && cb.onstate('listening');
-    r.onspeechend  = ()=>{ try{ r.stop(); }catch(e){} };
+    r.onspeechstart= ()=>{ cb.onstate && cb.onstate('speaking'); clearTimeout(softStop); };
+    // НЕ останавливаем сразу — человек может делать паузу между словами
+    r.onspeechend  = ()=> armSoftStop();
 
     r.onresult = (ev)=>{
-      const alts = [];
-      for (const res of ev.results){
-        for (let i=0;i<res.length;i++) alts.push(res[i].transcript);
+      let finalSeen = false;
+      for (let i = ev.resultIndex; i < ev.results.length; i++){
+        const res = ev.results[i];
+        for (let j = 0; j < res.length; j++) consider(res[j].transcript);
+        if (res.isFinal) finalSeen = true;
       }
-      let best = { text: alts[0]||'', score: 0 };
-      alts.forEach(t=>{ const s=this.sim(t,target); if (s>best.score) best={text:t,score:s}; });
-      finish({ heard: best.text, score: best.score, target });
+      cb.onstate && cb.onstate('speaking');
+      if (finalSeen){ try{ r.stop(); }catch(e){} done_ok(); }
+      else armSoftStop();
     };
+
     r.onerror = (ev)=>{
       const code = ev && ev.error;
-      finish({ heard:'', score:0, target,
+      if (code === 'no-speech' && heardAnything){ done_ok(); return; }
+      finish({ heard: bestHeard, score: bestScore, target,
                err: code==='not-allowed'||code==='service-not-allowed' ? 'denied'
-                  : code==='no-speech' ? 'silent' : 'error' });
+                  : code==='no-speech' ? 'silent'
+                  : code==='aborted' ? 'aborted' : 'error' });
     };
-    r.onend = ()=> finish({ heard:'', score:0, target, err:'silent' });
+
+    // распознавание закрылось само — отдаём то, что успели услышать
+    r.onend = ()=>{
+      if (heardAnything) done_ok();
+      else finish({ heard:'', score:0, target, err:'silent' });
+    };
 
     try { r.start(); } catch(e){ finish({ heard:'', score:0, target, err:'error' }); }
   },
@@ -572,9 +605,12 @@ const Voice = {
 
     const run = ()=>{
       out.className = 'say-out';
-      setState('rec', 'Слушаю…');
+      setState('rec', 'Подключаю микрофон…');
       this.listen(target, {
-        onstate:(s)=>{ if (s==='listening') setState('rec','Говори.'); },
+        onstate:(s)=>{
+          if (s==='listening') setState('rec','Говори — я слушаю.');
+          if (s==='speaking')  setState('rec','Слышу тебя…');
+        },
         onresult:(res)=>{
           if (res.err === 'denied'){
             setState('', 'Микрофон не разрешён.');
@@ -582,8 +618,13 @@ const Voice = {
             this.help();
             return;
           }
+          if (res.err === 'aborted'){ setState('', ''); return; }
+          if (res.err === 'error'){
+            setState('', 'Сбой распознавания. Нажми ещё раз.');
+            out.className='say-out'; return;
+          }
           if (res.err === 'silent' || !res.heard){
-            setState('', 'Не расслышал. Попробуй ещё раз.');
+            setState('', 'Тишина. Говори громче и ближе к телефону.');
             out.className='say-out'; return;
           }
           const pct = Math.round(res.score*100);
@@ -600,17 +641,10 @@ const Voice = {
     btn.onclick = ()=>{
       if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
       Sound.fx('tap');
-
-      if (this.granted){ run(); return; }
-
-      // первый раз: явно просим доступ — появится системное окно телефона
-      setState('rec', 'Разреши доступ к микрофону…');
-      this.ask().then(res=>{
-        if (res === 'ok'){ run(); return; }
-        setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
-        out.className = 'say-out no';
-        if (res === 'denied' || res === 'no-api') this.help();
-      });
+      // Разрешение спрашивает само распознавание — один раз, одним окном.
+      // Отдельный запрос через getUserMedia тут вреден: он занимает микрофон,
+      // а потом система спрашивает доступ повторно.
+      run();
     };
     return wrap;
   }
