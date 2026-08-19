@@ -1,0 +1,219 @@
+/* ==========================================================
+   ContextFlow · theme.css — ЗОНА: цвета, шрифты, кнопки, отступы
+   Ничего про карту и логику здесь нет.
+   ========================================================== */
+
+:root{
+  /* --- база: тёплый графит, не чёрный --- */
+  --bg-0:#101315;          /* самый низ */
+  --bg-1:#171b1e;          /* основной фон экрана */
+  --bg-2:#1e2328;          /* карточка */
+  --bg-3:#252b31;          /* карточка поверх карточки */
+  --line:rgba(255,255,255,.09);
+  --line-soft:rgba(255,255,255,.055);
+
+  /* --- текст --- */
+  --text:#ece8e1;          /* тёплый белый, не #fff */
+  --text-2:#a8b0b4;
+  --text-3:#767f85;
+
+  /* --- палитра: 4 акцента, золотая середина --- */
+  --moss:#6f9c78;          /* основной: путь, прогресс, «верно» */
+  --moss-deep:#3f6b52;
+  --amber:#d9a441;         /* тёплый: вершина, награда, важное */
+  --clay:#c2705a;          /* ошибка, жизни */
+  --slate:#7d94a8;         /* холодный: подсказки, инфо */
+  --stone:#8b7355;         /* тропа */
+
+  --grad-moss:linear-gradient(135deg,#4d7f61 0%,#33604a 100%);
+  --grad-amber:linear-gradient(135deg,#e0ae4d 0%,#b8802a 100%);
+
+  --r-s:12px; --r-m:18px; --r-l:26px; --r-xl:34px;
+  --shadow-1:0 10px 30px rgba(0,0,0,.35);
+  --shadow-2:0 24px 60px rgba(0,0,0,.55);
+
+  --font:"Inter","Inter Variable",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  --font-serif:"New York","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --ease:cubic-bezier(.16,1,.3,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  /* Apple-эмодзи, тот же набор что и ракета в графитовой версии */
+  --emoji-cdn:assets/emoji;
+  --safe-b:calc(env(safe-area-inset-bottom,0px) + 10px);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+html,body{height:100%}
+body{
+  background:#0a0c0d;
+  color:var(--text);
+  font-family:var(--font);
+  -webkit-font-smoothing:antialiased;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+
+/* ---------- корпус телефона ---------- */
+.phone{
+  position:relative;
+  width:100%;max-width:420px;
+  height:100dvh;max-height:900px;
+  background:var(--bg-1);
+  overflow:hidden;
+  display:flex;flex-direction:column;
+  isolation:isolate;
+}
+@media(min-width:460px){
+  .phone{height:94vh;border-radius:44px;border:1px solid #23282d;box-shadow:var(--shadow-2)}
+}
+
+/* зерно — делает интерфейс «плёночным», а не пластиковым */
+.grain{
+  position:absolute;inset:-50%;z-index:60;pointer-events:none;opacity:.05;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.55'/></svg>");
+  animation:grainShift 7s steps(6) infinite;
+}
+@keyframes grainShift{
+  0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}
+  60%{transform:translate(-2%,-2%)}80%{transform:translate(3%,1%)}100%{transform:translate(0,0)}
+}
+
+/* ---------- экраны ---------- */
+.stack{position:relative;flex:1;min-height:0;z-index:1}
+.screen{
+  position:absolute;inset:0;
+  display:none;flex-direction:column;
+  overflow:hidden;
+}
+.screen.on{display:flex}
+.screen.enter{animation:scEnter .42s var(--ease) both}
+@keyframes scEnter{from{opacity:0;transform:translateY(14px) scale(.994)}to{opacity:1;transform:none}}
+
+.scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.pad{padding:0 20px}
+.pad-b{padding-bottom:26px}
+
+/* ---------- типографика ---------- */
+.kicker{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--text-3)}
+.kicker.moss{color:var(--moss)}
+.kicker.amber{color:var(--amber)}
+h1.big{font-size:34px;line-height:1.06;font-weight:700;letter-spacing:-.03em}
+h2.mid{font-size:23px;line-height:1.15;font-weight:700;letter-spacing:-.022em}
+h3.sm{font-size:16px;font-weight:650;letter-spacing:-.01em}
+p.body{font-size:14.5px;line-height:1.5;color:var(--text-2)}
+p.small{font-size:12.5px;line-height:1.45;color:var(--text-3)}
+.serifed{font-family:"New York","Iowan Old Style",Georgia,serif;font-weight:600}
+
+/* ---------- кнопки ---------- */
+/* крупные, как в графитовой версии + пружина iOS */
+.btn{
+  position:relative;overflow:hidden;
+  border:none;cursor:pointer;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  width:100%;min-height:68px;padding:0 24px;border-radius:21px;
+  font-size:19px;font-weight:640;letter-spacing:-.022em;line-height:1.15;
+  color:#0f1412;background:var(--text);
+  -webkit-font-smoothing:antialiased;
+  transition:transform .34s var(--spring),filter .2s ease,box-shadow .3s var(--ease),opacity .2s ease;
+  will-change:transform;
+}
+.btn::after{
+  content:'';position:absolute;top:0;left:-60%;width:45%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.32),transparent);
+  transform:skewX(-18deg);opacity:0;pointer-events:none;
+}
+.btn.sheen::after{animation:sheen 4.8s ease-in-out 1.4s infinite}
+@keyframes sheen{
+  0%{left:-60%;opacity:0} 8%{opacity:1} 22%{left:120%;opacity:0} 100%{left:120%;opacity:0}
+}
+.btn:active{transform:scale(.958);filter:brightness(.94)}
+.btn.moss{background:var(--grad-moss);color:#f2f7f3;box-shadow:0 12px 32px rgba(46,85,63,.38)}
+.btn.moss:active{box-shadow:0 5px 16px rgba(46,85,63,.3)}
+.btn.amber{background:var(--grad-amber);color:#2a1e07;box-shadow:0 12px 32px rgba(180,126,40,.3)}
+.btn.amber:active{box-shadow:0 5px 16px rgba(180,126,40,.24)}
+.btn.ghost{background:rgba(255,255,255,.07);color:var(--text);border:1px solid var(--line);backdrop-filter:blur(18px)}
+.btn.ghost:active{background:rgba(255,255,255,.11)}
+.btn.quiet{
+  background:none;color:var(--text-2);font-weight:560;font-size:17px;
+  min-height:56px;letter-spacing:-.01em;box-shadow:none;
+}
+.btn.quiet:active{color:var(--text-2);transform:scale(.97)}
+.btn[disabled]{opacity:.38;pointer-events:none;filter:saturate(.5)}
+.btn-row{display:flex;gap:10px}
+
+.icon-btn{
+  width:46px;height:46px;border-radius:50%;border:1px solid var(--line);
+  background:rgba(20,24,27,.6);backdrop-filter:blur(14px);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-2);
+  transition:transform .16s var(--ease);
+}
+.icon-btn:active{transform:scale(.92)}
+.pill{
+  border:1px solid var(--line);background:rgba(20,24,27,.55);backdrop-filter:blur(14px);
+  color:var(--text);font-size:15px;font-weight:620;padding:13px 20px;border-radius:999px;
+  cursor:pointer;display:flex;align-items:center;gap:7px;font-family:var(--font);
+}
+.pill:active{transform:scale(.96)}
+
+/* ---------- карточки ---------- */
+.card{
+  background:var(--bg-2);border:1px solid var(--line-soft);
+  border-radius:var(--r-m);padding:16px;
+}
+.card.glass{background:rgba(26,30,34,.72);backdrop-filter:blur(22px);border-color:var(--line)}
+
+/* ---------- служебное ---------- */
+.row{display:flex;align-items:center}
+.between{justify-content:space-between}
+.gap8{gap:8px}.gap12{gap:12px}
+.col{display:flex;flex-direction:column}
+.spacer{flex:1}
+.hidden{display:none !important}
+.flag{width:22px;height:15px;border-radius:3px;object-fit:cover;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+.dim{opacity:.45}
+
+/* ---------- нижняя навигация ---------- */
+.tabbar{
+  position:relative;z-index:30;flex-shrink:0;
+  display:flex;padding:8px 10px var(--safe-b);
+  background:linear-gradient(to top,rgba(16,19,21,.98),rgba(16,19,21,.86));
+  border-top:1px solid var(--line-soft);backdrop-filter:blur(20px);
+}
+.tab{
+  flex:1;background:none;border:none;cursor:pointer;color:var(--text-3);
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-size:10.5px;font-weight:600;font-family:var(--font);padding:4px 0;
+  transition:color .2s ease;
+}
+.tab.on{color:var(--moss)}
+.tab svg{width:22px;height:22px}
+
+/* ---------- прогресс ---------- */
+.bar{height:6px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--grad-moss);transition:width .45s var(--ease)}
+.bar.amber>i{background:var(--grad-amber)}
+
+/* ---------- модальный лист ---------- */
+.sheet-wrap{position:absolute;inset:0;z-index:70;display:none}
+.sheet-wrap.on{display:block}
+.sheet-bg{position:absolute;inset:0;background:rgba(8,10,11,.6);backdrop-filter:blur(6px);animation:fadeIn .25s ease both}
+.sheet{
+  position:absolute;left:0;right:0;bottom:0;max-height:86%;
+  background:var(--bg-2);border-top:1px solid var(--line);
+  border-radius:var(--r-xl) var(--r-xl) 0 0;padding:10px 20px var(--safe-b);
+  animation:sheetUp .42s var(--ease) both;display:flex;flex-direction:column;
+}
+.sheet .grip{width:38px;height:4px;border-radius:9px;background:rgba(255,255,255,.18);margin:6px auto 14px}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ---------- тост ---------- */
+.toast{
+  position:absolute;left:50%;top:74px;bottom:auto;transform:translateX(-50%) translateY(-12px);
+  background:rgba(30,35,40,.94);border:1px solid var(--line);backdrop-filter:blur(18px);
+  color:var(--text);font-size:13px;font-weight:600;padding:11px 18px;border-radius:999px;
+  z-index:80;opacity:0;pointer-events:none;transition:all .3s var(--ease);white-space:nowrap;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+::-webkit-scrollbar{width:0;height:0}

@@ -1,0 +1,6 @@
+.cache/
+.local/
+.sudo_as_admin_successful
+dist/
+node_modules/
+*.zip

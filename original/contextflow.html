@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ContextFlow — Карта Горы</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #0c0f14;
+      --card-bg: rgba(18, 24, 38, 0.92);
+      --card-border: rgba(255, 255, 255, 0.2);
+      --accent-main: #ffb703;
+      --accent-gradient: linear-gradient(135deg, #ffb703 0%, #fb8500 100%);
+      --text-main: #ffffff;
+      --text-muted: #94a3b8;
+      --font-family: 'Plus Jakarta Sans', sans-serif;
+      --danger: #ff4757;
+      --success: #2ed573;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background-color: #030406;
+      color: var(--text-main);
+      font-family: var(--font-family);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .mobile-container {
+      width: 100%;
+      max-width: 410px;
+      height: 100vh;
+      max-height: 860px;
+      background-color: var(--bg-color);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    }
+
+    @media (min-width: 450px) {
+      .mobile-container {
+        height: 92vh;
+        border-radius: 36px;
+        border: 4px solid #1e2430;
+      }
+    }
+
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .screen { display: none; height: 100%; animation: fadeIn 0.2s ease forwards; padding: 20px 16px; }
+    .screen.active { display: flex; flex-direction: column; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .apple-emoji { width: 16px; height: 16px; display: inline-block; vertical-align: middle; object-fit: contain; }
+    .apple-emoji-lg { width: 64px; height: 64px; margin-bottom: 16px; display: block; }
+    .flag-icon { width: 20px; height: 14px; border-radius: 3px; object-fit: cover; display: inline-block; vertical-align: middle; }
+
+    .tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: var(--accent-main); margin-bottom: 2px; }
+    .title { font-size: 22px; font-weight: 800; line-height: 1.2; margin-bottom: 6px; }
+    .sub { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4; }
+
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px; margin-bottom: 12px; backdrop-filter: blur(10px); }
+
+    .btn {
+      background: var(--accent-gradient); color: #000; font-weight: 800; padding: 10px 14px;
+      border-radius: 10px; border: none; width: 100%; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      box-shadow: 0 4px 12px rgba(251, 133, 0, 0.25);
+      transition: transform 0.1s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .welcome-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+
+    .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; max-height: 480px; overflow-y: auto; }
+    .lang-card {
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 12px 14px;
+      cursor: pointer; display: flex; align-items: center; gap: 10px; backdrop-filter: blur(8px);
+    }
+    .lang-card.selected { border-color: var(--accent-main); background: rgba(255, 183, 3, 0.12); }
+
+    .level-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .level-card {
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 14px 16px;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(8px);
+    }
+    .level-card.selected { border-color: var(--accent-main); background: rgba(255, 183, 3, 0.12); }
+
+    /* ФОНЫ ГОРЫ И ЭТАПОВ */
+    #screen-main { padding: 0; position: relative; background: #000; }
+    
+    .bg-layer {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-size: cover; background-position: center;
+      transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+      opacity: 0; transform: scale(1); z-index: 1;
+    }
+
+    .bg-layer.active { opacity: 1; transform: scale(1.03); }
+
+    #bg-main    { background-image: url('https://i.ibb.co/Y7PjrXwB/5.jpg'); }
+    #bg-stage-1 { background-image: url('https://i.ibb.co/DHqVkXSb/1.jpg'); }
+    #bg-stage-2 { background-image: url('https://i.ibb.co/XxbHT2qD/2.jpg'); }
+    #bg-stage-3 { background-image: url('https://i.ibb.co/Xx5zPCQJ/3.jpg'); }
+    #bg-stage-4 { background-image: url('https://i.ibb.co/0VnbbNj9/4.jpg'); }
+    #bg-stage-5 { background-image: url('https://i.ibb.co/Y7PjrXwB/5.jpg'); }
+
+    .map-header {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+      padding: 10px 14px;
+      background: linear-gradient(180deg, rgba(12, 15, 20, 0.85) 0%, rgba(12, 15, 20, 0) 100%);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* АБСОЛЮТНОЕ ПОЗИЦИОНИРОВАНИЕ КНОПОК ПОВЕРХ РИСУНКА */
+    .stages-overlay-container {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 10;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .stages-overlay-container.hidden {
+      opacity: 0; pointer-events: none; transform: scale(0.92);
+    }
+
+    .stage-badge-node {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(12, 15, 20, 0.88);
+      border: 1px solid var(--accent-main);
+      padding: 5px 12px;
+      border-radius: 16px;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: transform 0.15s ease, background 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .stage-badge-node:active { transform: translateX(-50%) scale(1.08); background: var(--accent-main); color: #000; }
+
+    /* ТОЧНОЕ СОВПАДЕНИЕ С РИСУНКОМ ГОРЫ */
+    #node-stage-5 { top: 9%; }
+    #node-stage-4 { top: 25%; }
+    #node-stage-3 { top: 42%; }
+    #node-stage-2 { top: 58%; }
+    #node-stage-1 { top: 73%; }
+
+    /* УМЕНЬШЕННАЯ И КОМПАКТНАЯ ПЛАШКА ВНИЗУ, НЕ ЗАКРЫВАЮЩАЯ STAGE 1 */
+    .active-station-card {
+      position: absolute; bottom: 54px; left: 10px; right: 10px; z-index: 25;
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 8px 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+      display: flex; flex-direction: column; gap: 4px;
+      transition: transform 0.3s ease;
+    }
+
+    .option-btn {
+      width: 100%; text-align: left; padding: 10px; border-radius: 10px;
+      background: var(--card-bg); border: 2px solid var(--card-border);
+      color: #fff; font-size: 12px; margin-bottom: 6px; cursor: pointer; font-weight: 600;
+    }
+    .option-btn.selected { border-color: var(--accent-main); background: rgba(255,183,3,0.15); }
+    .option-btn.correct-btn { border-color: var(--success); background: rgba(46, 213, 115, 0.2); }
+    .option-btn.wrong-btn { border-color: var(--danger); background: rgba(255, 71, 87, 0.2); }
+
+    .nav {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: rgba(12, 15, 20, 0.95); backdrop-filter: blur(15px);
+      border-top: 1px solid var(--card-border); display: flex; justify-content: space-around;
+      padding: 6px 0 10px 0; z-index: 40;
+    }
+    .nav-btn {
+      background: none; border: none; color: var(--text-muted); font-size: 10px;
+      font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
+      flex: 1;
+    }
+    .nav-btn.active { color: var(--accent-main); }
+    
+    .lesson-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
+    .close-lesson-btn {
+      background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted);
+      width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 14px; font-weight: 700;
+    }
+    .progress-bar-bg { flex: 1; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 10%; background: var(--accent-gradient); transition: width 0.3s ease; }
+    .hearts-row { display: flex; align-items: center; gap: 3px; }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-container" id="app-container">
+
+    <div class="content-area">
+
+      <!-- ОНБОРДИНГ -->
+      <div id="ob-1" class="screen active">
+        <div class="welcome-hero">
+          <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f680.png" class="apple-emoji-lg" alt="rocket">
+          <div class="tag">ContextFlow</div>
+          <div class="title">Язык для жизни и релокации</div>
+          <div class="sub">Практические модули под реальные задачи без скучной теории.</div>
+        </div>
+        <button class="btn" onclick="startChangeFlow()">Выбрать язык ➔</button>
+      </div>
+
+      <!-- ВЫБОР ЯЗЫКА -->
+      <div id="screen-select-lang" class="screen">
+        <div class="tag">Шаг 1 из 2</div>
+        <div class="title" style="margin-bottom: 16px;">Какой язык учим?</div>
+        <div class="lang-grid" id="lang-grid-container"></div>
+        <button class="btn" onclick="confirmLangSelection()">Далее к целям ➔</button>
+      </div>
+
+      <!-- ВЫБОР УРОВНЯ -->
+      <div id="screen-select-level" class="screen">
+        <div class="tag">Шаг 2 из 2</div>
+        <div class="title">Ваша цель?</div>
+        <div class="sub">Выберите начальный этап маршрута:</div>
+
+        <div class="level-list" style="flex: 1;">
+          <div class="level-card selected" onclick="selectLevelCard('A1', this)">
+            <div>
+              <div style="font-weight:800; font-size:14px; color:var(--accent-main); display:flex; align-items:center; gap:6px;">
+                <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/2708-fe0f.png" class="apple-emoji"> Турист (A1)
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Аэропорт, отель, транспорт, кафе</div>
+            </div>
+            <span>➔</span>
+          </div>
+          <div class="level-card" onclick="selectLevelCard('A2', this)">
+            <div>
+              <div style="font-weight:800; font-size:14px; color:var(--accent-main); display:flex; align-items:center; gap:6px;">
+                <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f5fa-fe0f.png" class="apple-emoji"> База (A2)
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Покупки, ориентация в городе</div>
+            </div>
+            <span>➔</span>
+          </div>
+          <div class="level-card" onclick="selectLevelCard('B1', this)">
+            <div>
+              <div style="font-weight:800; font-size:14px; color:var(--accent-main); display:flex; align-items:center; gap:6px;">
+                <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f3e1.png" class="apple-emoji"> Релокация (B1)
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Аренда квартиры, банк, врач</div>
+            </div>
+            <span>➔</span>
+          </div>
+          <div class="level-card" onclick="selectLevelCard('B2', this)">
+            <div>
+              <div style="font-weight:800; font-size:14px; color:var(--accent-main); display:flex; align-items:center; gap:6px;">
+                <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f4bc.png" class="apple-emoji"> Свобода (B2)
+              </div>
+              <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">Работа, собеседования, свобода</div>
+            </div>
+            <span>➔</span>
+          </div>
+        </div>
+
+        <button class="btn" onclick="confirmLevelSelection()">Начать маршрут ➔</button>
+      </div>
+
+      <!-- MAIN MAP С СВЕТЛЫМИ ФОНАМИ И ОПТИМИЗИРОВАННЫМИ КНОПКАМИ -->
+      <div id="screen-main" class="screen">
+        <!-- Фоны -->
+        <div id="bg-main" class="bg-layer active"></div>
+        <div id="bg-stage-1" class="bg-layer"></div>
+        <div id="bg-stage-2" class="bg-layer"></div>
+        <div id="bg-stage-3" class="bg-layer"></div>
+        <div id="bg-stage-4" class="bg-layer"></div>
+        <div id="bg-stage-5" class="bg-layer"></div>
+
+        <div class="map-header">
+          <div>
+            <div class="tag" style="margin:0;">Маршрут</div>
+            <div style="font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 6px; margin-top:1px;" id="main-lang-display">-</div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button id="btn-reset-map" style="display:none; background: var(--accent-gradient); color: #000; border:none; padding: 5px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; cursor: pointer;" onclick="resetToOverview()">◀ На карту</button>
+            <button style="background: rgba(12,15,20,0.6); border:1px solid var(--card-border); color: #fff; padding: 5px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; cursor: pointer; backdrop-filter:blur(8px);" onclick="startChangeFlow()">Сменить</button>
+          </div>
+        </div>
+
+        <!-- Кнопки этапов на карте: позиционированы точечно -->
+        <div class="stages-overlay-container" id="stages-overlay">
+          <div class="stage-badge-node" id="node-stage-5" onclick="zoomToStage(5)">
+            <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f3d4-fe0f.png" class="apple-emoji">
+            <span>STAGE 5 (PEAK)</span>
+          </div>
+          <div class="stage-badge-node" id="node-stage-4" onclick="zoomToStage(4)">
+            <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f97e.png" class="apple-emoji">
+            <span>STAGE 4</span>
+          </div>
+          <div class="stage-badge-node" id="node-stage-3" onclick="zoomToStage(3)">
+            <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f3e0.png" class="apple-emoji">
+            <span>STAGE 3</span>
+          </div>
+          <div class="stage-badge-node" id="node-stage-2" onclick="zoomToStage(2)">
+            <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f6d2.png" class="apple-emoji">
+            <span>STAGE 2</span>
+          </div>
+          <div class="stage-badge-node" id="node-stage-1" onclick="zoomToStage(1)">
+            <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/2708-fe0f.png" class="apple-emoji">
+            <span>STAGE 1 (BASE)</span>
+          </div>
+        </div>
+
+        <!-- Компактная динамическая плашка -->
+        <div class="active-station-card" id="active-station-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="tag" id="card-station-tag" style="margin:0;">ОБЗОР МАРШРУТА</div>
+            <span id="card-station-status" style="font-size: 9px; font-weight: 800; color: var(--accent-main);">Карта</span>
+          </div>
+          <div style="font-size: 13px; font-weight: 800; display:flex; align-items:center; gap:5px;" id="card-station-title">
+            <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f5fa-fe0f.png" class="apple-emoji" id="card-emoji">
+            <span id="card-title-text">Выберите этап на карте</span>
+          </div>
+          <div style="font-size:10px; color:var(--text-muted); line-height:1.2;" id="card-desc-text">Нажмите на Stage 1–5 на карте для перехода.</div>
+          <button class="btn" id="card-action-btn" style="margin-top:2px;" onclick="startCurrentStageLesson()">Выберите этап</button>
+        </div>
+      </div>
+
+      <!-- LESSON -->
+      <div id="screen-lesson" class="screen">
+        <div class="lesson-header">
+          <div class="close-lesson-btn" onclick="quitLesson()">✕</div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="lesson-progress-fill"></div>
+          </div>
+          <div class="hearts-row" id="hearts-container"></div>
+        </div>
+
+        <div class="tag" id="lesson-station-tag">Станция</div>
+        <div class="title" id="lesson-title">Практика</div>
+        
+        <div class="card" style="margin-top: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <div style="font-size: 10px; color: var(--text-muted);">Переведите контекст:</div>
+            <button style="background:none; border:none; cursor:pointer;" onclick="speakPhrase()">
+              <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f50a.png" class="apple-emoji" alt="sound">
+            </button>
+          </div>
+          <div style="font-size: 18px; font-weight: 700; margin-bottom: 12px; color: var(--accent-main);" id="lesson-phrase">-</div>
+          
+          <div id="lesson-content"></div>
+        </div>
+
+        <div id="lesson-feedback" style="font-size: 12px; font-weight: 700; margin-bottom: 8px; min-height: 18px;"></div>
+        <button class="btn" id="lesson-action-btn" onclick="checkAnswer()">Проверить ответ ➔</button>
+      </div>
+
+      <!-- LESSON RESULT -->
+      <div id="screen-lesson-result" class="screen">
+        <div class="welcome-hero" style="flex: none; margin-top: 30px;">
+          <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f3c6.png" class="apple-emoji-lg" alt="trophy">
+          <div class="tag">Модуль пройден!</div>
+          <div class="title">Отличная работа</div>
+        </div>
+
+        <div class="card" style="text-align: center; margin: 16px 0;">
+          <div class="tag" style="margin-bottom: 2px;">Пройденный этап</div>
+          <div style="font-size: 20px; font-weight: 800; color: var(--accent-main);" id="res-station-name">Аэропорт</div>
+        </div>
+
+        <button class="btn" style="margin-top: auto;" onclick="finishLessonSummary()">Дальше по карте ➔</button>
+      </div>
+
+      <!-- PROFILE -->
+      <div id="screen-profile" class="screen">
+        <div class="tag">Профиль</div>
+        <div class="title">Настройки</div>
+        
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--card-border);">
+            <span>Язык курса</span>
+            <b id="profile-lang" style="display: flex; align-items: center; gap: 6px;">-</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 6px 0;">
+            <span>Уровень</span>
+            <b id="profile-level">A1</b>
+          </div>
+        </div>
+
+        <button class="btn" style="background: #22262f; color: #ff5555;" onclick="resetAll()">Сбросить прогресс</button>
+      </div>
+
+    </div>
+
+    <!-- NAV BAR -->
+    <div class="nav" id="main-nav" style="display: none;">
+      <button class="nav-btn active" id="nav-home" onclick="switchTab('screen-main', this)">
+        <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f5fa-fe0f.png" class="apple-emoji" alt="map">
+        <span>Карта</span>
+      </button>
+      <button class="nav-btn" onclick="startChangeFlow()">
+        <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f310.png" class="apple-emoji" alt="langs">
+        <span>Языки</span>
+      </button>
+      <button class="nav-btn" id="nav-profile" onclick="switchTab('screen-profile', this)">
+        <img src="https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/1f464.png" class="apple-emoji" alt="profile">
+        <span>Профиль</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const ALL_LANGUAGES = [
+      { name: 'Английский', flag: 'gb', code: 'en' },
+      { name: 'Испанский', flag: 'es', code: 'es' },
+      { name: 'Немецкий', flag: 'de', code: 'de' },
+      { name: 'Французский', flag: 'fr', code: 'fr' },
+      { name: 'Итальянский', flag: 'it', code: 'it' },
+      { name: 'Польский', flag: 'pl', code: 'pl' }
+    ];
+
+    const STAGES_CONFIG = {
+      0: {
+        title: "Выберите этап на карте",
+        tag: "ОБЗОР МАРШРУТА",
+        status: "Карта",
+        desc: "Нажмите на Stage 1–5 на карте для перехода.",
+        emoji: "1f5fa-fe0f",
+        btnText: "Выберите этап"
+      },
+      1: {
+        title: "Stage 1: Базовый лагерь",
+        tag: "A1 • НАЧАЛО ПУТИ",
+        status: "Локация 1",
+        desc: "Зелёная долина. Практика базовых фраз и знакомства.",
+        emoji: "2708-fe0f",
+        btnText: "Пройти Stage 1 ➔"
+      },
+      2: {
+        title: "Stage 2: Подъем по склону",
+        tag: "A2 • ГОРНАЯ ТРОПА",
+        desc: "Извилистая тропа. Заказы в кафе и покупки.",
+        status: "Локация 2",
+        emoji: "1f6d2",
+        btnText: "Пройти Stage 2 ➔"
+      },
+      3: {
+        title: "Stage 3: Горный перевал",
+        tag: "B1 • ВЫСОКОГОРЬЕ",
+        status: "Локация 3",
+        desc: "Хребты. Аренда квартиры и банковские счета.",
+        emoji: "1f3e0",
+        btnText: "Пройти Stage 3 ➔"
+      },
+      4: {
+        title: "Stage 4: Скалистый подъем",
+        tag: "B2 • ПОДХОД К ВЕРШИНЕ",
+        status: "Локация 4",
+        desc: "Скалистый подъем. Собеседования и работа.",
+        emoji: "1f97e",
+        btnText: "Пройти Stage 4 ➔"
+      },
+      5: {
+        title: "Stage 5: Заснеженный Пик",
+        tag: "C1 • ВЕРШИНА",
+        status: "Финал",
+        desc: "Финиш на самой вершине. Свободный контекст.",
+        emoji: "1f3d4-fe0f",
+        btnText: "Пройти Финишный Пик ➔"
+      }
+    };
+
+    const GRAMMAR_DATABASE = {
+      en: [
+        { phrase: "Where can I buy a ticket?", correct: "Где я могу купить билет?", wrongs: ["Где машина", "Кто билет"] },
+        { phrase: "My luggage is lost", correct: "Мой багаж потерян", wrongs: ["Я потерял отель", "Где паспорт"] }
+      ]
+    };
+
+    let state = JSON.parse(localStorage.getItem('contextflow_state_v9')) || {
+      selectedLang: null, flagCode: null, langCode: null, level: "A1", currentStage: 0
+    };
+
+    let activeStage = 0;
+    let tempLang = { name: null, flagCode: null, code: null };
+    let tempLevel = "A1";
+    let lessonQuestions = [];
+    let currentQuestionIndex = 0;
+    let selectedOptionIndex = null;
+    let lives = 5;
+
+    function save() {
+      localStorage.setItem('contextflow_state_v9', JSON.stringify(state));
+      render();
+    }
+
+    function initLangGrid() {
+      const container = document.getElementById('lang-grid-container');
+      container.innerHTML = '';
+      ALL_LANGUAGES.forEach(item => {
+        const card = document.createElement('div');
+        card.className = `lang-card`;
+        if (tempLang.name === item.name) card.classList.add('selected');
+        card.innerHTML = `<img src="https://flagcdn.com/w40/${item.flag}.png" class="flag-icon"><span style="font-weight:700; font-size:12px;">${item.name}</span>`;
+        card.onclick = () => {
+          tempLang = { name: item.name, flagCode: item.flag, code: item.code };
+          document.querySelectorAll('.lang-card').forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+        };
+        container.appendChild(card);
+      });
+    }
+
+    function zoomToStage(stageNum) {
+      activeStage = stageNum;
+
+      document.querySelectorAll('.bg-layer').forEach(layer => layer.classList.remove('active'));
+      const activeLayer = document.getElementById(`bg-stage-${stageNum}`);
+      if (activeLayer) activeLayer.classList.add('active');
+
+      document.getElementById('stages-overlay').classList.add('hidden');
+      document.getElementById('btn-reset-map').style.display = 'block';
+
+      updateCardUI(stageNum);
+    }
+
+    function resetToOverview() {
+      activeStage = 0;
+
+      document.querySelectorAll('.bg-layer').forEach(layer => layer.classList.remove('active'));
+      document.getElementById('bg-main').classList.add('active');
+
+      document.getElementById('stages-overlay').classList.remove('hidden');
+      document.getElementById('btn-reset-map').style.display = 'none';
+
+      updateCardUI(0);
+    }
+
+    function updateCardUI(stageNum) {
+      const conf = STAGES_CONFIG[stageNum];
+      document.getElementById('card-station-tag').innerText = conf.tag;
+      document.getElementById('card-station-status').innerText = conf.status;
+      document.getElementById('card-title-text').innerText = conf.title;
+      document.getElementById('card-desc-text').innerText = conf.desc;
+      document.getElementById('card-action-btn').innerText = conf.btnText;
+      document.getElementById('card-emoji').src = `https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/${conf.emoji}.png`;
+    }
+
+    function startCurrentStageLesson() {
+      if (activeStage === 0) {
+        alert("Пожалуйста, нажмите на один из этапов Stage 1 - Stage 5 на карте!");
+      } else {
+        startStationLesson(activeStage);
+      }
+    }
+
+    function renderHearts() {
+      const container = document.getElementById('hearts-container');
+      container.innerHTML = '';
+      for (let i = 0; i < 5; i++) {
+        const heartImg = document.createElement('img');
+        heartImg.src = "https://cdn.jsdelivr.net/npm/emoji-datasource-apple@15.0.1/img/apple/64/2764-fe0f.png";
+        heartImg.className = `apple-emoji ${i >= lives ? 'lost' : ''}`;
+        container.appendChild(heartImg);
+      }
+    }
+
+    function render() {
+      if (state.selectedLang) {
+        document.getElementById('main-lang-display').innerHTML = `<img src="https://flagcdn.com/w40/${state.flagCode}.png" class="flag-icon"> ${state.selectedLang} (${state.level})`;
+        document.getElementById('profile-lang').innerHTML = `<img src="https://flagcdn.com/w40/${state.flagCode}.png" class="flag-icon"> ${state.selectedLang}`;
+        document.getElementById('profile-level').innerText = state.level;
+        document.getElementById('main-nav').style.display = 'flex';
+      } else {
+        switchTab('ob-1');
+        document.getElementById('main-nav').style.display = 'none';
+      }
+    }
+
+    function startChangeFlow() { initLangGrid(); switchTab('screen-select-lang'); }
+    function confirmLangSelection() { if (!tempLang.name) return alert('Выберите язык!'); switchTab('screen-select-level'); }
+
+    function selectLevelCard(lvl, el) {
+      tempLevel = lvl;
+      document.querySelectorAll('.level-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function confirmLevelSelection() {
+      state.selectedLang = tempLang.name;
+      state.flagCode = tempLang.flagCode;
+      state.langCode = tempLang.code;
+      state.level = tempLevel;
+      save();
+      switchTab('screen-main', document.getElementById('nav-home'));
+    }
+
+    function startStationLesson(stageIdx) {
+      const pool = GRAMMAR_DATABASE[state.langCode] || GRAMMAR_DATABASE['en'];
+      lessonQuestions = [];
+      for (let i = 0; i < 3; i++) {
+        const item = pool[i % pool.length];
+        const options = [item.correct, ...item.wrongs].sort(() => Math.random() - 0.5);
+        lessonQuestions.push({ type: 'choice', phrase: item.phrase, options: options, correct: options.indexOf(item.correct) });
+      }
+
+      currentQuestionIndex = 0;
+      lives = 5;
+      renderHearts();
+      document.getElementById('main-nav').style.display = 'none';
+      document.getElementById('lesson-station-tag').innerText = `Stage ${stageIdx}: ${STAGES_CONFIG[stageIdx].title}`;
+      renderQuestion();
+      switchTab('screen-lesson');
+    }
+
+    function renderQuestion() {
+      const q = lessonQuestions[currentQuestionIndex];
+      selectedOptionIndex = null;
+
+      const pct = ((currentQuestionIndex + 1) / lessonQuestions.length) * 100;
+      document.getElementById('lesson-progress-fill').style.width = `${pct}%`;
+      document.getElementById('lesson-title').innerText = `Вопрос ${currentQuestionIndex + 1} из ${lessonQuestions.length}`;
+      document.getElementById('lesson-phrase').innerText = `«${q.phrase}»`;
+
+      const contentArea = document.getElementById('lesson-content');
+      contentArea.innerHTML = `<div style="font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">Выберите вариант:</div><div id="options-container"></div>`;
+      
+      const optContainer = document.getElementById('options-container');
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = `${idx + 1}. ${opt}`;
+        btn.onclick = () => selectOption(idx, btn);
+        optContainer.appendChild(btn);
+      });
+
+      document.getElementById('lesson-feedback').innerText = '';
+      document.getElementById('lesson-action-btn').innerText = 'Проверить ответ ➔';
+      document.getElementById('lesson-action-btn').onclick = checkAnswer;
+    }
+
+    function selectOption(idx, el) {
+      selectedOptionIndex = idx;
+      document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function checkAnswer() {
+      const q = lessonQuestions[currentQuestionIndex];
+      const fb = document.getElementById('lesson-feedback');
+      const actionBtn = document.getElementById('lesson-action-btn');
+
+      if (selectedOptionIndex === null) return;
+      const isCorrect = (selectedOptionIndex === q.correct);
+
+      const buttons = document.querySelectorAll('.option-btn');
+      buttons[selectedOptionIndex].classList.add(isCorrect ? 'correct-btn' : 'wrong-btn');
+      buttons[q.correct].classList.add('correct-btn');
+
+      if (isCorrect) {
+        fb.style.color = 'var(--success)';
+        fb.innerText = '✓ Отлично!';
+        actionBtn.innerText = (currentQuestionIndex < lessonQuestions.length - 1) ? 'Дальше ➔' : 'Завершить ➔';
+        actionBtn.onclick = nextQuestion;
+      } else {
+        lives -= 1;
+        renderHearts();
+        fb.style.color = 'var(--danger)';
+        fb.innerText = '✕ Ошибка!';
+        actionBtn.innerText = (currentQuestionIndex < lessonQuestions.length - 1) ? 'Дальше ➔' : 'Завершить ➔';
+        actionBtn.onclick = nextQuestion;
+      }
+    }
+
+    function nextQuestion() {
+      if (currentQuestionIndex < lessonQuestions.length - 1) {
+        currentQuestionIndex++;
+        renderQuestion();
+      } else {
+        showSummary();
+      }
+    }
+
+    function showSummary() {
+      document.getElementById('res-station-name').innerText = STAGES_CONFIG[activeStage].title;
+      switchTab('screen-lesson-result');
+    }
+
+    function finishLessonSummary() {
+      document.getElementById('main-nav').style.display = 'flex';
+      switchTab('screen-main');
+    }
+
+    function speakPhrase() {
+      const q = lessonQuestions[currentQuestionIndex];
+      const msg = new SpeechSynthesisUtterance(q.phrase);
+      msg.lang = state.langCode;
+      window.speechSynthesis.speak(msg);
+    }
+
+    function quitLesson() {
+      document.getElementById('main-nav').style.display = 'flex';
+      switchTab('screen-main');
+    }
+
+    function resetAll() { localStorage.removeItem('contextflow_state_v9'); location.reload(); }
+
+    function switchTab(screenId, btn) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) target.classList.add('active');
+      if (btn) {
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => render());
+  </script>
+</body>
+</html>
