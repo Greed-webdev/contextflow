@@ -24,7 +24,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v13';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v14';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -392,13 +392,40 @@ const Voice = {
      часто просто молчит и человек не понимает, что случилось. */
   granted:false,
 
-  /* Микрофон принадлежит ТОЛЬКО распознаванию речи.
-     Свой поток не открываем никогда: два владельца = два окна разрешения
-     и заглушенное распознавание. Это была причина всех прошлых бед. */
-  open(){ return Promise.resolve('ok'); },
-  releaseHardware(){},
+  /* КЛЮЧЕВОЕ ЗНАНИЕ:
+     SpeechRecognition сам по себе НЕ закрепляет доступ — Android спрашивает
+     разрешение при каждом запуске. А getUserMedia закрепляет его за сайтом
+     навсегда. Поэтому один раз в жизни приложения дёргаем getUserMedia,
+     сразу отпускаем железо — и дальше распознавание работает молча.
+     Флаг храним в localStorage, чтобы после перезапуска НЕ ждать промис
+     (промис рвёт жест нажатия и блокирует старт). */
+  KEY:'cf_mic_ok',
+  get granted(){
+    try { return localStorage.getItem(this.KEY) === '1'; } catch(e){ return false; }
+  },
+  set granted(v){
+    try { v ? localStorage.setItem(this.KEY,'1') : localStorage.removeItem(this.KEY); } catch(e){}
+  },
+
+  /* Закрепить доступ. Вызывать ТОЛЬКО когда granted === false. */
+  prime(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      return Promise.resolve('no-api');
+    }
+    return navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+      // железо отпускаем немедленно: оно нужно распознаванию, не нам
+      stream.getTracks().forEach(t=>t.stop());
+      this.granted = true;
+      return 'ok';
+    }).catch(err=>{
+      const n = err && err.name;
+      if (n==='NotAllowedError' || n==='PermissionDeniedError') return 'denied';
+      if (n==='NotFoundError' || n==='DevicesNotFoundError') return 'no-mic';
+      return 'error';
+    });
+  },
   release(){},
-  ask(){ return Promise.resolve('ok'); },
+  releaseHardware(){},
   /* уже разрешено раньше? спрашиваем тихо, без окна */
   check(){
     if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve('unknown');
@@ -477,6 +504,9 @@ const Voice = {
     r.onerror = (ev)=>{
       const code = ev && ev.error;
       if (code === 'no-speech' && heardAnything){ done_ok(); return; }
+      // доступ отозвали снаружи (шторка/настройки) — забываем отметку,
+      // при следующем нажатии закрепим заново
+      if (code === 'not-allowed' || code === 'service-not-allowed') this.granted = false;
       finish({ heard: bestHeard, score: bestScore, target,
                err: code==='not-allowed'||code==='service-not-allowed' ? 'denied'
                   : code==='no-speech' ? 'silent'
@@ -654,10 +684,24 @@ const Voice = {
     btn.onclick = ()=>{
       if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
       Sound.fx('tap');
-      // ВАЖНО: start() обязан вызваться СИНХРОННО в обработчике нажатия.
-      // Любой await/then рвёт «жест пользователя», и мобильный браузер
-      // молча отказывает — микрофон не включается, ошибок нет.
-      run();
+
+      // Доступ закреплён -> старт СИНХРОННО, внутри жеста. Никаких промисов.
+      if (this.granted){ run(); return; }
+
+      // Самый первый раз за всё время. getUserMedia закрепляет доступ за сайтом
+      // навсегда, но его промис съедает жест — стартовать распознавание уже нельзя.
+      // Поэтому честно просим тапнуть второй раз. Это происходит ОДИН раз в жизни.
+      setState('rec', 'Разреши доступ к микрофону…');
+      this.prime().then(res=>{
+        if (res === 'ok'){
+          setState('done', 'Готово. Нажми ещё раз и говори.');
+          out.className = 'say-out ok';
+          return;
+        }
+        setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
+        out.className = 'say-out no';
+        if (res === 'denied' || res === 'no-api') this.help();
+      });
     };
     return wrap;
   }
@@ -715,12 +759,42 @@ const Lesson = {
     const pct = this.total ? Math.max(6, this.step/this.total*100) : 6;
     $('l-prog').style.width = pct+'%';
   },
-  say(text){
-    if (!S.sound.tts) return;
+  voices:[],
+  _pickVoice(code){
+    const all = this.voices.length ? this.voices : (speechSynthesis.getVoices() || []);
+    if (!all.length) return null;
+    const base = (code||'en').split('-')[0].toLowerCase();
+    return all.find(v => (v.lang||'').toLowerCase() === code.toLowerCase())
+        || all.find(v => (v.lang||'').toLowerCase().replace('_','-').startsWith(base))
+        || null;
+  },
+  say(text, opts){
+    const force = opts && opts.force;
+    if (!force && !S.sound.tts) return;
+    if (!('speechSynthesis' in window)) return;
+    const code = lang().tts;
+
+    // СИНХРОННО, прямо в жесте нажатия: любая задержка = Android глушит синтез
     try{
+      speechSynthesis.cancel();
+      if (speechSynthesis.paused) speechSynthesis.resume();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = lang().tts; u.rate = .92;
-      speechSynthesis.cancel(); speechSynthesis.speak(u);
+      u.lang = code; u.rate = .92; u.volume = 1;
+      const list = this.voices.length ? this.voices : (speechSynthesis.getVoices() || []);
+      if (list.length){
+        this.voices = list;
+        const base = code.split('-')[0].toLowerCase();
+        const v = list.find(x => (x.lang||'').toLowerCase() === code.toLowerCase())
+               || list.find(x => (x.lang||'').toLowerCase().replace('_','-').startsWith(base));
+        if (v) u.voice = v;
+      } else {
+        // голоса ещё не подгружены — запомним на следующий раз, но говорим уже сейчас
+        speechSynthesis.onvoiceschanged = ()=>{
+          this.voices = speechSynthesis.getVoices() || [];
+          speechSynthesis.onvoiceschanged = null;
+        };
+      }
+      speechSynthesis.speak(u);
     }catch(e){}
   },
   fb(txt, ok){
@@ -758,8 +832,7 @@ const Lesson = {
     wrap.appendChild(hint);
     body.appendChild(wrap);
 
-    $('w-say').onclick = ()=>this.say(w.t);
-    this.say(w.t);
+    $('w-say').onclick = ()=>{ Sound.fx('tap'); this.say(w.t, {force:true}); };
 
     this.spoke = false;
     Voice.mount(wrap, w.t, (score)=>{ if (score >= .72) this.spoke = true; });
