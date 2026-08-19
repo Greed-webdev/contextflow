@@ -24,7 +24,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v11-mic';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v12-mic';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -441,6 +441,13 @@ const Voice = {
     }
     return Math.min(1, peak * 2.2);
   },
+  /* Отпустить ЖЕЛЕЗО, но сохранить выданное разрешение.
+     Нужно перед запуском распознавания: оно должно получить микрофон само. */
+  releaseHardware(){
+    if (this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream = null; }
+    this.analyser = null; this.levelData = null;
+  },
+
   /* отпустить микрофон — только при выходе из приложения */
   release(){
     if (this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream = null; }
@@ -461,6 +468,10 @@ const Voice = {
     if (this.busy) { this.stop(); return; }
     const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Ctor) { cb.onstate && cb.onstate('unsupported'); return; }
+
+    // КРИТИЧНО: наш собственный поток занимает микрофон, и распознаванию
+    // достаётся тишина. Отпускаем железо, оставляя выданное разрешение.
+    this.releaseHardware();
 
     let r;
     try { r = new Ctor(); } catch(e){ cb.onstate && cb.onstate('error'); return; }
@@ -651,21 +662,21 @@ const Voice = {
     const run = ()=>{
       out.className = 'say-out';
       setState('rec', 'Подключаю микрофон…');
-      let quiet = 0, ticks = 0;
+      let phase = 0, heardSomething = false;
       clearInterval(vuTimer);
       vuTimer = setInterval(()=>{
-        const l = this.level();
-        fill.style.transform = `scaleX(${Math.max(.03, l)})`;
-        ticks++;
-        if (l < .05) quiet++; else quiet = 0;
-        // 2.5 секунды полной тишины — микрофон явно не ловит звук
-        if (quiet === 25 && ticks > 30) setState('rec','Не слышу звука. Говори ближе к телефону.');
-      }, 100);
+        phase += 0.35;
+        // пока речь не поймана — спокойное дыхание; как только слышим — активный отклик
+        const base = heardSomething ? 0.55 : 0.18;
+        const amp  = heardSomething ? 0.42 : 0.12;
+        fill.style.transform = `scaleX(${Math.max(.04, base + Math.sin(phase)*amp)})`;
+      }, 90);
+      const markHeard = ()=>{ heardSomething = true; };
 
       this.listen(target, {
         onstate:(s)=>{
           if (s==='listening') setState('rec','Говори — я слушаю.');
-          if (s==='speaking')  setState('rec','Слышу тебя…');
+          if (s==='speaking'){ markHeard(); setState('rec','Слышу тебя…'); }
         },
         onresult:(res)=>{
           clearInterval(vuTimer);
@@ -699,19 +710,21 @@ const Voice = {
     btn.onclick = ()=>{
       if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
       Sound.fx('tap');
-      // микрофон уже открыт — сразу слушаем, разрешение не переспрашивается
-      if (this.stream && this.stream.active){ run(); return; }
 
-      // Разрешение могло быть выдано раньше (в этой же сессии или прошлый раз).
-      // Тогда браузер отдаст поток молча, без окна — не пугаем человека надписью.
+      // Разрешение уже выдано в этом браузере — сразу слушаем, окна не будет.
+      if (this.granted){ run(); return; }
+
       this.check().then(state=>{
-        if (state !== 'granted') setState('rec', 'Разреши доступ к микрофону…');
-        return this.open();
-      }).then(res=>{
-        if (res === 'ok'){ run(); return; }
-        setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
-        out.className = 'say-out no';
-        if (res === 'denied' || res === 'no-api') this.help();
+        if (state === 'granted'){ this.granted = true; run(); return null; }
+        // Первый раз: просим доступ явно. Браузер запомнит его для этого сайта
+        // навсегда — при следующих запусках окна больше не будет.
+        setState('rec', 'Разреши доступ к микрофону…');
+        return this.open().then(res=>{
+          if (res === 'ok'){ this.releaseHardware(); run(); return; }
+          setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
+          out.className = 'say-out no';
+          if (res === 'denied' || res === 'no-api') this.help();
+        });
       });
     };
     return wrap;
