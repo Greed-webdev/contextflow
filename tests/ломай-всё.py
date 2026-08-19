@@ -34,6 +34,17 @@ if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
     return _g(c);
   };
 }
+// проигрывание заранее начитанных файлов
+window.__AUDIO__=0; window.__AUDIOSRC__=[]; window.__AUDIOFAIL__=0;
+const _play = HTMLMediaElement.prototype.play;
+HTMLMediaElement.prototype.play = function(){
+  if (this.src && this.src.indexOf('/voice/')>=0){
+    window.__AUDIO__++; window.__AUDIOSRC__.push(this.src.split('/').slice(-2).join('/'));
+    window.__L__.push('audio:'+this.src.split('/').pop());
+    this.addEventListener('error',()=>{window.__AUDIOFAIL__++;},{once:true});
+  }
+  try { return _play.call(this); } catch(e){ return Promise.reject(e); }
+};
 // синтез речи: считаем вызовы и ловим запуск вне жеста
 const _speak = speechSynthesis.speak.bind(speechSynthesis);
 speechSynthesis.speak = function(u){
@@ -125,19 +136,39 @@ with sync_playwright() as b_:
     # ── 4. ПОСЛУШАТЬ ─────────────────────────────────────────────
     print('\n[4] Кнопка «Послушать»')
     ctx, pg = new_page(b); boot(pg, (1,0))
-    check('автоозвучки при показе слова нет', pg.evaluate("window.__SPEAK__")==0,
-          f'сработало {pg.evaluate("window.__SPEAK__")} раз')
-    pg.locator('#w-say').click(); pg.wait_for_timeout(1200)
-    check('по нажатию озвучивает', pg.evaluate("window.__SPEAK__")>=1,
-          f'вызовов speak: {pg.evaluate("window.__SPEAK__")}')
-    check('синтез запущен внутри жеста', pg.evaluate("window.__SPEAK_NOGEST__")==0,
-          f'вне жеста: {pg.evaluate("window.__SPEAK_NOGEST__")}')
-    check('язык озвучки английский',
-          any('lang=en' in x for x in pg.evaluate("window.__L__")),
-          str([x for x in pg.evaluate("window.__L__") if 'speak' in x][:2]))
-    pg.locator('#w-say').click(); pg.wait_for_timeout(900)
-    check('работает повторно', pg.evaluate("window.__SPEAK__")>=2,
-          f'вызовов: {pg.evaluate("window.__SPEAK__")}')
+    pg.wait_for_timeout(600)
+    check('карта озвучки загрузилась',
+          pg.evaluate("Lesson.vmap && Object.keys(Lesson.vmap.en||{}).length>0"),
+          f"фраз: {pg.evaluate('Lesson.vmap ? Object.keys(Lesson.vmap.en||{}).length : 0')}")
+    check('автоозвучки при показе слова нет',
+          pg.evaluate("window.__SPEAK__+window.__AUDIO__")==0,
+          f'сработало {pg.evaluate("window.__SPEAK__+window.__AUDIO__")} раз')
+    pg.locator('#w-say').click(); pg.wait_for_timeout(1400)
+    check('по нажатию играет готовый файл', pg.evaluate("window.__AUDIO__")>=1,
+          str(pg.evaluate("window.__AUDIOSRC__")[:2]))
+    check('файл озвучки реально существует', pg.evaluate("window.__AUDIOFAIL__")==0,
+          f'ошибок загрузки: {pg.evaluate("window.__AUDIOFAIL__")}')
+    pg.locator('#w-say').click(); pg.wait_for_timeout(1000)
+    check('работает повторно', pg.evaluate("window.__AUDIO__")>=2,
+          f'проигрываний: {pg.evaluate("window.__AUDIO__")}')
+    ctx.close()
+
+    # ── 4b. TELEGRAM: синтеза речи НЕТ ВООБЩЕ ────────────────────
+    print('\n[4b] Как в Telegram: speechSynthesis отсутствует')
+    ctx = b.new_context(viewport={'width':390,'height':820}, user_agent=UA,
+                        permissions=['microphone'])
+    pg = ctx.new_page()
+    pg.add_init_script("delete window.speechSynthesis; delete window.SpeechSynthesisUtterance;")
+    pg.add_init_script(SPY.replace("const _speak = speechSynthesis.speak.bind(speechSynthesis);","const _speak=null;")
+                          .replace("speechSynthesis.speak = function(u){","window.__nospeak=function(u){"))
+    boot(pg, (1,0)); pg.wait_for_timeout(700)
+    check('приложение не упало без синтеза', pg.evaluate("window.__ERR__").__len__()==0,
+          str(pg.evaluate("window.__ERR__")[:2]))
+    pg.locator('#w-say').click(); pg.wait_for_timeout(1400)
+    check('«Послушать» ВСЁ РАВНО звучит', pg.evaluate("window.__AUDIO__")>=1,
+          f'проигрываний: {pg.evaluate("window.__AUDIO__")} · {pg.evaluate("window.__AUDIOSRC__")[:1]}')
+    check('файл найден на сервере', pg.evaluate("window.__AUDIOFAIL__")==0,
+          f'ошибок: {pg.evaluate("window.__AUDIOFAIL__")}')
     ctx.close()
 
     # ── 5. ЗВУК ВЫКЛЮЧЕН ─────────────────────────────────────────
@@ -148,7 +179,8 @@ with sync_playwright() as b_:
     pg.reload(wait_until='domcontentloaded'); pg.wait_for_timeout(900)
     pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(600)
     pg.locator('#w-say').click(); pg.wait_for_timeout(1000)
-    check('кнопка всё равно озвучивает', pg.evaluate("window.__SPEAK__")>=1,
+    check('кнопка всё равно озвучивает',
+          pg.evaluate("window.__AUDIO__+window.__SPEAK__")>=1,
           'иначе кнопка выглядит сломанной')
     ctx.close()
 

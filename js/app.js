@@ -24,7 +24,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v15';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v16';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -755,13 +755,45 @@ const Lesson = {
         || all.find(v => (v.lang||'').toLowerCase().replace('_','-').startsWith(base))
         || null;
   },
+  /* ОЗВУЧКА.
+     Во встроенном браузере Telegram НЕТ speechSynthesis — синтезировать
+     текст на лету нечем. Поэтому все фразы курса начитаны заранее
+     в assets/voice/<язык>/*.m4a (см. tools-voice.py), а системный синтез
+     остаётся запасным вариантом для обычных браузеров. */
+  vmap:null, vmapTried:false, audio:null,
+  loadVoiceMap(){
+    if (this.vmapTried) return;
+    this.vmapTried = true;
+    fetch('assets/voice/index.json')
+      .then(r=>r.ok ? r.json() : null)
+      .then(j=>{ this.vmap = j || null; })
+      .catch(()=>{ this.vmap = null; });
+  },
   say(text, opts){
     const force = opts && opts.force;
     if (!force && !S.sound.tts) return;
+    if (!text) return;
+    const code = (S.lang || 'en');
+
+    // 1) заранее начитанный файл — работает везде, в том числе в Telegram
+    const m = this.vmap && this.vmap[code] && this.vmap[code][text];
+    if (m){
+      try{
+        if (this.audio){ this.audio.pause(); this.audio = null; }
+        const a = new Audio('assets/voice/' + code + '/' + m + '.m4a');
+        a.volume = 1;
+        this.audio = a;
+        const pr = a.play();
+        if (pr && pr.catch) pr.catch(()=>this.sayNative(text));
+        return;
+      }catch(e){ /* ниже запасной путь */ }
+    }
+    this.sayNative(text);
+  },
+  /* запасной путь: системный синтез (обычные браузеры) */
+  sayNative(text){
     if (!('speechSynthesis' in window)) return;
     const code = lang().tts;
-
-    // СИНХРОННО, прямо в жесте нажатия: любая задержка = Android глушит синтез
     try{
       speechSynthesis.cancel();
       if (speechSynthesis.paused) speechSynthesis.resume();
@@ -775,7 +807,6 @@ const Lesson = {
                || list.find(x => (x.lang||'').toLowerCase().replace('_','-').startsWith(base));
         if (v) u.voice = v;
       } else {
-        // голоса ещё не подгружены — запомним на следующий раз, но говорим уже сейчас
         speechSynthesis.onvoiceschanged = ()=>{
           this.voices = speechSynthesis.getVoices() || [];
           speechSynthesis.onvoiceschanged = null;
@@ -1097,6 +1128,9 @@ const Settings = {
 
   ['assets/map/mountain-map.png', ...Object.values(STAGES).map(s=>s.art)]
     .forEach(src=>{ const i=new Image(); i.src=src; });
+
+  // карта заранее начитанных фраз: без неё «Послушать» молчит в Telegram
+  Lesson.loadVoiceMap();
 
   const wake = ()=>{ Sound.boot(); Sound.resume(); if(S.sound.amb) Ambience.forScreen(current);
                      document.removeEventListener('pointerdown', wake); };
