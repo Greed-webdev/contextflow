@@ -24,7 +24,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v12-mic';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v13';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -391,70 +391,14 @@ const Voice = {
      «Разрешить доступ к микрофону?». Без него распознавание в Telegram
      часто просто молчит и человек не понимает, что случилось. */
   granted:false,
-  stream:null, ac:null, analyser:null, levelData:null,
 
-  /* Открыть микрофон ОДИН РАЗ и держать открытым, пока человек в приложении.
-     Если поток отпустить, телефон спрашивает разрешение при каждой попытке. */
-  open(){
-    if (this.stream && this.stream.active) return Promise.resolve('ok');
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-      return Promise.resolve('no-api');
-    }
-    return navigator.mediaDevices.getUserMedia({audio:{
-      echoCancellation:true,     // убрать эхо от динамика
-      noiseSuppression:true,     // подавить шум
-      autoGainControl:true       // выровнять громкость: и шёпот, и крик
-    }}).then(stream=>{
-      this.stream = stream;
-      this.granted = true;
-      this.meter(stream);        // индикатор громкости, чтобы было видно: слышит
-      return 'ok';
-    }).catch(err=>{
-      const n = err && err.name;
-      if (n==='NotAllowedError' || n==='PermissionDeniedError') return 'denied';
-      if (n==='NotFoundError' || n==='DevicesNotFoundError') return 'no-mic';
-      return 'error';
-    });
-  },
-  /* измеритель громкости: показывает, доходит ли до приложения звук */
-  meter(stream){
-    try{
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      if (!this.ac) this.ac = new AC();
-      if (this.ac.state === 'suspended') this.ac.resume();
-      const src = this.ac.createMediaStreamSource(stream);
-      this.analyser = this.ac.createAnalyser();
-      this.analyser.fftSize = 512;
-      this.levelData = new Uint8Array(this.analyser.frequencyBinCount);
-      src.connect(this.analyser);
-    }catch(e){}
-  },
-  /* текущая громкость 0..1 */
-  level(){
-    if (!this.analyser || !this.levelData) return 0;
-    this.analyser.getByteTimeDomainData(this.levelData);
-    let peak = 0;
-    for (let i=0;i<this.levelData.length;i++){
-      const v = Math.abs(this.levelData[i] - 128) / 128;
-      if (v > peak) peak = v;
-    }
-    return Math.min(1, peak * 2.2);
-  },
-  /* Отпустить ЖЕЛЕЗО, но сохранить выданное разрешение.
-     Нужно перед запуском распознавания: оно должно получить микрофон само. */
-  releaseHardware(){
-    if (this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream = null; }
-    this.analyser = null; this.levelData = null;
-  },
-
-  /* отпустить микрофон — только при выходе из приложения */
-  release(){
-    if (this.stream){ this.stream.getTracks().forEach(t=>t.stop()); this.stream = null; }
-    this.analyser = null; this.levelData = null;
-  },
-
-  ask(){ return this.open(); },
+  /* Микрофон принадлежит ТОЛЬКО распознаванию речи.
+     Свой поток не открываем никогда: два владельца = два окна разрешения
+     и заглушенное распознавание. Это была причина всех прошлых бед. */
+  open(){ return Promise.resolve('ok'); },
+  releaseHardware(){},
+  release(){},
+  ask(){ return Promise.resolve('ok'); },
   /* уже разрешено раньше? спрашиваем тихо, без окна */
   check(){
     if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve('unknown');
@@ -710,22 +654,10 @@ const Voice = {
     btn.onclick = ()=>{
       if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
       Sound.fx('tap');
-
-      // Разрешение уже выдано в этом браузере — сразу слушаем, окна не будет.
-      if (this.granted){ run(); return; }
-
-      this.check().then(state=>{
-        if (state === 'granted'){ this.granted = true; run(); return null; }
-        // Первый раз: просим доступ явно. Браузер запомнит его для этого сайта
-        // навсегда — при следующих запусках окна больше не будет.
-        setState('rec', 'Разреши доступ к микрофону…');
-        return this.open().then(res=>{
-          if (res === 'ok'){ this.releaseHardware(); run(); return; }
-          setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
-          out.className = 'say-out no';
-          if (res === 'denied' || res === 'no-api') this.help();
-        });
-      });
+      // ВАЖНО: start() обязан вызваться СИНХРОННО в обработчике нажатия.
+      // Любой await/then рвёт «жест пользователя», и мобильный браузер
+      // молча отказывает — микрофон не включается, ошибок нет.
+      run();
     };
     return wrap;
   }
