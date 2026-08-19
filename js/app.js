@@ -24,6 +24,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
+const APP_VERSION = 'v11-mic';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -627,8 +628,8 @@ const Voice = {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
         <rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/>
       </svg><span class="say-label">Сказать</span>`;
-    const out = el('div','say-out','');
-    const bar = el('div','say-bar');
+    const out = el('div','say-out','Нажми и скажи слово вслух · ' + APP_VERSION);
+    const bar = el('div','say-bar on');
     const fill = el('i','say-fill');
     bar.appendChild(fill);
     wrap.appendChild(btn); wrap.appendChild(bar); wrap.appendChild(out);
@@ -650,7 +651,6 @@ const Voice = {
     const run = ()=>{
       out.className = 'say-out';
       setState('rec', 'Подключаю микрофон…');
-      bar.classList.add('on');
       let quiet = 0, ticks = 0;
       clearInterval(vuTimer);
       vuTimer = setInterval(()=>{
@@ -669,7 +669,6 @@ const Voice = {
         },
         onresult:(res)=>{
           clearInterval(vuTimer);
-          bar.classList.remove('on');
           fill.style.transform = 'scaleX(.03)';
           if (res.err === 'denied'){
             setState('', 'Микрофон не разрешён.');
@@ -703,8 +702,12 @@ const Voice = {
       // микрофон уже открыт — сразу слушаем, разрешение не переспрашивается
       if (this.stream && this.stream.active){ run(); return; }
 
-      setState('rec', 'Разреши доступ к микрофону…');
-      this.open().then(res=>{
+      // Разрешение могло быть выдано раньше (в этой же сессии или прошлый раз).
+      // Тогда браузер отдаст поток молча, без окна — не пугаем человека надписью.
+      this.check().then(state=>{
+        if (state !== 'granted') setState('rec', 'Разреши доступ к микрофону…');
+        return this.open();
+      }).then(res=>{
         if (res === 'ok'){ run(); return; }
         setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
         out.className = 'say-out no';

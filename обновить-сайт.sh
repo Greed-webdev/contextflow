@@ -23,6 +23,20 @@ rm -f /tmp/pages/assets/map/mountain-with-signs.png /tmp/pages/assets/scenes/her
 cp _headers /tmp/pages/ 2>/dev/null
 touch /tmp/pages/.nojekyll
 
+# GitHub Pages кэширует файлы на 10 минут и игнорирует _headers.
+# Поэтому дописываем к адресам css/js метку версии — браузер обязан скачать заново.
+V=$(date +%s)
+python3 - "$V" <<'PYEOF'
+import re, sys
+v = sys.argv[1]
+p = '/tmp/pages/index.html'
+s = open(p, encoding='utf-8').read()
+s = re.sub(r'(href="css/[a-z]+\.css)"', r'\1?v=' + v + '"', s)
+s = re.sub(r'(src="js/[a-z]+\.js)"',   r'\1?v=' + v + '"', s)
+open(p, 'w', encoding='utf-8').write(s)
+print('  метка версии:', v)
+PYEOF
+
 cd /tmp/pages || exit 1
 git init -q
 git config user.email "dev@contextflow.local"
