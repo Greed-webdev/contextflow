@@ -26,7 +26,7 @@ fi
 mkdir -p backup
 SNAP="backup/$(date '+%Y-%m-%d_%H%M')"
 mkdir -p "$SNAP"
-cp ContextFlow-app.html css/map.css css/theme.css js/app.js js/lessons.js "$SNAP/" 2>/dev/null
+cp index.html css/map.css css/theme.css js/app.js js/lessons.js "$SNAP/" 2>/dev/null
 echo "$MSG" > "$SNAP/что-меняли.txt"
 
 # ротация: всё кроме трёх свежих папок удаляем
@@ -48,14 +48,14 @@ if [ "$ZIP" = "1" ]; then
     echo ""
     echo "Как продолжить: открыть новый чат, загрузить этот архив"
     echo "и написать «вот архив проекта, распакуй и продолжаем»."
-    echo "Запуск локально: открыть ContextFlow-app.html в браузере."
+    echo "Запуск локально: открыть index.html в браузере."
   } > ЧТО-ЭТО.txt
 
   # версия одним файлом — для телефона, работает без интернета
   python3 tools-bundle.py >/dev/null 2>&1 && echo "✔ Один файл для телефона: ContextFlow-offline.html"
 
   rm -f ContextFlow-*.zip contextflow.zip
-  zip -qr "$NAME" ContextFlow-app.html index-graphite-rocket.html css js assets original uploads \
+  zip -qr "$NAME" index.html graphite-rocket-СТАРАЯ.html css js assets original uploads \
       RULES.md save.sh tools-bundle.py ЧТО-ЭТО.txt КАК-НЕ-ПОТЕРЯТЬ-ПРОЕКТ.md .git \
       ContextFlow-offline.html
   echo "✔ Архив: $NAME ($(du -h "$NAME" | cut -f1))"
