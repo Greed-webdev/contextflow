@@ -262,6 +262,17 @@
 .say-out.mid{color:#c8a06a}
 .say-out.no{color:var(--clay)}
 .btn.quiet.rec{border-color:rgba(180,132,92,.7);color:#f0dcc7}
+/* «почему не работает» — тихая ссылка под кнопкой */
+.say-why{
+  background:none;border:none;cursor:pointer;padding:4px 8px;
+  font-family:var(--font);font-size:13px;color:var(--text-3);
+  text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,.22);
+}
+.say-why:active{color:var(--text-2)}
+/* шаги инструкции по микрофону */
+.mic-steps{margin:10px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:9px}
+.mic-steps li{font-size:14.5px;line-height:1.45;color:var(--text-2)}
+.mic-steps li::marker{color:var(--moss);font-weight:600}
 
 /* диалог */
 .chat{display:flex;flex-direction:column;gap:10px;padding:4px 16px 8px}

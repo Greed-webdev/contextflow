@@ -438,6 +438,72 @@ const Voice = {
     if (this.rec){ try{ this.rec.abort(); }catch(e){} this.rec = null; }
   },
 
+  /* какое устройство — чтобы дать точную инструкцию, а не общие слова */
+  device(){
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+    if (/Android/i.test(ua)) return 'android';
+    return 'desktop';
+  },
+  /* приложение открыто внутри Telegram? там микрофон часто режется */
+  inTelegram(){
+    const W = window.Telegram && window.Telegram.WebApp;
+    // пустой initData = скрипт просто подключён, но запуска из Telegram не было
+    return !!(W && typeof W.initData === 'string' && W.initData.length > 0);
+  },
+  /* страница во фрейме (превью) — микрофон блокируется браузером */
+  inFrame(){ try { return window.self !== window.top; } catch(e){ return true; } },
+
+  /* окно «как включить микрофон» — с шагами под конкретное устройство */
+  help(){
+    const d = this.device();
+    const insecure = location.protocol !== 'https:' && location.hostname !== 'localhost'
+                     && location.protocol !== 'file:';
+    let steps, title = 'Как разрешить микрофон';
+
+    if (this.inFrame()){
+      title = 'Открой в отдельной вкладке';
+      steps = ['Сейчас приложение показано в маленьком окне предпросмотра.',
+               'Браузер намеренно не пускает микрофон внутрь такого окна.',
+               'Открой ту же ссылку в обычной вкладке браузера — и всё заработает.'];
+    } else if (location.protocol === 'file:'){
+      title = 'Нужен адрес, а не файл';
+      steps = ['Файл открыт с диска — браузеры запрещают микрофон в таком режиме.',
+               'Открой приложение по ссылке (http или https), тогда микрофон будет доступен.'];
+    } else if (insecure){
+      title = 'Нужен защищённый адрес';
+      steps = ['Микрофон работает только на https или на localhost.',
+               'Открой приложение по https-ссылке.'];
+    } else if (d === 'ios'){
+      steps = ['Открой «Настройки» на телефоне.',
+               'Пролистай вниз до Safari (или Chrome, если пользуешься им).',
+               'Нажми «Микрофон» и выбери «Спросить» или «Разрешить».',
+               'Вернись сюда и обнови страницу, потом нажми «Сказать» ещё раз.'];
+    } else if (d === 'android'){
+      steps = ['В браузере нажми на замок слева от адреса страницы.',
+               'Выбери «Разрешения» или «Настройки сайта».',
+               'Найди «Микрофон» и переключи на «Разрешить».',
+               'Обнови страницу и нажми «Сказать» ещё раз.',
+               'Если пункта нет: Настройки телефона → Приложения → твой браузер → Разрешения → Микрофон.'];
+    } else {
+      steps = ['Нажми на замок слева от адреса страницы.',
+               'Найди «Микрофон» и поставь «Разрешить».',
+               'Обнови страницу и нажми «Сказать» ещё раз.'];
+    }
+
+    if (this.inTelegram()){
+      steps.push('Открыто внутри Telegram: если не помогло — открой приложение во внешнем браузере через меню «…».');
+    }
+
+    Sheet.open(`
+      <span class="kicker amber">Микрофон</span>
+      <h2 class="sm" style="margin:6px 0 4px">${title}</h2>
+      <ol class="mic-steps">${steps.map(s=>`<li>${s}</li>`).join('')}</ol>
+      <button class="btn moss" style="margin-top:16px" onclick="Sheet.close()">Понятно</button>
+      <button class="btn quiet" style="margin-top:9px" onclick="location.reload()">Обновить страницу</button>
+    `);
+  },
+
   /* готовая кнопка «Сказать» + строка результата.
      onScore(score, heard) — вызывается после попытки */
   mount(host, target, onScore){
@@ -457,6 +523,13 @@ const Voice = {
       if (txt !== undefined) out.textContent = txt;
     };
 
+    // заранее видно, что микрофон не дадут — объясняем сразу, не мучая человека
+    if (this.inFrame() || location.protocol === 'file:'){
+      const warn = el('button','say-why','Микрофон тут не работает — почему?');
+      warn.onclick = ()=>this.help();
+      wrap.appendChild(warn);
+    }
+
     btn.onclick = ()=>{
       if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
       out.className = 'say-out';
@@ -466,8 +539,10 @@ const Voice = {
         onstate:(s)=>{ if (s==='listening') setState('rec','Говори.'); },
         onresult:(res)=>{
           if (res.err === 'denied'){
-            setState('', 'Нет доступа к микрофону — разреши его в настройках.');
-            out.className='say-out no'; return;
+            setState('', 'Микрофон не разрешён.');
+            out.className='say-out no';
+            this.help();
+            return;
           }
           if (res.err === 'silent' || !res.heard){
             setState('', 'Не расслышал. Попробуй ещё раз.');
@@ -753,7 +828,8 @@ const Lesson = {
             onresult:(res)=>{
               dict.classList.remove('rec'); dict.textContent='Надиктовать';
               if (res.heard) ta.value = res.heard;
-              else this.fb(res.err==='denied' ? 'Нет доступа к микрофону.' : 'Не расслышал.', false);
+              else if (res.err==='denied'){ this.fb('Микрофон не разрешён.', false); Voice.help(); }
+              else this.fb('Не расслышал.', false);
             }
           });
         };
