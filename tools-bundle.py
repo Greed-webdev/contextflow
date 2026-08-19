@@ -1,6 +1,6 @@
 import base64, re, os, mimetypes
 
-html = open('index.html', encoding='utf-8').read()
+html = open('ContextFlow-app.html', encoding='utf-8').read()
 
 def datauri(path):
     path = path.split('?')[0].split('#')[0]
