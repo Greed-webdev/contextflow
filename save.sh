@@ -22,13 +22,15 @@ else
   echo "✔ Сохранено: $MSG"
 fi
 
-# живая копия последней рабочей версии — на случай если git не под рукой
+# копии рабочих файлов — храним только 3 последние папки
 mkdir -p backup
-cp index.html      backup/index-last.html   2>/dev/null
-cp css/map.css     backup/map-last.css      2>/dev/null
-cp css/theme.css   backup/theme-last.css    2>/dev/null
-cp js/app.js       backup/app-last.js       2>/dev/null
-cp js/lessons.js   backup/lessons-last.js   2>/dev/null
+SNAP="backup/$(date '+%Y-%m-%d_%H%M')"
+mkdir -p "$SNAP"
+cp index.html css/map.css css/theme.css js/app.js js/lessons.js "$SNAP/" 2>/dev/null
+echo "$MSG" > "$SNAP/что-меняли.txt"
+
+# ротация: всё кроме трёх свежих папок удаляем
+ls -1dt backup/*/ 2>/dev/null | tail -n +4 | xargs -r rm -rf
 
 if [ "$ZIP" = "1" ]; then
   # понятное имя: дата + номер версии, чтобы в папке "Загрузки" было видно что новее
