@@ -24,7 +24,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v16';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v17';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -635,25 +635,19 @@ const Voice = {
 
     const run = ()=>{
       out.className = 'say-out';
-      setState('rec', 'Подключаю микрофон…');
-      let phase = 0, heardSomething = false;
+      setState('rec', 'Говори — я слушаю.');
       clearInterval(vuTimer);
-      vuTimer = setInterval(()=>{
-        phase += 0.35;
-        // пока речь не поймана — спокойное дыхание; как только слышим — активный отклик
-        const base = heardSomething ? 0.55 : 0.18;
-        const amp  = heardSomething ? 0.42 : 0.12;
-        fill.style.transform = `scaleX(${Math.max(.04, base + Math.sin(phase)*amp)})`;
-      }, 90);
-      const markHeard = ()=>{ heardSomething = true; };
+      // полоска показывает НАСТОЯЩУЮ громкость, а не рисованную волну
+      STT.onLevel = (v)=>{ fill.style.transform = `scaleX(${Math.max(.03, v)})`; };
 
-      this.listen(target, {
+      STT.listen(target, {
         onstate:(s)=>{
           if (s==='listening') setState('rec','Говори — я слушаю.');
-          if (s==='speaking'){ markHeard(); setState('rec','Слышу тебя…'); }
+          if (s==='speaking') setState('rec','Слышу тебя…');
         },
         onresult:(res)=>{
           clearInterval(vuTimer);
+          STT.onLevel = null;
           fill.style.transform = 'scaleX(.03)';
           if (res.err === 'denied'){
             setState('', 'Микрофон не разрешён.');
@@ -682,23 +676,54 @@ const Voice = {
     };
 
     btn.onclick = ()=>{
-      if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
+      if (STT.active){ STT.stop(); setState('', 'Отменено.'); return; }
       Sound.fx('tap');
-      // Никаких getUserMedia и промисов. Во встроенном браузере Telegram
-      // getUserMedia даёт ВТОРОЕ окно разрешения и ничего не закрепляет
-      // ("доступен, пока открыт этот сайт"). Распознавание само покажет
-      // окно один раз за сеанс. start() зовём синхронно, внутри жеста.
-      run();
+
+      // Всё готово — слушаем сразу. Микрофон уже наш, разрешение не трогаем.
+      if (STT.ready && STT.stream){ run(); return; }
+
+      // Первый раз: скачать движок (~40 МБ, потом из памяти телефона)
+      // и один раз взять микрофон. Дальше окно больше не появится.
+      if (!STT.supported()){
+        setState('', 'Голосовой движок не поддерживается этим телефоном.');
+        out.className = 'say-out no';
+        return;
+      }
+      setState('rec', STT.cached ? 'Готовлю голос…' : 'Скачиваю голосовой движок, ~40 МБ. Только один раз.');
+      btn.disabled = true;
+
+      STT.load().then(ok=>{
+        if (!ok){
+          btn.disabled = false;
+          setState('', 'Не смог загрузить голосовой движок. Проверь интернет.');
+          out.className = 'say-out no';
+          return;
+        }
+        setState('rec', 'Разреши доступ к микрофону…');
+        return STT.openMic().then(res=>{
+          btn.disabled = false;
+          if (res === true){ run(); return; }
+          setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
+          out.className = 'say-out no';
+          if (res === 'denied') this.help();
+        });
+      });
     };
     return wrap;
   }
 };
 
 // уходим со страницы — отпускаем микрофон, чтобы не горел индикатор
+// Сворачивание НЕ отпускает микрофон: иначе Telegram спросит разрешение
+// заново при возврате. Просто перестаём слушать.
 document.addEventListener('visibilitychange', ()=>{
-  if (document.hidden){ Voice.stop(); Voice.release(); }
+  if (document.hidden){ Voice.stop(); STT.stop(); }
 });
-window.addEventListener('pagehide', ()=>{ Voice.stop(); Voice.release(); });
+// Уходим совсем — вот теперь отпускаем железо, чтобы не горел индикатор.
+window.addEventListener('pagehide', ()=>{
+  Voice.stop(); STT.stop();
+  try { if (STT.stream) STT.stream.getTracks().forEach(t=>t.stop()); } catch(e){}
+});
 
 /* ---------------- урок ---------------- */
 const Lesson = {

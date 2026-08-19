@@ -58,23 +58,44 @@ class Rec {
   start(){
     if (!window.__GEST__){ window.__BLOCKED__++; window.__L__.push('ОТКАЗ вне жеста');
       const s=this; setTimeout(()=>s.onerror&&s.onerror({error:'not-allowed'}),10); return; }
-    window.__L__.push('rec:ok');
     const s=this;
     setTimeout(()=>s.onstart&&s.onstart(),10);
-    setTimeout(()=>{
-      if (window.__MODE__==='silence'){ s.onerror&&s.onerror({error:'no-speech'}); return; }
-      s.onspeechstart&&s.onspeechstart();
-      const fin = window.__MODE__!=='interim';
-      const r=[{0:{transcript: window.__SAY__||'Hello'},length:1,isFinal:fin}];
-      r[Symbol.iterator]=Array.prototype[Symbol.iterator];
-      s.onresult&&s.onresult({results:r,resultIndex:0});
-      if (!fin) setTimeout(()=>s.onend&&s.onend(),100);
-    },140);
+    setTimeout(()=>{ s.onerror&&s.onerror({error:'no-speech'}); },200);
   }
   stop(){ if(this.onend) this.onend(); }
   abort(){ if(this.onend) this.onend(); }
 }
 window.SpeechRecognition=Rec; window.webkitSpeechRecognition=Rec;
+
+// ── подменяем голосовой движок: настоящую модель в тесте не качаем ──
+window.__MODELLOAD__=0; window.__RECOG__=0;
+const __VOSK_FAKE__ = {
+  createModel: function(url){
+    window.__MODELLOAD__++; window.__L__.push('model:'+url);
+    return new Promise(res=>setTimeout(()=>res({
+      KaldiRecognizer: function(rate){
+        window.__RECOG__++;
+        this._h={};
+        this.on=(k,f)=>{ this._h[k]=f; };
+        this.acceptWaveform=()=>{
+          if (this._sent) return;
+          this._sent=true;
+          const t=window.__SAY__||'Hello';
+          setTimeout(()=>this._h.partialresult&&this._h.partialresult({result:{partial:t}}),30);
+        };
+        this.retrieveFinalResult=()=>{
+          const t=window.__MODE__==='silence' ? '' : (window.__SAY__||'Hello');
+          setTimeout(()=>this._h.result&&this._h.result({result:{text:t}}),20);
+        };
+        this.remove=()=>{};
+      }
+    }),60));
+  }
+};
+// настоящий vosk.js грузится позже и попытается перезаписать — не даём
+Object.defineProperty(window,'Vosk',{
+  get(){ return __VOSK_FAKE__; }, set(v){}, configurable:false
+});
 """
 
 FRESH = ("localStorage.clear();localStorage.setItem('contextflow_state_v10',JSON.stringify("
@@ -104,32 +125,43 @@ with sync_playwright() as b_:
     # ── 1. МИКРОФОН: первый раз ──────────────────────────────────
     print('\n[1] Микрофон · первое нажатие в жизни')
     ctx, pg = new_page(b); boot(pg, (1,0))
-    pg.locator('.say-btn').click(); pg.wait_for_timeout(1800)
-    check('getUserMedia НЕ вызывается (второе окно в Telegram)',
-          pg.evaluate("window.__GUM__")==0,
-          f'вызовов: {pg.evaluate("window.__GUM__")}')
-    check('распознал с ПЕРВОГО тапа', '100%' in pg.locator('.say-out').inner_text(),
+    check('движок ещё не грузился', pg.evaluate("window.__MODELLOAD__")==0)
+    pg.locator('.say-btn').click(); pg.wait_for_timeout(2500)
+    check('движок скачался один раз', pg.evaluate("window.__MODELLOAD__")==1,
+          f'загрузок: {pg.evaluate("window.__MODELLOAD__")}')
+    check('микрофон взят один раз', pg.evaluate("window.__GUM__")==1,
+          f'вызовов getUserMedia: {pg.evaluate("window.__GUM__")}')
+    check('распознал', '100%' in pg.locator('.say-out').inner_text(),
           pg.locator('.say-out').inner_text())
-    check('стартов вне жеста нет', pg.evaluate("window.__BLOCKED__")==0,
-          f'отказов: {pg.evaluate("window.__BLOCKED__")}')
 
-    # ── 2. МИКРОФОН: повторные нажатия ───────────────────────────
-    print('\n[2] Микрофон · ещё 5 нажатий')
-    for _ in range(5):
-        pg.locator('.say-btn').click(); pg.wait_for_timeout(800)
-    check('getUserMedia так и не звали', pg.evaluate("window.__GUM__")==0,
-          f'всего: {pg.evaluate("window.__GUM__")}')
-    check('стартов вне жеста нет', pg.evaluate("window.__BLOCKED__")==0,
-          f'отказов: {pg.evaluate("window.__BLOCKED__")}')
+    # ── 2. ГЛАВНОЕ: много фраз подряд — окно НЕ должно возвращаться ──
+    print('\n[2] Ещё 8 фраз подряд · окно разрешения не должно возвращаться')
+    for _ in range(8):
+        pg.locator('.say-btn').click(); pg.wait_for_timeout(700)
+    check('микрофон так и остался один раз', pg.evaluate("window.__GUM__")==1,
+          f'ВСЕГО запросов микрофона: {pg.evaluate("window.__GUM__")} (должен быть 1)')
+    check('движок больше не качался', pg.evaluate("window.__MODELLOAD__")==1,
+          f'загрузок: {pg.evaluate("window.__MODELLOAD__")}')
+    check('поток микрофона живой', pg.evaluate("!!(STT.stream && STT.stream.active)"))
 
-    # ── 3. МИКРОФОН: перезагрузка страницы ───────────────────────
-    print('\n[3] Микрофон · после перезагрузки (главное!)')
-    pg.reload(wait_until='domcontentloaded'); pg.wait_for_timeout(900)
-    pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(700)
+    # ── 2b. свернули и вернулись ─────────────────────────────────
+    print('\n[2b] Свернул приложение и вернулся')
+    pg.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+    pg.wait_for_timeout(400)
+    g0 = pg.evaluate("window.__GUM__")
     pg.locator('.say-btn').click(); pg.wait_for_timeout(1500)
-    check('окно разрешения не звали', pg.evaluate("window.__GUM__")==0,
-          f'вызовов: {pg.evaluate("window.__GUM__")}')
-    check('распознал сразу, с первого тапа', '100%' in pg.locator('.say-out').inner_text(),
+    check('окно разрешения не вернулось', pg.evaluate("window.__GUM__")==g0,
+          f'было {g0}, стало {pg.evaluate("window.__GUM__")}')
+    check('слышит после возврата', '100%' in pg.locator('.say-out').inner_text(),
+          pg.locator('.say-out').inner_text())
+
+    # ── 3. Перезагрузка страницы ─────────────────────────────────
+    print('\n[3] После перезагрузки')
+    pg.reload(wait_until='domcontentloaded'); pg.wait_for_timeout(900)
+    pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(600)
+    check('движок помечен как скачанный', pg.evaluate("STT.cached")==True)
+    pg.locator('.say-btn').click(); pg.wait_for_timeout(2500)
+    check('распознаёт после перезагрузки', '100%' in pg.locator('.say-out').inner_text(),
           pg.locator('.say-out').inner_text())
     ctx.close()
 
