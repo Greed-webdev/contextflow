@@ -49,9 +49,13 @@ if [ "$ZIP" = "1" ]; then
     echo "Запуск локально: открыть index.html в браузере."
   } > ЧТО-ЭТО.txt
 
+  # версия одним файлом — для телефона, работает без интернета
+  python3 tools-bundle.py >/dev/null 2>&1 && echo "✔ Один файл для телефона: ContextFlow-offline.html"
+
   rm -f ContextFlow-*.zip contextflow.zip
   zip -qr "$NAME" index.html index-graphite-rocket.html css js assets original uploads \
-      RULES.md save.sh ЧТО-ЭТО.txt КАК-НЕ-ПОТЕРЯТЬ-ПРОЕКТ.md .git
+      RULES.md save.sh tools-bundle.py ЧТО-ЭТО.txt КАК-НЕ-ПОТЕРЯТЬ-ПРОЕКТ.md .git \
+      ContextFlow-offline.html
   echo "✔ Архив: $NAME ($(du -h "$NAME" | cut -f1))"
   echo "  В «Загрузках» он будет с датой — старые можно смело удалять."
 fi
