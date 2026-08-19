@@ -93,26 +93,21 @@ with sync_playwright() as b_:
     # ── 1. МИКРОФОН: первый раз ──────────────────────────────────
     print('\n[1] Микрофон · первое нажатие в жизни')
     ctx, pg = new_page(b); boot(pg, (1,0))
-    check('отметки о доступе ещё нет', pg.evaluate("Voice.granted")==False)
     pg.locator('.say-btn').click(); pg.wait_for_timeout(1800)
-    check('доступ закреплён через getUserMedia', pg.evaluate("window.__GUM__")==1,
+    check('getUserMedia НЕ вызывается (второе окно в Telegram)',
+          pg.evaluate("window.__GUM__")==0,
           f'вызовов: {pg.evaluate("window.__GUM__")}')
-    check('отметка сохранена в память', pg.evaluate("Voice.granted")==True)
-    check('подсказка «нажми ещё раз»', 'ещё раз' in pg.locator('.say-out').inner_text(),
+    check('распознал с ПЕРВОГО тапа', '100%' in pg.locator('.say-out').inner_text(),
           pg.locator('.say-out').inner_text())
-    # второй тап — теперь уже слушает
-    pg.locator('.say-btn').click(); pg.wait_for_timeout(1600)
-    check('распознал со второго тапа', '100%' in pg.locator('.say-out').inner_text(),
-          pg.locator('.say-out').inner_text())
-    check('окно разрешения больше не звали', pg.evaluate("window.__GUM__")==1,
-          f'вызовов: {pg.evaluate("window.__GUM__")}')
+    check('стартов вне жеста нет', pg.evaluate("window.__BLOCKED__")==0,
+          f'отказов: {pg.evaluate("window.__BLOCKED__")}')
 
     # ── 2. МИКРОФОН: повторные нажатия ───────────────────────────
     print('\n[2] Микрофон · ещё 5 нажатий')
     for _ in range(5):
         pg.locator('.say-btn').click(); pg.wait_for_timeout(800)
-    check('новых окон разрешения нет', pg.evaluate("window.__GUM__")==1,
-          f'всего getUserMedia: {pg.evaluate("window.__GUM__")}')
+    check('getUserMedia так и не звали', pg.evaluate("window.__GUM__")==0,
+          f'всего: {pg.evaluate("window.__GUM__")}')
     check('стартов вне жеста нет', pg.evaluate("window.__BLOCKED__")==0,
           f'отказов: {pg.evaluate("window.__BLOCKED__")}')
 
@@ -120,12 +115,10 @@ with sync_playwright() as b_:
     print('\n[3] Микрофон · после перезагрузки (главное!)')
     pg.reload(wait_until='domcontentloaded'); pg.wait_for_timeout(900)
     pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(700)
-    check('отметка пережила перезагрузку', pg.evaluate("Voice.granted")==True)
-    g0 = pg.evaluate("window.__GUM__")
     pg.locator('.say-btn').click(); pg.wait_for_timeout(1500)
-    check('окно разрешения НЕ появилось', pg.evaluate("window.__GUM__")==g0,
-          f'было {g0}, стало {pg.evaluate("window.__GUM__")}')
-    check('распознал сразу', '100%' in pg.locator('.say-out').inner_text(),
+    check('окно разрешения не звали', pg.evaluate("window.__GUM__")==0,
+          f'вызовов: {pg.evaluate("window.__GUM__")}')
+    check('распознал сразу, с первого тапа', '100%' in pg.locator('.say-out').inner_text(),
           pg.locator('.say-out').inner_text())
     ctx.close()
 

@@ -18,6 +18,7 @@ fi
 echo "Собираю свежую версию…"
 rm -rf /tmp/pages && mkdir -p /tmp/pages
 cp index.html /tmp/pages/
+cp diag.html /tmp/pages/ 2>/dev/null   # страница-диагностика для проверки на телефоне
 cp -r css js assets /tmp/pages/
 rm -f /tmp/pages/assets/map/mountain-with-signs.png /tmp/pages/assets/scenes/hero-dusk.jpg 2>/dev/null
 cp _headers /tmp/pages/ 2>/dev/null

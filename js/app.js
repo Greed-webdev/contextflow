@@ -24,7 +24,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v14';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v15';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -684,24 +684,11 @@ const Voice = {
     btn.onclick = ()=>{
       if (this.busy){ this.stop(); setState('', 'Отменено.'); return; }
       Sound.fx('tap');
-
-      // Доступ закреплён -> старт СИНХРОННО, внутри жеста. Никаких промисов.
-      if (this.granted){ run(); return; }
-
-      // Самый первый раз за всё время. getUserMedia закрепляет доступ за сайтом
-      // навсегда, но его промис съедает жест — стартовать распознавание уже нельзя.
-      // Поэтому честно просим тапнуть второй раз. Это происходит ОДИН раз в жизни.
-      setState('rec', 'Разреши доступ к микрофону…');
-      this.prime().then(res=>{
-        if (res === 'ok'){
-          setState('done', 'Готово. Нажми ещё раз и говори.');
-          out.className = 'say-out ok';
-          return;
-        }
-        setState('', res === 'no-mic' ? 'Микрофон не найден.' : 'Микрофон не разрешён.');
-        out.className = 'say-out no';
-        if (res === 'denied' || res === 'no-api') this.help();
-      });
+      // Никаких getUserMedia и промисов. Во встроенном браузере Telegram
+      // getUserMedia даёт ВТОРОЕ окно разрешения и ничего не закрепляет
+      // ("доступен, пока открыт этот сайт"). Распознавание само покажет
+      // окно один раз за сеанс. start() зовём синхронно, внутри жеста.
+      run();
     };
     return wrap;
   }
