@@ -11,5 +11,6 @@ backup/
 deploy/
 ContextFlow-deploy.zip
 
-# голосовой движок: 40 МБ, качается заново скриптом tools-stt.sh
+# модель распознавания: 40 МБ. Ставится скриптом tools-stt.sh
+# (js/vosk/vosk.js НЕ игнорируем — он маленький и нужен всегда)
 assets/stt/
