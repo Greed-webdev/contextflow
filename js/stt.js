@@ -110,9 +110,19 @@ const STT = {
       cb.onresult && cb.onresult(payload);
     };
 
+    // Сужаем словарь до ожидаемой фразы: движок выбирает из горстки слов,
+    // а не из 300 тысяч. Именно из-за широкого словаря «hello» иногда
+    // слышалось как «don't worry». [unk] оставляем — иначе движок
+    // подгонит под ответ вообще любой звук.
+    const rate = this.ctx ? this.ctx.sampleRate : 16000;
     try {
-      this.rec = new this.model.KaldiRecognizer(this.ctx ? this.ctx.sampleRate : 16000);
-    } catch(e){ cb.onstate && cb.onstate('error'); return; }
+      const g = this.grammarFor(target);
+      this.rec = g ? new this.model.KaldiRecognizer(rate, g)
+                   : new this.model.KaldiRecognizer(rate);
+    } catch(e){
+      try { this.rec = new this.model.KaldiRecognizer(rate); }
+      catch(e2){ cb.onstate && cb.onstate('error'); return; }
+    }
 
     this.rec.on('partialresult', m=>{
       const t = m.result && m.result.partial;
@@ -159,6 +169,21 @@ const STT = {
     this.rec = null;
   },
   stop(){ this.pause(); },
+
+  /* Список слов, которые движок вообще может услышать.
+     Берём слова нужной фразы + короткие частые слова, чтобы человек
+     мог сказать чуть иначе и это не сломало разбор. */
+  grammarFor(target){
+    const t = this.norm(target);
+    if (!t) return null;
+    const words = t.split(' ').filter(Boolean);
+    if (!words.length || words.length > 12) return null;   // длинное — без сужения
+    const common = ['a','the','i','you','is','are','to','of','and','it','in','please','yes','no'];
+    const set = [];
+    words.concat(common).forEach(w=>{ if (w && set.indexOf(w) < 0) set.push(w); });
+    set.push('[unk]');
+    return JSON.stringify(set);
+  },
 
   /* насколько сказанное похоже на нужное (0..1) */
   norm(s){

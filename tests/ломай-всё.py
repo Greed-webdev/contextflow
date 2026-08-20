@@ -155,6 +155,42 @@ with sync_playwright() as b_:
     check('слышит после возврата', '100%' in pg.locator('.say-out').inner_text(),
           pg.locator('.say-out').inner_text())
 
+    # ── 2c. ВЫШЕЛ ИЗ УРОКА И ВЕРНУЛСЯ (жалоба пользователя) ──────
+    print('\n[2c] Вышел из урока и зашёл заново')
+    g0 = pg.evaluate("window.__GUM__")
+    pg.evaluate("Lesson.quit()"); pg.wait_for_timeout(500)
+    check('поток микрофона НЕ убит при выходе',
+          pg.evaluate("!!(STT.stream && STT.stream.active)"),
+          'иначе Telegram спросит разрешение заново')
+    pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(600)
+    pg.locator('.say-btn').click(); pg.wait_for_timeout(1600)
+    check('окно разрешения НЕ появилось снова', pg.evaluate("window.__GUM__")==g0,
+          f'было {g0}, стало {pg.evaluate("window.__GUM__")}')
+    check('слышит после возврата в урок', '100%' in pg.locator('.say-out').inner_text(),
+          pg.locator('.say-out').inner_text())
+
+    # ── 2d. Фон глушится на время записи ─────────────────────────
+    print('\n[2d] Шум сцены не мешает записи')
+    check('умеет глушить фон', pg.evaluate("typeof Sound.duck === 'function'"))
+    pg.evaluate("window.__DUCK__=[]; const _d=Sound.duck; Sound.duck=(v)=>{window.__DUCK__.push(v); return _d(v);};")
+    pg.locator('.say-btn').click(); pg.wait_for_timeout(300)
+    check('фон приглушён во время записи',
+          pg.evaluate("window.__DUCK__.indexOf(true)>=0"),
+          str(pg.evaluate("window.__DUCK__")))
+    pg.wait_for_timeout(1800)
+    check('фон вернулся после записи',
+          pg.evaluate("window.__DUCK__.lastIndexOf(false) > window.__DUCK__.indexOf(true)"),
+          str(pg.evaluate("window.__DUCK__")))
+
+    # ── 2e. Словарь сужается под фразу ───────────────────────────
+    print('\n[2e] Точность: словарь сужается под нужную фразу')
+    g = pg.evaluate("STT.grammarFor('Hello')")
+    check('грамматика построена', bool(g) and 'hello' in str(g), str(g)[:80])
+    check('в словаре есть [unk]', '[unk]' in str(g),
+          'без него движок подгонит под ответ любой звук')
+    check('длинную фразу не сужаем',
+          pg.evaluate("STT.grammarFor('a b c d e f g h i j k l m n')")==None)
+
     # ── 3. Перезагрузка страницы ─────────────────────────────────
     print('\n[3] После перезагрузки')
     pg.reload(wait_until='domcontentloaded'); pg.wait_for_timeout(900)

@@ -118,6 +118,18 @@ const Sound = (() => {
     currentAmb = {parts, bus}; ambName = name;
   }
 
+  /* Приглушить фон на время записи голоса.
+     Ветер и шум сцены лезут в микрофон и мешают распознаванию,
+     а человеку мешают слышать себя. Возвращаем плавно. */
+  let ducked = false;
+  function duck(on){
+    if (!ctx || !ambBus) return;
+    ducked = !!on;
+    ambBus.gain.cancelScheduledValues(ctx.currentTime);
+    // 0.06 вместо полной тишины: сцена не пропадает, но не мешает
+    ambBus.gain.setTargetAtTime(on ? 0.06 : 1, ctx.currentTime, on ? 0.12 : 0.9);
+  }
+
   function stopAmbience(instantSwap){
     if (!currentAmb) { ambName = null; return; }
     const {parts, bus} = currentAmb;
@@ -170,7 +182,7 @@ const Sound = (() => {
   };
 
   return {
-    boot, resume, ambience, stopAmbience,
+    boot, resume, ambience, stopAmbience, duck,
     fx(n){ (FX[n]||FX.tap)(); },
     set(on){ enabled = on; if (!on) stopAmbience(); if (master) master.gain.value = on?0.34:0; },
     get on(){ return enabled; },

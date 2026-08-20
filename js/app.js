@@ -24,7 +24,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v17';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v18';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -49,6 +49,7 @@ function go(id, opts={}){
 function back(){
   const prev = navStack.pop();
   if (window.Voice) Voice.stop();
+  if (window.STT){ STT.stop(); Sound.duck(false); }
   Sound.fx('back');
   go(prev || (S.lang ? 'sc-hub' : 'sc-welcome'), {noHistory:true});
 }
@@ -637,6 +638,7 @@ const Voice = {
       out.className = 'say-out';
       setState('rec', 'Говори — я слушаю.');
       clearInterval(vuTimer);
+      Sound.duck(true);          // ветер и шум сцены глушим: лезут в микрофон
       // полоска показывает НАСТОЯЩУЮ громкость, а не рисованную волну
       STT.onLevel = (v)=>{ fill.style.transform = `scaleX(${Math.max(.03, v)})`; };
 
@@ -647,6 +649,7 @@ const Voice = {
         },
         onresult:(res)=>{
           clearInterval(vuTimer);
+          Sound.duck(false);     // запись кончилась — возвращаем сцену
           STT.onLevel = null;
           fill.style.transform = 'scaleX(.03)';
           if (res.err === 'denied'){
@@ -676,7 +679,7 @@ const Voice = {
     };
 
     btn.onclick = ()=>{
-      if (STT.active){ STT.stop(); setState('', 'Отменено.'); return; }
+      if (STT.active){ STT.stop(); Sound.duck(false); setState('', 'Отменено.'); return; }
       Sound.fx('tap');
 
       // Всё готово — слушаем сразу. Микрофон уже наш, разрешение не трогаем.
@@ -713,17 +716,14 @@ const Voice = {
   }
 };
 
-// уходим со страницы — отпускаем микрофон, чтобы не горел индикатор
-// Сворачивание НЕ отпускает микрофон: иначе Telegram спросит разрешение
-// заново при возврате. Просто перестаём слушать.
+// МИКРОФОН НЕ ОТПУСКАЕМ НИКОГДА, пока приложение открыто.
+// Telegram не запоминает разрешение: как только поток закрыт, при
+// следующем захвате он спрашивает заново. Поэтому и при сворачивании,
+// и при выходе из урока поток остаётся живым — просто перестаём слушать.
 document.addEventListener('visibilitychange', ()=>{
   if (document.hidden){ Voice.stop(); STT.stop(); }
 });
-// Уходим совсем — вот теперь отпускаем железо, чтобы не горел индикатор.
-window.addEventListener('pagehide', ()=>{
-  Voice.stop(); STT.stop();
-  try { if (STT.stream) STT.stream.getTracks().forEach(t=>t.stop()); } catch(e){}
-});
+window.addEventListener('pagehide', ()=>{ Voice.stop(); STT.stop(); });
 
 /* ---------------- урок ---------------- */
 const Lesson = {
@@ -1071,7 +1071,7 @@ const Lesson = {
   },
 
   finish(failed){
-    Voice.stop();
+    Voice.stop(); STT.stop(); Sound.duck(false);
     const acc = this.total ? Math.round(this.right/this.total*100) : 100;
     if (!failed) Progress.mark(this.st, this.idx, acc/100);
     save();
@@ -1107,6 +1107,7 @@ const Lesson = {
   },
 
   quit(){
+    STT.stop(); Sound.duck(false);   // поток микрофона остаётся живым
     Sound.fx('back');
     Levels.open(this.st);
   }
