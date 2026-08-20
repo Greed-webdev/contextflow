@@ -18,8 +18,26 @@ fi
 echo "Собираю свежую версию…"
 rm -rf /tmp/pages && mkdir -p /tmp/pages
 cp index.html /tmp/pages/
-cp diag.html /tmp/pages/ 2>/dev/null   # страница-диагностика для проверки на телефоне
 cp -r css js assets /tmp/pages/
+
+# ── ТЯЖЁЛЫЕ ФАЙЛЫ ХРАНЯТСЯ ТОЛЬКО НА САЙТЕ ───────────────────────
+# Голосовой движок весит 40 МБ. В рабочей папке его держать незачем:
+# он никогда не редактируется. Поэтому если локально его нет —
+# берём готовый прямо с сайта и кладём обратно. Рабочая папка чистая.
+STT_DIR="/tmp/pages/assets/stt"
+mkdir -p "$STT_DIR"
+if [ -f "assets/stt/model-en.tar.gz" ]; then
+  echo "  голосовой движок: беру локальный"
+  cp assets/stt/model-en.tar.gz "$STT_DIR/"
+else
+  echo "  голосовой движок: качаю с сайта (в рабочей папке не храним)"
+  if ! curl -sfL -o "$STT_DIR/model-en.tar.gz" "${SITE}assets/stt/model-en.tar.gz"; then
+    echo "  ! не смог забрать с сайта — собираю заново из первоисточника"
+    ./поставить-голос.sh >/dev/null 2>&1 && cp assets/stt/model-en.tar.gz "$STT_DIR/"
+  fi
+fi
+SZ=$(du -h "$STT_DIR/model-en.tar.gz" 2>/dev/null | cut -f1)
+echo "  голосовой движок готов: ${SZ:-НЕТ}"
 rm -f /tmp/pages/assets/map/mountain-with-signs.png /tmp/pages/assets/scenes/hero-dusk.jpg 2>/dev/null
 cp _headers /tmp/pages/ 2>/dev/null
 touch /tmp/pages/.nojekyll
