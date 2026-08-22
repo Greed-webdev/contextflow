@@ -1,0 +1,173 @@
+# -*- coding: utf-8 -*-
+# Темы A1, часть 4 (51–60). Закрываем остаток официального списка.
+TOPICS = [
+{'t':'Разговор: связки','sc':'cafe','cd':'A1: Can link simple sentences.','w':[
+ ('and','и'),('but','но'),('or','или'),('so','поэтому'),('because','потому что'),
+ ('then','затем'),('also','также'),('too','тоже'),('however','однако'),('if','если'),
+ ('when','когда'),('about','о / около'),('after','после'),('before','до'),('until','до тех пор'),
+ ('during','во время'),('than','чем'),('as','как'),('with','с'),('without','без')],
+ 'b':[('Я устал, но счастлив.','I am tired but happy.'),
+      ('Я остался дома, потому что шёл дождь.','I stayed home because it was raining.'),
+      ('Позвони мне, когда придёшь.','Call me when you arrive.'),
+      ('Кофе без сахара, пожалуйста.','Coffee without sugar, please.')],
+ 'd':('Объяснить причину','Друг спрашивает, почему тебя не было.',[
+   ('them','Why did you not come yesterday?','Почему ты вчера не пришёл?'),
+   ('you','Скажи, что был болен.',1,['No come sick me.','I did not come because I was sick.','Sick me yes stay home.']),
+   ('them','Are you better now?','Сейчас лучше?'),
+   ('you','Скажи: да, но всё ещё устал.',0,['Yes, but I am still tired.','Better yes tired still have.','Good me now tired also.']),
+   ('them','Take care of yourself.','Береги себя.'),
+   ('you','Поблагодари.',2,['Ok care me do.','Yes rest more me.','Thanks, I will.'])])},
+
+{'t':'Вопросительные слова','sc':'street','cd':'A1: Can ask basic questions.','w':[
+ ('what','что'),('who','кто'),('where','где'),('when','когда'),('why','почему'),
+ ('which','который'),('how','как'),('else','ещё'),('question','вопрос'),('answer','ответ'),
+ ('ask','спрашивать'),('tell','рассказывать'),('know','знать'),('sure','уверен'),('maybe','может быть'),
+ ('probably','вероятно'),('really','действительно'),('quite','довольно'),('very','очень'),('just','просто')],
+ 'b':[('Где вы живёте?','Where do you live?'),
+      ('Почему магазин закрыт?','Why is the shop closed?'),
+      ('Какой из них ваш?','Which one is yours?'),
+      ('Кто это?','Who is this?')],
+ 'd':('Расспросить','Ты знакомишься с новым коллегой.',[
+   ('them','I just started here last week.','Я только начал тут на прошлой неделе.'),
+   ('you','Спроси, откуда он.',0,['Where are you from?','From where you is?','Country you what have?']),
+   ('them','From Poland. And you?','Из Польши. А вы?'),
+   ('you','Скажи, откуда ты, и спроси, где он живёт.',2,['Russia me. You home where?','Me Russia live here you where?','I am from Russia. Where do you live now?']),
+   ('them','Near the park. It is quite far.','Рядом с парком. Довольно далеко.'),
+   ('you','Скажи, что живёшь рядом с работой.',1,['Near work live me.','I live near the office, so it is easy.','Office close home me have good.'])])},
+
+{'t':'Местоимения и люди','sc':'office','cd':'A1: Can refer to people correctly.','w':[
+ ('he','он'),('she','она'),('they','они'),('we','мы'),('us','нас'),
+ ('them','их'),('him','его'),('her','её'),('his','его (чей)'),('their','их (чей)'),
+ ('our','наш'),('its','его (о предмете)'),('yourself','сам'),('everybody','все'),('somebody','кто-то'),
+ ('no one','никто'),('group','группа'),('part','часть'),('member','участник'),('own','собственный')],
+ 'b':[('Они наши соседи.','They are our neighbours.'),
+      ('Я видел её вчера.','I saw her yesterday.'),
+      ('Это его машина, а не наша.','It is his car, not ours.'),
+      ('Никто не знает ответа.','No one knows the answer.')],
+ 'd':('Кто это сделал','На работе обсуждают, кто занимался задачей.',[
+   ('them','Who worked on this?','Кто над этим работал?'),
+   ('you','Скажи, что это делали Марк и Анна.',1,['Mark Anna do it.','Mark and Anna did it together.','Them two work this have.']),
+   ('them','Did they finish it?','Они закончили?'),
+   ('you','Скажи, что она закончила, а он ещё нет.',0,['She finished, but he did not.','Her finish him no yes.','Woman ok man no finish.']),
+   ('them','I will talk to him.','Я поговорю с ним.'),
+   ('you','Согласись.',2,['Ok talk him you.','Him yes speak good.','That is a good idea.'])])},
+
+{'t':'Медиа и техника','sc':'flat','cd':'A1: Can talk about simple media.','w':[
+ ('watch','смотреть'),('show','шоу / показывать'),('programme','программа'),('see','смотреть / видеть'),('dvd','диск'),
+ ('cd','диск'),('sound','звук'),('text','текст'),('chart','график'),('article','статья'),
+ ('topic','тема'),('title','заголовок'),('section','раздел'),('paragraph','абзац'),('statement','утверждение'),
+ ('description','описание'),('describe','описывать'),('discuss','обсуждать'),('conversation','разговор'),('dialogue','диалог')],
+ 'b':[('Я смотрю эту программу каждый вечер.','I watch this programme every evening.'),
+      ('Сделай звук потише, пожалуйста.','Turn the sound down, please.'),
+      ('Прочитай первый абзац.','Read the first paragraph.'),
+      ('Мы обсудим эту тему завтра.','We will discuss this topic tomorrow.')],
+ 'd':('Что посмотреть','Вечером выбираете, что включить.',[
+   ('them','What do you want to watch?','Что хочешь посмотреть?'),
+   ('you','Предложи фильм.',2,['Film put on now.','Movie watch we can?','How about a film?']),
+   ('them','I saw a good one last week.','Я на прошлой неделе видел хороший.'),
+   ('you','Спроси, о чём он.',0,['What is it about?','About what is it?','Story what have film?']),
+   ('them','It is about a family in Italy.','Про семью в Италии.'),
+   ('you','Согласись посмотреть.',1,['Ok that one put.','Sounds good, let us watch it.','Family Italy yes see we.'])])},
+
+{'t':'Быт: мелочи','sc':'flat','cd':'A1: Can handle small everyday matters.','w':[
+ ('thing','вещь'),('lie','лежать'),('piece','кусочек'),('bag','сумка'),('lot','много'),
+ ('make','делать'),('do','делать'),('get','получать'),('give','давать'),('take','брать'),
+ ('keep','хранить'),('put','класть'),('bring','приносить'),('add','добавлять'),('create','создавать'),
+ ('use','использовать'),('need','нужно'),('want','хотеть'),('have','иметь'),('own','иметь свой')],
+ 'b':[('Мне нужно кое-что купить.','I need to buy a few things.'),
+      ('Можешь дать мне немного времени?','Can you give me a bit of time?'),
+      ('Положи это в коробку.','Put it in the box.'),
+      ('У меня своя машина.','I have my own car.')],
+ 'd':('Просьба по мелочи','Ты просишь соседа помочь.',[
+   ('them','Do you need something?','Тебе что-то нужно?'),
+   ('you','Попроси немного соли.',1,['Salt give me now.','Yes, could you give me a bit of salt?','Salt want small me have?']),
+   ('them','Sure, take it.','Конечно, бери.'),
+   ('you','Поблагодари и скажи, что вернёшь завтра.',0,['Thanks. I will get some tomorrow and give it back.','Ok tomorrow buy me give you.','Salt back tomorrow yes come.']),
+   ('them','No need, really.','Да не надо, правда.'),
+   ('you','Настой вежливо.',2,['No I give must.','Must give back me yes.','Are you sure? Well, thank you.'])])},
+
+{'t':'Оценка и качество','sc':'market','cd':'A1: Can give simple evaluations.','w':[
+ ('good','хороший'),('bad','плохой'),('great','отличный'),('poor','плохой'),('perfect','идеальный'),
+ ('popular','популярный'),('common','обычный'),('special','особый'),('main','главный'),('real','настоящий'),
+ ('true','правдивый'),('false','ложный'),('correct','правильный'),('positive','положительный'),('negative','отрицательный'),
+ ('important','важный'),('useful','полезный'),('natural','натуральный'),('modern','современный'),('local','местный')],
+ 'b':[('Это очень полезная книга.','It is a very useful book.'),
+      ('Здесь местные продукты.','The products here are local.'),
+      ('Ответ правильный.','The answer is correct.'),
+      ('Это самое главное.','This is the main thing.')],
+ 'd':('Спросить совет','Ты выбираешь подарок и просишь совета.',[
+   ('them','Can I help you choose?','Помочь с выбором?'),
+   ('you','Скажи, что ищешь подарок.',0,['Yes, I am looking for a present.','Present want buy me.','Gift find me help you.']),
+   ('them','Is it for a man or a woman?','Для мужчины или женщины?'),
+   ('you','Скажи: для друга, и спроси, что популярно.',2,['Friend man. Popular what?','For friend. Good thing what have?','For a friend. What is popular here?']),
+   ('them','This local tea is very popular.','Этот местный чай очень популярен.'),
+   ('you','Согласись взять.',1,['Ok tea take one.','That sounds perfect, I will take it.','Tea good yes buy me.'])])},
+
+{'t':'Прошлое','sc':'cafe','cd':'A1: Can talk about the past simply.','w':[
+ ('yesterday','вчера'),('ago','назад'),('last','прошлый'),('past','прошлое'),('before','раньше'),
+ ('this','этот'),('that','тот'),('for','для / в течение'),('from','из / от'),('by','к / посредством'),
+ ('happen','случиться'),('remember','помнить'),('forget','забыть'),('born','родился'),('become','стал'),
+ ('finish','закончил'),('start','начал'),('leave','уехал'),('come','пришёл'),('meet','встретил')],
+ 'b':[('Я был здесь два года назад.','I was here two years ago.'),
+      ('Вчера мы ходили в кино.','Yesterday we went to the cinema.'),
+      ('Я забыл её имя.','I forgot her name.'),
+      ('Что случилось на прошлой неделе?','What happened last week?')],
+ 'd':('Вспомнить прошлое','Друг вспоминает старую поездку.',[
+   ('them','Do you remember our trip to Rome?','Помнишь нашу поездку в Рим?'),
+   ('you','Скажи «да, это было два года назад».',2,['Rome yes go we.','Remember yes trip good.','Yes! That was two years ago.']),
+   ('them','It was the best holiday.','Лучший отпуск был.'),
+   ('you','Согласись и скажи, что погода была отличная.',0,['Yes, and the weather was perfect.','Weather good was yes.','Sun much have then good.']),
+   ('them','We should go again.','Надо съездить снова.'),
+   ('you','Согласись.',1,['Ok go again we.','Definitely! Let us plan it.','Again yes want me go.'])])},
+
+{'t':'Дела и задачи','sc':'office','cd':'A1: Can describe simple tasks and activities.','w':[
+ ('action','действие'),('activity','занятие'),('work','работа'),('project','проект'),('detail','деталь'),
+ ('report','отчёт'),('result','результат'),('success','успех'),('problem','проблема'),('answer','решение'),
+ ('check','проверить'),('complete','завершить'),('finish','закончить'),('keep','продолжать'),('stop','остановить'),
+ ('change','изменить'),('improve','улучшить'),('add','добавить'),('include','включить'),('prepare','подготовить')],
+ 'b':[('Мне нужно закончить отчёт.','I need to finish the report.'),
+      ('Проверь, пожалуйста, результаты.','Please check the results.'),
+      ('Мы добавим ещё одну страницу.','We will add one more page.'),
+      ('Проект был успешным.','The project was a success.')],
+ 'd':('Отчитаться о задаче','Начальник спрашивает про статус.',[
+   ('them','How is the report going?','Как продвигается отчёт?'),
+   ('you','Скажи, что почти закончил.',1,['Report soon finish me.','It is almost finished.','Work nearly end have me.']),
+   ('them','When can I see it?','Когда смогу посмотреть?'),
+   ('you','Скажи: завтра утром.',0,['Tomorrow morning.','Morning next day give.','Time tomorrow early yes.']),
+   ('them','Perfect, thank you.','Отлично, спасибо.'),
+   ('you','Скажи, что пришлёшь по почте.',2,['Email send me you.','Mail give tomorrow yes.','I will send it to you by email.'])])},
+
+{'t':'Мелкие слова','sc':'street','cd':'A1: Can use common small words naturally.','w':[
+ ('yeah','ага'),('oh','о'),('ok','хорошо'),('well','ну'),('just','просто'),
+ ('even','даже'),('still','всё ещё'),('again','опять'),('away','прочь'),('off','прочь / выключен'),
+ ('back','назад'),('down','вниз'),('up','вверх'),('out','наружу'),('over','через'),
+ ('little','немного'),('quite','довольно'),('too','слишком'),('very','очень'),('only','только')],
+ 'b':[('Ну, я не уверен.','Well, I am not sure.'),
+      ('Это просто немного дорого.','It is just a little expensive.'),
+      ('Я всё ещё здесь.','I am still here.'),
+      ('Свет выключен.','The light is off.')],
+ 'd':('Мягко отказать','Тебе предлагают то, что не подходит.',[
+   ('them','So, will you take it?','Так берёте?'),
+   ('you','Скажи, что немного дорого.',0,['Well, it is a little expensive for me.','Money big me no have.','Expensive too much bad.']),
+   ('them','I can give you a small discount.','Могу сделать небольшую скидку.'),
+   ('you','Спроси, сколько получится.',2,['How much then?','Price new what is?','And how much would that be?']),
+   ('them','Forty instead of fifty.','Сорок вместо пятидесяти.'),
+   ('you','Согласись.',1,['Ok forty take me.','Alright, I will take it.','Forty yes good buy.'])])},
+
+{'t':'Проверка A1','sc':'airport','cd':'A1: Can handle a short everyday exchange from start to end.','w':[
+ ('advice','совет'),('air','воздух'),('century','век'),('dear','дорогой'),('die','умирать'),
+ ('fact','факт'),('fly','летать'),('imagine','представить'),('mile','миля'),('period','период'),
+ ('personal','личный'),('point','пункт'),('product','продукт'),('situation','ситуация'),('sound','звук'),
+ ('text','текст'),('tonight','сегодня вечером'),('topic','тема'),('watch','смотреть'),('dancer','танцор')],
+ 'b':[('Спасибо за совет.','Thank you for the advice.'),
+      ('Мы летим сегодня вечером.','We fly tonight.'),
+      ('Это личный вопрос.','It is a personal question.'),
+      ('Представь эту ситуацию.','Imagine this situation.')],
+ 'd':('Последняя проверка','Ты в аэропорту, у стойки регистрации, летишь домой.',[
+   ('them','Good evening. Where are you flying tonight?','Добрый вечер. Куда летите сегодня?'),
+   ('you','Скажи, куда летишь, и подай паспорт.',2,['Moscow. Passport here take.','Fly Moscow me go now.','To Moscow. Here is my passport.']),
+   ('them','Do you have any bags to check in?','Есть багаж для сдачи?'),
+   ('you','Скажи: одна сумка.',0,['Just one bag, thank you.','One bag have me yes.','Bag one give you now.']),
+   ('them','Your flight leaves at nine. Gate twelve.','Ваш рейс в девять. Выход двенадцать.'),
+   ('you','Переспроси номер выхода и поблагодари.',1,['Gate what say again?','Gate twelve, right? Thank you very much.','Twelve yes ok go me.'])])},
+]
