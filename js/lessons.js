@@ -61,7 +61,7 @@ const SCENES = {
 const COURSE = {
   en:{
     1:[
-      { type:'words', title:'Знакомство', scene:'airport', cefr:'A1: Can use basic greetings and say who they are.', words:[
+      { type:'words', title:'Знакомство', scene:'airport', cefr:'A1: Can use basic greetings and say who they are.', newCount:14, words:[
         {t:'Hello', r:'Здравствуйте'},
         {t:'Hi', r:'Привет'},
         {t:'Hey', r:'Эй / привет'},
@@ -75,7 +75,15 @@ const COURSE = {
         {t:'Welcome', r:'Добро пожаловать'},
         {t:'Name', r:'Имя'},
         {t:'Nice', r:'Приятный'},
-        {t:'Meet', r:'Встречать / знакомиться'}
+        {t:'Meet', r:'Встречать / знакомиться'},
+        {t:'Grandparent', r:'Дедушка и бабушка', rev:true},
+        {t:'Grandfather', r:'Дедушка', rev:true},
+        {t:'Grandmother', r:'Бабушка', rev:true},
+        {t:'Cousin', r:'Двоюродный брат/сестра', rev:true},
+        {t:'Half', r:'Половина', rev:true},
+        {t:'First', r:'Первый', rev:true},
+        {t:'Young', r:'Молодой', rev:true},
+        {t:'Fat', r:'Толстый', rev:true}
       ]},
       { type:'build', title:'Собери: Знакомство', scene:'airport', cefr:'A1: Can use basic greetings and say who they are.', tasks:[
         {ru:'Здравствуйте, меня зовут Анна.', parts:['Hello,','my','name','is','Anna.'], answer:'Hello, my name is Anna.'},
@@ -94,9 +102,18 @@ const COURSE = {
             options:['Nice to meet you too.','Me too nice yes.','Meet good you.']},
           {who:'them', text:'Have a good day!', ru:'Хорошего дня!'},
           {who:'you', ru:'Поблагодари и попрощайся.', best:2,
-            options:['Day good bye.','Ok bye day.','Thanks, goodbye!']}
+            options:['Day good bye.','Ok bye day.','Thanks, goodbye!']},
+          {who:'them', text:'Are you here for the meeting?', ru:'Вы на встречу?'},
+          {who:'you', ru:'Скажи «да» и спроси, где кабинет.', best:1,
+            options:['Yes room where?','Yes, I am. Where is the room?','Meeting yes go where me?']},
+          {who:'them', text:'Second floor, on the left.', ru:'Второй этаж, налево.'},
+          {who:'you', ru:'Повтори, чтобы проверить.', best:0,
+            options:['Second floor, left. Thank you.','Two floor left yes ok.','Left floor two go me.']},
+          {who:'them', text:'That is right. Take the lift.', ru:'Верно. Лифт вон там.'},
+          {who:'you', ru:'Поблагодари и попрощайся.', best:2,
+            options:['Ok lift go now.','Lift yes take me bye.','Thanks a lot. Have a good day!']}
         ]},
-      { type:'words', title:'Я и мои данные', scene:'office', cefr:'A1: Can give personal information.', words:[
+      { type:'words', title:'Я и мои данные · 1', scene:'office', cefr:'A1: Can give personal information.', newCount:8, words:[
         {t:'I', r:'Я'},
         {t:'You', r:'Ты / вы'},
         {t:'My', r:'Мой'},
@@ -105,19 +122,31 @@ const COURSE = {
         {t:'Address', r:'Адрес'},
         {t:'Age', r:'Возраст'},
         {t:'Year', r:'Год'},
+        {t:'Hello', r:'Здравствуйте', rev:true},
+        {t:'Hi', r:'Привет', rev:true},
+        {t:'Hey', r:'Эй / привет', rev:true},
+        {t:'Sorry', r:'Извините', rev:true}
+      ]},
+      { type:'words', title:'Я и мои данные · 2', scene:'office', cefr:'A1: Can give personal information.', newCount:7, words:[
         {t:'Old', r:'Старый / лет'},
         {t:'Young', r:'Молодой'},
         {t:'Person', r:'Человек'},
         {t:'Adult', r:'Взрослый'},
         {t:'Phone', r:'Телефон'},
         {t:'Email', r:'Электронная почта'},
-        {t:'Passport', r:'Паспорт'}
+        {t:'Passport', r:'Паспорт'},
+        {t:'Thanks', r:'Спасибо', rev:true},
+        {t:'Hundred', r:'Сто', rev:true},
+        {t:'Object', r:'Предмет', rev:true},
+        {t:'Child', r:'Ребёнок', rev:true}
       ]},
       { type:'build', title:'Собери: Я и мои данные', scene:'office', cefr:'A1: Can give personal information.', tasks:[
         {ru:'Мне двадцать пять лет.', parts:['I','am','twenty-five','years','old.'], answer:'I am twenty-five years old.'},
         {ru:'Это мой адрес.', parts:['This','is','my','address.'], answer:'This is my address.'},
         {ru:'Какой у вас номер телефона?', parts:['What','is','your','phone','number?'], answer:'What is your phone number?'},
-        {ru:'Вот мой паспорт.', parts:['Here','is','my','passport.'], answer:'Here is my passport.'}
+        {ru:'Вот мой паспорт.', parts:['Here','is','my','passport.'], answer:'Here is my passport.'},
+        {ru:'Здравствуйте, меня зовут Анна.', parts:['Hello,','my','name','is','Anna.'], answer:'Hello, my name is Anna.'},
+        {ru:'Приятно познакомиться.', parts:['Nice','to','meet','you.'], answer:'Nice to meet you.'}
       ]},
       { type:'dialog', title:'Заполнить анкету', scene:'office', cefr:'A1: Can give personal information.',
         intro:'Сотрудник просит данные для регистрации.',
@@ -130,9 +159,18 @@ const COURSE = {
             options:['Park street twelve me live.','Address twelve park.','I live at 12 Park Street.']},
           {who:'them', text:'How old are you?', ru:'Сколько вам лет?'},
           {who:'you', ru:'Скажи: двадцать пять.', best:1,
-            options:['Age twenty-five have.','I am twenty-five.','Twenty-five year old me.']}
+            options:['Age twenty-five have.','I am twenty-five.','Twenty-five year old me.']},
+          {who:'them', text:'What is your phone number?', ru:'Ваш номер телефона?'},
+          {who:'you', ru:'Скажи, что напишешь его сам.', best:0,
+            options:['Can I write it here?','Number write me can?','Phone me write paper yes?']},
+          {who:'them', text:'Yes, please. And your email?', ru:'Да, пожалуйста. И почта?'},
+          {who:'you', ru:'Скажи, что почта на бумаге.', best:2,
+            options:['Email paper have write.','Mail is there look you.','It is on the paper too.']},
+          {who:'them', text:'Perfect. That is everything.', ru:'Отлично. Это всё.'},
+          {who:'you', ru:'Спроси, когда будет готово.', best:1,
+            options:['When ready is it?','When will it be ready?','Time ready what say me?']}
         ]},
-      { type:'words', title:'Семья', scene:'flat', cefr:'A1: Can describe their family in simple words.', words:[
+      { type:'words', title:'Семья · 1', scene:'flat', cefr:'A1: Can describe their family in simple words.', newCount:10, words:[
         {t:'Family', r:'Семья'},
         {t:'Mother', r:'Мать'},
         {t:'Father', r:'Отец'},
@@ -143,6 +181,12 @@ const COURSE = {
         {t:'Son', r:'Сын'},
         {t:'Daughter', r:'Дочь'},
         {t:'Child', r:'Ребёнок'},
+        {t:'I', r:'Я', rev:true},
+        {t:'You', r:'Ты / вы', rev:true},
+        {t:'My', r:'Мой', rev:true},
+        {t:'Goodbye', r:'До свидания', rev:true}
+      ]},
+      { type:'words', title:'Семья · 2', scene:'flat', cefr:'A1: Can describe their family in simple words.', newCount:10, words:[
         {t:'Baby', r:'Младенец'},
         {t:'Husband', r:'Муж'},
         {t:'Wife', r:'Жена'},
@@ -152,13 +196,19 @@ const COURSE = {
         {t:'Cousin', r:'Двоюродный брат/сестра'},
         {t:'Grandmother', r:'Бабушка'},
         {t:'Grandfather', r:'Дедушка'},
-        {t:'Grandparent', r:'Дедушка и бабушка'}
+        {t:'Grandparent', r:'Дедушка и бабушка'},
+        {t:'Bye', r:'Пока', rev:true},
+        {t:'Yes', r:'Да', rev:true},
+        {t:'Old', r:'Старый / лет', rev:true},
+        {t:'Date', r:'Дата', rev:true}
       ]},
       { type:'build', title:'Собери: Семья', scene:'flat', cefr:'A1: Can describe their family in simple words.', tasks:[
         {ru:'У меня есть брат и сестра.', parts:['I','have','a','brother','and','a','sister.'], answer:'I have a brother and a sister.'},
         {ru:'Это моя мама и мой папа.', parts:['This','is','my','mother','and','my','father.'], answer:'This is my mother and my father.'},
         {ru:'Моя жена работает здесь.', parts:['My','wife','works','here.'], answer:'My wife works here.'},
-        {ru:'У них двое детей.', parts:['They','have','two','children.'], answer:'They have two children.'}
+        {ru:'У них двое детей.', parts:['They','have','two','children.'], answer:'They have two children.'},
+        {ru:'Мне двадцать пять лет.', parts:['I','am','twenty-five','years','old.'], answer:'I am twenty-five years old.'},
+        {ru:'Это мой адрес.', parts:['This','is','my','address.'], answer:'This is my address.'}
       ]},
       { type:'dialog', title:'Разговор о семье', scene:'flat', cefr:'A1: Can describe their family in simple words.',
         intro:'Коллега за обедом спрашивает про твою семью.',
@@ -171,9 +221,18 @@ const COURSE = {
             options:['No, my mother and father live in Russia.','Parents no here Russia is.','They Russia stay no come.']},
           {who:'them', text:'Do you miss them?', ru:'Скучаешь по ним?'},
           {who:'you', ru:'Скажи «да, очень».', best:2,
-            options:['Yes miss much very.','Miss yes big.','Yes, very much.']}
+            options:['Yes miss much very.','Miss yes big.','Yes, very much.']},
+          {who:'them', text:'Do they visit you here?', ru:'Они приезжают к тебе?'},
+          {who:'you', ru:'Скажи, что приезжали летом.', best:1,
+            options:['Summer come they here.','They came in the summer.','Come summer yes have they.']},
+          {who:'them', text:'That is nice. How long did they stay?', ru:'Здорово. Надолго?'},
+          {who:'you', ru:'Скажи: две недели.', best:0,
+            options:['Two weeks.','Week two stay have.','Time two week they.']},
+          {who:'them', text:'Not bad at all.', ru:'Совсем неплохо.'},
+          {who:'you', ru:'Скажи, что скоро поедешь к ним.', best:2,
+            options:['Me go them soon.','Go Russia me time next.','I will go and see them soon.']}
         ]},
-      { type:'words', title:'Числа до ста', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.', words:[
+      { type:'words', title:'Числа до ста · 1', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.', newCount:10, words:[
         {t:'One', r:'Один'},
         {t:'Two', r:'Два'},
         {t:'Three', r:'Три'},
@@ -184,6 +243,12 @@ const COURSE = {
         {t:'Eight', r:'Восемь'},
         {t:'Nine', r:'Девять'},
         {t:'Ten', r:'Десять'},
+        {t:'Family', r:'Семья', rev:true},
+        {t:'Mother', r:'Мать', rev:true},
+        {t:'Father', r:'Отец', rev:true},
+        {t:'Your', r:'Твой / ваш', rev:true}
+      ]},
+      { type:'words', title:'Числа до ста · 2', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.', newCount:10, words:[
         {t:'Eleven', r:'Одиннадцать'},
         {t:'Twelve', r:'Двенадцать'},
         {t:'Fifteen', r:'Пятнадцать'},
@@ -193,13 +258,19 @@ const COURSE = {
         {t:'Hundred', r:'Сто'},
         {t:'Number', r:'Число / номер'},
         {t:'First', r:'Первый'},
-        {t:'Half', r:'Половина'}
+        {t:'Half', r:'Половина'},
+        {t:'Me', r:'Меня / мне', rev:true},
+        {t:'Address', r:'Адрес', rev:true},
+        {t:'No', r:'Нет', rev:true},
+        {t:'Please', r:'Пожалуйста', rev:true}
       ]},
       { type:'build', title:'Собери: Числа до ста', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.', tasks:[
         {ru:'Мне нужно три билета.', parts:['I','need','three','tickets.'], answer:'I need three tickets.'},
         {ru:'Это стоит двадцать евро.', parts:['It','costs','twenty','euros.'], answer:'It costs twenty euros.'},
         {ru:'Полкило, пожалуйста.', parts:['Half','a','kilo,','please.'], answer:'Half a kilo, please.'},
-        {ru:'Мой номер — пятьдесят один.', parts:['My','number','is','fifty-one.'], answer:'My number is fifty-one.'}
+        {ru:'Мой номер — пятьдесят один.', parts:['My','number','is','fifty-one.'], answer:'My number is fifty-one.'},
+        {ru:'У меня есть брат и сестра.', parts:['I','have','a','brother','and','a','sister.'], answer:'I have a brother and a sister.'},
+        {ru:'Это моя мама и мой папа.', parts:['This','is','my','mother','and','my','father.'], answer:'This is my mother and my father.'}
       ]},
       { type:'dialog', title:'Назвать количество', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.',
         intro:'Продавец взвешивает и уточняет.',
@@ -212,9 +283,40 @@ const COURSE = {
             options:['Twelve? Not twenty?','Twelve twenty what is?','Money twelve you say?']},
           {who:'them', text:'Yes, twelve. Not twenty.', ru:'Да, двенадцать. Не двадцать.'},
           {who:'you', ru:'Согласись и поблагодари.', best:1,
-            options:['Ok money here take.','Right, here you are. Thank you.','Twelve yes good thanks.']}
+            options:['Ok money here take.','Right, here you are. Thank you.','Twelve yes good thanks.']},
+          {who:'them', text:'Anything else today?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Попроси два хлеба.', best:2,
+            options:['Bread two give.','Two bread want me.','Two loaves of bread, please.']},
+          {who:'them', text:'That is three more euros.', ru:'Ещё три евро.'},
+          {who:'you', ru:'Скажи, что платишь наличными.', best:0,
+            options:['I will pay in cash.','Money paper give you.','Cash me pay now yes.']},
+          {who:'them', text:'Here is your change.', ru:'Вот сдача.'},
+          {who:'you', ru:'Проверь сдачу и поблагодари.', best:1,
+            options:['Money look ok yes.','Thank you. That is right.','Change good have thanks.']}
         ]},
-      { type:'words', title:'Цвета и размеры', scene:'market', cefr:'A1: Can describe objects simply.', words:[
+      { type:'words', title:'Контроль: темы 1–4', scene:'market', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Welcome', r:'Добро пожаловать', rev:true},
+        {t:'Name', r:'Имя', rev:true},
+        {t:'Nice', r:'Приятный', rev:true},
+        {t:'Meet', r:'Встречать / знакомиться', rev:true},
+        {t:'Age', r:'Возраст', rev:true},
+        {t:'Year', r:'Год', rev:true},
+        {t:'Person', r:'Человек', rev:true},
+        {t:'Adult', r:'Взрослый', rev:true},
+        {t:'Phone', r:'Телефон', rev:true},
+        {t:'Email', r:'Электронная почта', rev:true},
+        {t:'Passport', r:'Паспорт', rev:true},
+        {t:'Mum', r:'Мама', rev:true},
+        {t:'Dad', r:'Папа', rev:true},
+        {t:'Brother', r:'Брат', rev:true},
+        {t:'Sister', r:'Сестра', rev:true},
+        {t:'Son', r:'Сын', rev:true},
+        {t:'Daughter', r:'Дочь', rev:true},
+        {t:'Baby', r:'Младенец', rev:true},
+        {t:'Husband', r:'Муж', rev:true},
+        {t:'Wife', r:'Жена', rev:true}
+      ]},
+      { type:'words', title:'Цвета и размеры · 1', scene:'market', cefr:'A1: Can describe objects simply.', newCount:10, words:[
         {t:'Colour', r:'Цвет'},
         {t:'Red', r:'Красный'},
         {t:'Blue', r:'Синий'},
@@ -225,6 +327,12 @@ const COURSE = {
         {t:'Brown', r:'Коричневый'},
         {t:'Grey', r:'Серый'},
         {t:'Pink', r:'Розовый'},
+        {t:'One', r:'Один', rev:true},
+        {t:'Two', r:'Два', rev:true},
+        {t:'Three', r:'Три', rev:true},
+        {t:'Mum', r:'Мама', rev:true}
+      ]},
+      { type:'words', title:'Цвета и размеры · 2', scene:'market', cefr:'A1: Can describe objects simply.', newCount:10, words:[
         {t:'Purple', r:'Фиолетовый'},
         {t:'Orange', r:'Оранжевый'},
         {t:'Big', r:'Большой'},
@@ -234,13 +342,19 @@ const COURSE = {
         {t:'Tall', r:'Высокий'},
         {t:'Fat', r:'Толстый'},
         {t:'Thing', r:'Вещь'},
-        {t:'Object', r:'Предмет'}
+        {t:'Object', r:'Предмет'},
+        {t:'Dad', r:'Папа', rev:true},
+        {t:'Brother', r:'Брат', rev:true},
+        {t:'Age', r:'Возраст', rev:true},
+        {t:'Year', r:'Год', rev:true}
       ]},
       { type:'build', title:'Собери: Цвета и размеры', scene:'market', cefr:'A1: Can describe objects simply.', tasks:[
         {ru:'У вас есть это в чёрном?', parts:['Do','you','have','this','in','black?'], answer:'Do you have this in black?'},
         {ru:'Это слишком большое для меня.', parts:['This','is','too','big','for','me.'], answer:'This is too big for me.'},
         {ru:'Мне нравится синий цвет.', parts:['I','like','the','blue','colour.'], answer:'I like the blue colour.'},
-        {ru:'Дайте маленький, пожалуйста.', parts:['Give','me','a','small','one,','please.'], answer:'Give me a small one, please.'}
+        {ru:'Дайте маленький, пожалуйста.', parts:['Give','me','a','small','one,','please.'], answer:'Give me a small one, please.'},
+        {ru:'Мне нужно три билета.', parts:['I','need','three','tickets.'], answer:'I need three tickets.'},
+        {ru:'Это стоит двадцать евро.', parts:['It','costs','twenty','euros.'], answer:'It costs twenty euros.'}
       ]},
       { type:'dialog', title:'Выбрать цвет', scene:'market', cefr:'A1: Can describe objects simply.',
         intro:'Продавец показывает два варианта.',
@@ -253,9 +367,18 @@ const COURSE = {
             options:['A small one, please.','Small size is me.','Size small give now.']},
           {who:'them', text:'Here you are.', ru:'Пожалуйста.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok take it.','Good this one.','Thank you very much.']}
+            options:['Ok take it.','Good this one.','Thank you very much.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
         ]},
-      { type:'words', title:'Дни и месяцы', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.', words:[
+      { type:'words', title:'Дни и месяцы · 1', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.', newCount:11, words:[
         {t:'Day', r:'День'},
         {t:'Week', r:'Неделя'},
         {t:'Month', r:'Месяц'},
@@ -267,6 +390,12 @@ const COURSE = {
         {t:'Saturday', r:'Суббота'},
         {t:'Sunday', r:'Воскресенье'},
         {t:'January', r:'Январь'},
+        {t:'Colour', r:'Цвет', rev:true},
+        {t:'Red', r:'Красный', rev:true},
+        {t:'Blue', r:'Синий', rev:true},
+        {t:'Four', r:'Четыре', rev:true}
+      ]},
+      { type:'words', title:'Дни и месяцы · 2', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.', newCount:11, words:[
         {t:'February', r:'Февраль'},
         {t:'March', r:'Март'},
         {t:'May', r:'Май'},
@@ -277,13 +406,19 @@ const COURSE = {
         {t:'October', r:'Октябрь'},
         {t:'December', r:'Декабрь'},
         {t:'Weekend', r:'Выходные'},
-        {t:'Date', r:'Дата'}
+        {t:'Date', r:'Дата'},
+        {t:'Five', r:'Пять', rev:true},
+        {t:'Six', r:'Шесть', rev:true},
+        {t:'Sister', r:'Сестра', rev:true},
+        {t:'Son', r:'Сын', rev:true}
       ]},
       { type:'build', title:'Собери: Дни и месяцы', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.', tasks:[
         {ru:'Увидимся в понедельник.', parts:['See','you','on','Monday.'], answer:'See you on Monday.'},
         {ru:'Я работаю с понедельника по пятницу.', parts:['I','work','from','Monday','to','Friday.'], answer:'I work from Monday to Friday.'},
         {ru:'Какое сегодня число?', parts:['What','is','the','date','today?'], answer:'What is the date today?'},
-        {ru:'В субботу я свободен.', parts:['On','Saturday','I','am','free.'], answer:'On Saturday I am free.'}
+        {ru:'В субботу я свободен.', parts:['On','Saturday','I','am','free.'], answer:'On Saturday I am free.'},
+        {ru:'У вас есть это в чёрном?', parts:['Do','you','have','this','in','black?'], answer:'Do you have this in black?'},
+        {ru:'Это слишком большое для меня.', parts:['This','is','too','big','for','me.'], answer:'This is too big for me.'}
       ]},
       { type:'dialog', title:'Назначить день', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.',
         intro:'Коллега подбирает день для встречи.',
@@ -296,9 +431,18 @@ const COURSE = {
             options:['Wednesday no. Thursday.','No good day after yes.','Wednesday is busy for me. Can we do Thursday?']},
           {who:'them', text:'Thursday is fine.', ru:'Четверг подходит.'},
           {who:'you', ru:'Подтверди.', best:1,
-            options:['Ok day good bye.','Great, see you on Thursday.','Thursday yes I come then.']}
+            options:['Ok day good bye.','Great, see you on Thursday.','Thursday yes I come then.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Время суток', scene:'flat', cefr:'A1: Can tell the time of day.', words:[
+      { type:'words', title:'Время суток · 1', scene:'flat', cefr:'A1: Can tell the time of day.', newCount:9, words:[
         {t:'Time', r:'Время'},
         {t:'Hour', r:'Час'},
         {t:'Minute', r:'Минута'},
@@ -308,6 +452,12 @@ const COURSE = {
         {t:'Night', r:'Ночь'},
         {t:'Midnight', r:'Полночь'},
         {t:'Early', r:'Рано'},
+        {t:'Day', r:'День', rev:true},
+        {t:'Week', r:'Неделя', rev:true},
+        {t:'Month', r:'Месяц', rev:true},
+        {t:'Green', r:'Зелёный', rev:true}
+      ]},
+      { type:'words', title:'Время суток · 2', scene:'flat', cefr:'A1: Can tell the time of day.', newCount:9, words:[
         {t:'Late', r:'Поздно'},
         {t:'Now', r:'Сейчас'},
         {t:'Later', r:'Позже'},
@@ -316,13 +466,19 @@ const COURSE = {
         {t:'Tomorrow', r:'Завтра'},
         {t:'Yesterday', r:'Вчера'},
         {t:'Quarter', r:'Четверть'},
-        {t:'Clock', r:'Часы'}
+        {t:'Clock', r:'Часы'},
+        {t:'Yellow', r:'Жёлтый', rev:true},
+        {t:'Black', r:'Чёрный', rev:true},
+        {t:'Seven', r:'Семь', rev:true},
+        {t:'Eight', r:'Восемь', rev:true}
       ]},
       { type:'build', title:'Собери: Время суток', scene:'flat', cefr:'A1: Can tell the time of day.', tasks:[
         {ru:'Сколько сейчас времени?', parts:['What','time','is','it','now?'], answer:'What time is it now?'},
         {ru:'Я приду позже вечером.', parts:['I','will','come','later','in','the','evening.'], answer:'I will come later in the evening.'},
         {ru:'Встретимся завтра утром.', parts:['Let','us','meet','tomorrow','morning.'], answer:'Let us meet tomorrow morning.'},
-        {ru:'Сейчас четверть седьмого.', parts:['It','is','a','quarter','past','six.'], answer:'It is a quarter past six.'}
+        {ru:'Сейчас четверть седьмого.', parts:['It','is','a','quarter','past','six.'], answer:'It is a quarter past six.'},
+        {ru:'Увидимся в понедельник.', parts:['See','you','on','Monday.'], answer:'See you on Monday.'},
+        {ru:'Я работаю с понедельника по пятницу.', parts:['I','work','from','Monday','to','Friday.'], answer:'I work from Monday to Friday.'}
       ]},
       { type:'dialog', title:'Узнать время', scene:'flat', cefr:'A1: Can tell the time of day.',
         intro:'Ты стоишь на остановке и спрашиваешь прохожего.',
@@ -335,9 +491,18 @@ const COURSE = {
             options:['Oh, I am late for work.','Work late me is bad.','Late work go now must.']},
           {who:'them', text:'The next bus comes soon.', ru:'Следующий автобус скоро.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Bus soon good ok.','Soon yes wait me.','Thank you very much.']}
+            options:['Bus soon good ok.','Soon yes wait me.','Thank you very much.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
         ]},
-      { type:'words', title:'Погода', scene:'street', cefr:'A1: Can talk about the weather in simple terms.', words:[
+      { type:'words', title:'Погода · 1', scene:'street', cefr:'A1: Can talk about the weather in simple terms.', newCount:9, words:[
         {t:'Weather', r:'Погода'},
         {t:'Hot', r:'Жарко'},
         {t:'Cold', r:'Холодно'},
@@ -347,6 +512,12 @@ const COURSE = {
         {t:'Snow', r:'Снег'},
         {t:'Sport', r:'Спорт'},
         {t:'Free', r:'Свободный'},
+        {t:'Monday', r:'Понедельник', rev:true},
+        {t:'Tuesday', r:'Вторник', rev:true},
+        {t:'Wednesday', r:'Среда', rev:true},
+        {t:'White', r:'Белый', rev:true}
+      ]},
+      { type:'words', title:'Погода · 2', scene:'street', cefr:'A1: Can talk about the weather in simple terms.', newCount:9, words:[
         {t:'Sea', r:'Море'},
         {t:'Spring', r:'Весна'},
         {t:'Summer', r:'Лето'},
@@ -355,13 +526,20 @@ const COURSE = {
         {t:'Umbrella', r:'Зонт'},
         {t:'Cool', r:'Прохладно'},
         {t:'Holiday', r:'Отпуск / праздник'},
-        {t:'Ice', r:'Лёд'}
+        {t:'Ice', r:'Лёд'},
+        {t:'Brown', r:'Коричневый', rev:true},
+        {t:'Daughter', r:'Дочь', rev:true},
+        {t:'Time', r:'Время', rev:true},
+        {t:'Hour', r:'Час', rev:true},
+        {t:'Minute', r:'Минута', rev:true}
       ]},
       { type:'build', title:'Собери: Погода', scene:'street', cefr:'A1: Can talk about the weather in simple terms.', tasks:[
         {ru:'Сегодня очень холодно.', parts:['It','is','very','cold','today.'], answer:'It is very cold today.'},
         {ru:'Идёт дождь, возьми зонт.', parts:['It','is','raining,','take','an','umbrella.'], answer:'It is raining, take an umbrella.'},
         {ru:'Летом здесь жарко.', parts:['It','is','hot','here','in','summer.'], answer:'It is hot here in summer.'},
-        {ru:'Завтра будет солнце.', parts:['Tomorrow','it','will','be','sunny.'], answer:'Tomorrow it will be sunny.'}
+        {ru:'Завтра будет солнце.', parts:['Tomorrow','it','will','be','sunny.'], answer:'Tomorrow it will be sunny.'},
+        {ru:'Сколько сейчас времени?', parts:['What','time','is','it','now?'], answer:'What time is it now?'},
+        {ru:'Я приду позже вечером.', parts:['I','will','come','later','in','the','evening.'], answer:'I will come later in the evening.'}
       ]},
       { type:'dialog', title:'Разговор о погоде', scene:'street', cefr:'A1: Can talk about the weather in simple terms.',
         intro:'Сосед у подъезда смотрит на небо.',
@@ -374,9 +552,40 @@ const COURSE = {
             options:['Really? I don’t like snow.','Snow no good me.','Snow me not like it bad.']},
           {who:'them', text:'Well, it is winter.', ru:'Ну, зима же.'},
           {who:'you', ru:'Согласись и попрощайся.', best:1,
-            options:['Winter yes bye go.','True. Have a good day!','Yes winter is. Day good.']}
+            options:['Winter yes bye go.','True. Have a good day!','Yes winter is. Day good.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Тело и здоровье', scene:'clinic', cefr:'A1: Can name parts of the body and say what hurts.', words:[
+      { type:'words', title:'Контроль: темы 5–8', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Grey', r:'Серый', rev:true},
+        {t:'Pink', r:'Розовый', rev:true},
+        {t:'Purple', r:'Фиолетовый', rev:true},
+        {t:'Orange', r:'Оранжевый', rev:true},
+        {t:'Big', r:'Большой', rev:true},
+        {t:'Small', r:'Маленький', rev:true},
+        {t:'Large', r:'Крупный', rev:true},
+        {t:'Short', r:'Короткий', rev:true},
+        {t:'Tall', r:'Высокий', rev:true},
+        {t:'Thing', r:'Вещь', rev:true},
+        {t:'Thursday', r:'Четверг', rev:true},
+        {t:'Friday', r:'Пятница', rev:true},
+        {t:'Saturday', r:'Суббота', rev:true},
+        {t:'Sunday', r:'Воскресенье', rev:true},
+        {t:'January', r:'Январь', rev:true},
+        {t:'February', r:'Февраль', rev:true},
+        {t:'March', r:'Март', rev:true},
+        {t:'May', r:'Май', rev:true},
+        {t:'June', r:'Июнь', rev:true},
+        {t:'July', r:'Июль', rev:true}
+      ]},
+      { type:'words', title:'Тело и здоровье · 1', scene:'clinic', cefr:'A1: Can name parts of the body and say what hurts.', newCount:10, words:[
         {t:'Body', r:'Тело'},
         {t:'Head', r:'Голова'},
         {t:'Hair', r:'Волосы'},
@@ -387,6 +596,16 @@ const COURSE = {
         {t:'Tooth', r:'Зуб'},
         {t:'Face', r:'Лицо'},
         {t:'Hand', r:'Рука (кисть)'},
+        {t:'Name', r:'Имя', rev:true},
+        {t:'August', r:'Август', rev:true},
+        {t:'September', r:'Сентябрь', rev:true},
+        {t:'October', r:'Октябрь', rev:true},
+        {t:'December', r:'Декабрь', rev:true},
+        {t:'Weekend', r:'Выходные', rev:true},
+        {t:'Weather', r:'Погода', rev:true},
+        {t:'Hot', r:'Жарко', rev:true}
+      ]},
+      { type:'words', title:'Тело и здоровье · 2', scene:'clinic', cefr:'A1: Can name parts of the body and say what hurts.', newCount:10, words:[
         {t:'Arm', r:'Рука'},
         {t:'Leg', r:'Нога'},
         {t:'Foot', r:'Ступня'},
@@ -396,13 +615,24 @@ const COURSE = {
         {t:'Sick', r:'Больной'},
         {t:'Hospital', r:'Больница'},
         {t:'Doctor', r:'Врач'},
-        {t:'Nurse', r:'Медсестра'}
+        {t:'Nurse', r:'Медсестра'},
+        {t:'Cold', r:'Холодно', rev:true},
+        {t:'Morning', r:'Утро', rev:true},
+        {t:'Afternoon', r:'День (после полудня)', rev:true},
+        {t:'Evening', r:'Вечер', rev:true},
+        {t:'Thursday', r:'Четверг', rev:true},
+        {t:'Friday', r:'Пятница', rev:true},
+        {t:'Nine', r:'Девять', rev:true},
+        {t:'Ten', r:'Десять', rev:true},
+        {t:'Welcome', r:'Добро пожаловать', rev:true}
       ]},
       { type:'build', title:'Собери: Тело и здоровье', scene:'clinic', cefr:'A1: Can name parts of the body and say what hurts.', tasks:[
         {ru:'У меня болит голова.', parts:['My','head','hurts.'], answer:'My head hurts.'},
         {ru:'Мне нужен врач.', parts:['I','need','a','doctor.'], answer:'I need a doctor.'},
         {ru:'Где больница?', parts:['Where','is','the','hospital?'], answer:'Where is the hospital?'},
-        {ru:'Моя спина болит со вчера.', parts:['My','back','hurts','since','yesterday.'], answer:'My back hurts since yesterday.'}
+        {ru:'Моя спина болит со вчера.', parts:['My','back','hurts','since','yesterday.'], answer:'My back hurts since yesterday.'},
+        {ru:'Сегодня очень холодно.', parts:['It','is','very','cold','today.'], answer:'It is very cold today.'},
+        {ru:'Идёт дождь, возьми зонт.', parts:['It','is','raining,','take','an','umbrella.'], answer:'It is raining, take an umbrella.'}
       ]},
       { type:'dialog', title:'У врача', scene:'clinic', cefr:'A1: Can name parts of the body and say what hurts.',
         intro:'Врач приглашает тебя сесть.',
@@ -415,9 +645,18 @@ const COURSE = {
             options:['Yesterday time from.','Since yesterday.','One day before now.']},
           {who:'them', text:'Take this and rest today.', ru:'Возьмите это и отдохните сегодня.'},
           {who:'you', ru:'Поблагодари врача.', best:2,
-            options:['Ok rest go home.','Medicine take yes good.','Thank you, doctor.']}
+            options:['Ok rest go home.','Medicine take yes good.','Thank you, doctor.']},
+          {who:'them', text:'Do you have any questions?', ru:'Есть вопросы?'},
+          {who:'you', ru:'Спроси, когда прийти снова.', best:2,
+            options:['Come when again?','Next time when is?','When should I come again?']},
+          {who:'them', text:'In one week, if it does not get better.', ru:'Через неделю, если не станет лучше.'},
+          {who:'you', ru:'Подтверди.', best:0,
+            options:['One week. I understand.','Week one ok yes.','Understand me time week.']},
+          {who:'them', text:'Take care of yourself.', ru:'Берегите себя.'},
+          {who:'you', ru:'Поблагодари врача.', best:1,
+            options:['Ok me care.','Thank you, doctor. Goodbye.','Care yes bye go.']}
         ]},
-      { type:'words', title:'Одежда', scene:'market', cefr:'A1: Can name clothes and ask for a size.', words:[
+      { type:'words', title:'Одежда · 1', scene:'market', cefr:'A1: Can name clothes and ask for a size.', newCount:9, words:[
         {t:'Clothes', r:'Одежда'},
         {t:'Shirt', r:'Рубашка'},
         {t:'T-shirt', r:'Футболка'},
@@ -427,6 +666,14 @@ const COURSE = {
         {t:'Jeans', r:'Джинсы'},
         {t:'Jacket', r:'Куртка'},
         {t:'Coat', r:'Пальто'},
+        {t:'Midnight', r:'Полночь', rev:true},
+        {t:'Grey', r:'Серый', rev:true},
+        {t:'Pink', r:'Розовый', rev:true},
+        {t:'Person', r:'Человек', rev:true},
+        {t:'Adult', r:'Взрослый', rev:true},
+        {t:'Quarter', r:'Четверть', rev:true}
+      ]},
+      { type:'words', title:'Одежда · 2', scene:'market', cefr:'A1: Can name clothes and ask for a size.', newCount:9, words:[
         {t:'Sweater', r:'Свитер'},
         {t:'Shoe', r:'Ботинок'},
         {t:'Boot', r:'Сапог'},
@@ -435,13 +682,22 @@ const COURSE = {
         {t:'Wear', r:'Носить'},
         {t:'Type', r:'Тип / вид'},
         {t:'Shop', r:'Магазин'},
-        {t:'Shopping', r:'Покупки'}
+        {t:'Shopping', r:'Покупки'},
+        {t:'Body', r:'Тело', rev:true},
+        {t:'Head', r:'Голова', rev:true},
+        {t:'Hair', r:'Волосы', rev:true},
+        {t:'Warm', r:'Тепло', rev:true},
+        {t:'Sun', r:'Солнце', rev:true},
+        {t:'Rain', r:'Дождь', rev:true},
+        {t:'Night', r:'Ночь', rev:true}
       ]},
       { type:'build', title:'Собери: Одежда', scene:'market', cefr:'A1: Can name clothes and ask for a size.', tasks:[
         {ru:'Я ищу чёрную куртку.', parts:['I','am','looking','for','a','black','jacket.'], answer:'I am looking for a black jacket.'},
         {ru:'У вас есть эти туфли моего размера?', parts:['Do','you','have','these','shoes','in','my','size?'], answer:'Do you have these shoes in my size?'},
         {ru:'Сколько стоят эти джинсы?', parts:['How','much','are','these','jeans?'], answer:'How much are these jeans?'},
-        {ru:'Я хочу купить свитер.', parts:['I','want','to','buy','a','sweater.'], answer:'I want to buy a sweater.'}
+        {ru:'Я хочу купить свитер.', parts:['I','want','to','buy','a','sweater.'], answer:'I want to buy a sweater.'},
+        {ru:'У меня болит голова.', parts:['My','head','hurts.'], answer:'My head hurts.'},
+        {ru:'Мне нужен врач.', parts:['I','need','a','doctor.'], answer:'I need a doctor.'}
       ]},
       { type:'dialog', title:'Купить куртку', scene:'market', cefr:'A1: Can name clothes and ask for a size.',
         intro:'Продавец подходит в магазине одежды.',
@@ -454,9 +710,18 @@ const COURSE = {
             options:['Medium, please.','Size middle me is.','Not big not small give.']},
           {who:'them', text:'Try this one.', ru:'Примерьте эту.'},
           {who:'you', ru:'Поблагодари и скажи, что берёшь.', best:2,
-            options:['Take this yes good.','Buy it me now ok.','Thank you. I will take it.']}
+            options:['Take this yes good.','Buy it me now ok.','Thank you. I will take it.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
         ]},
-      { type:'words', title:'Еда каждый день', scene:'cafe', cefr:'A1: Can name common food and order it.', words:[
+      { type:'words', title:'Еда каждый день · 1', scene:'cafe', cefr:'A1: Can name common food and order it.', newCount:10, words:[
         {t:'Food', r:'Еда'},
         {t:'Bread', r:'Хлеб'},
         {t:'Butter', r:'Масло'},
@@ -467,6 +732,14 @@ const COURSE = {
         {t:'Fish', r:'Рыба'},
         {t:'Rice', r:'Рис'},
         {t:'Soup', r:'Суп'},
+        {t:'Snow', r:'Снег', rev:true},
+        {t:'Sport', r:'Спорт', rev:true},
+        {t:'Saturday', r:'Суббота', rev:true},
+        {t:'Sunday', r:'Воскресенье', rev:true},
+        {t:'Baby', r:'Младенец', rev:true},
+        {t:'Husband', r:'Муж', rev:true}
+      ]},
+      { type:'words', title:'Еда каждый день · 2', scene:'cafe', cefr:'A1: Can name common food and order it.', newCount:10, words:[
         {t:'Salad', r:'Салат'},
         {t:'Sandwich', r:'Бутерброд'},
         {t:'Salt', r:'Соль'},
@@ -476,13 +749,21 @@ const COURSE = {
         {t:'Cream', r:'Сливки'},
         {t:'Meal', r:'Приём пищи'},
         {t:'Dish', r:'Блюдо'},
-        {t:'Menu', r:'Меню'}
+        {t:'Menu', r:'Меню'},
+        {t:'Clothes', r:'Одежда', rev:true},
+        {t:'Shirt', r:'Рубашка', rev:true},
+        {t:'T-shirt', r:'Футболка', rev:true},
+        {t:'Eye', r:'Глаз', rev:true},
+        {t:'Ear', r:'Ухо', rev:true},
+        {t:'Nose', r:'Нос', rev:true}
       ]},
       { type:'build', title:'Собери: Еда каждый день', scene:'cafe', cefr:'A1: Can name common food and order it.', tasks:[
         {ru:'Можно мне меню, пожалуйста?', parts:['Can','I','have','the','menu,','please?'], answer:'Can I have the menu, please?'},
         {ru:'Я буду суп и салат.', parts:['I','will','have','soup','and','salad.'], answer:'I will have soup and salad.'},
         {ru:'Без соли, пожалуйста.', parts:['Without','salt,','please.'], answer:'Without salt, please.'},
-        {ru:'Это блюдо с рыбой?', parts:['Is','this','dish','with','fish?'], answer:'Is this dish with fish?'}
+        {ru:'Это блюдо с рыбой?', parts:['Is','this','dish','with','fish?'], answer:'Is this dish with fish?'},
+        {ru:'Я ищу чёрную куртку.', parts:['I','am','looking','for','a','black','jacket.'], answer:'I am looking for a black jacket.'},
+        {ru:'У вас есть эти туфли моего размера?', parts:['Do','you','have','these','shoes','in','my','size?'], answer:'Do you have these shoes in my size?'}
       ]},
       { type:'dialog', title:'Заказать обед', scene:'cafe', cefr:'A1: Can name common food and order it.',
         intro:'Официант подходит с меню.',
@@ -495,9 +776,18 @@ const COURSE = {
             options:['I will have the soup and some bread.','Soup bread me want.','Give soup. Bread also.']},
           {who:'them', text:'Anything to drink?', ru:'Что-нибудь выпить?'},
           {who:'you', ru:'Попроси воду.', best:1,
-            options:['Water give.','Just water, please.','Drink water me yes.']}
+            options:['Water give.','Just water, please.','Drink water me yes.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
         ]},
-      { type:'words', title:'Напитки', scene:'cafe', cefr:'A1: Can order drinks.', words:[
+      { type:'words', title:'Напитки · 1', scene:'cafe', cefr:'A1: Can order drinks.', newCount:8, words:[
         {t:'Drink', r:'Напиток'},
         {t:'Water', r:'Вода'},
         {t:'Coffee', r:'Кофе'},
@@ -506,19 +796,37 @@ const COURSE = {
         {t:'Beer', r:'Пиво'},
         {t:'Wine', r:'Вино'},
         {t:'Glass', r:'Стакан'},
+        {t:'Early', r:'Рано', rev:true},
+        {t:'Late', r:'Поздно', rev:true},
+        {t:'Eleven', r:'Одиннадцать', rev:true},
+        {t:'Twelve', r:'Двенадцать', rev:true},
+        {t:'Sick', r:'Больной', rev:true},
+        {t:'Hospital', r:'Больница', rev:true},
+        {t:'Food', r:'Еда', rev:true}
+      ]},
+      { type:'words', title:'Напитки · 2', scene:'cafe', cefr:'A1: Can order drinks.', newCount:7, words:[
         {t:'Cup', r:'Чашка'},
         {t:'Bottle', r:'Бутылка'},
         {t:'Cold', r:'Холодный'},
         {t:'Hot', r:'Горячий'},
         {t:'Ice', r:'Лёд'},
         {t:'Order', r:'Заказ'},
-        {t:'Waiter', r:'Официант'}
+        {t:'Waiter', r:'Официант'},
+        {t:'Bread', r:'Хлеб', rev:true},
+        {t:'Butter', r:'Масло', rev:true},
+        {t:'Dress', r:'Платье', rev:true},
+        {t:'Skirt', r:'Юбка', rev:true},
+        {t:'Trousers', r:'Брюки', rev:true},
+        {t:'Mouth', r:'Рот', rev:true},
+        {t:'Tooth', r:'Зуб', rev:true}
       ]},
       { type:'build', title:'Собери: Напитки', scene:'cafe', cefr:'A1: Can order drinks.', tasks:[
         {ru:'Чашку кофе, пожалуйста.', parts:['A','cup','of','coffee,','please.'], answer:'A cup of coffee, please.'},
         {ru:'Можно стакан воды?', parts:['Can','I','have','a','glass','of','water?'], answer:'Can I have a glass of water?'},
         {ru:'Чай без сахара.', parts:['Tea','without','sugar.'], answer:'Tea without sugar.'},
-        {ru:'Бутылку вина, пожалуйста.', parts:['A','bottle','of','wine,','please.'], answer:'A bottle of wine, please.'}
+        {ru:'Бутылку вина, пожалуйста.', parts:['A','bottle','of','wine,','please.'], answer:'A bottle of wine, please.'},
+        {ru:'Можно мне меню, пожалуйста?', parts:['Can','I','have','the','menu,','please?'], answer:'Can I have the menu, please?'},
+        {ru:'Я буду суп и салат.', parts:['I','will','have','soup','and','salad.'], answer:'I will have soup and salad.'}
       ]},
       { type:'dialog', title:'У барной стойки', scene:'cafe', cefr:'A1: Can order drinks.',
         intro:'Бариста ждёт заказ.',
@@ -531,9 +839,40 @@ const COURSE = {
             options:['Milk no sugar yes.','No milk, but with sugar, please.','Sugar in milk out.']},
           {who:'them', text:'Two euros fifty.', ru:'Два пятьдесят.'},
           {who:'you', ru:'Скажи, что платишь картой.', best:2,
-            options:['Card money take.','Pay card me now.','I will pay by card.']}
+            options:['Card money take.','Pay card me now.','I will pay by card.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
         ]},
-      { type:'words', title:'Дом и комнаты', scene:'flat', cefr:'A1: Can describe where they live.', words:[
+      { type:'words', title:'Контроль: темы 9–12', scene:'cafe', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Face', r:'Лицо', rev:true},
+        {t:'Hand', r:'Рука (кисть)', rev:true},
+        {t:'Arm', r:'Рука', rev:true},
+        {t:'Leg', r:'Нога', rev:true},
+        {t:'Foot', r:'Ступня', rev:true},
+        {t:'Back', r:'Спина', rev:true},
+        {t:'Health', r:'Здоровье', rev:true},
+        {t:'Healthy', r:'Здоровый', rev:true},
+        {t:'Doctor', r:'Врач', rev:true},
+        {t:'Nurse', r:'Медсестра', rev:true},
+        {t:'Jeans', r:'Джинсы', rev:true},
+        {t:'Jacket', r:'Куртка', rev:true},
+        {t:'Coat', r:'Пальто', rev:true},
+        {t:'Sweater', r:'Свитер', rev:true},
+        {t:'Shoe', r:'Ботинок', rev:true},
+        {t:'Boot', r:'Сапог', rev:true},
+        {t:'Hat', r:'Шляпа', rev:true},
+        {t:'Pair', r:'Пара', rev:true},
+        {t:'Wear', r:'Носить', rev:true},
+        {t:'Type', r:'Тип / вид', rev:true}
+      ]},
+      { type:'words', title:'Дом и комнаты · 1', scene:'flat', cefr:'A1: Can describe where they live.', newCount:12, words:[
         {t:'House', r:'Дом'},
         {t:'Home', r:'Дом (жильё)'},
         {t:'Flat', r:'Квартира'},
@@ -546,6 +885,14 @@ const COURSE = {
         {t:'Door', r:'Дверь'},
         {t:'Window', r:'Окно'},
         {t:'Floor', r:'Пол / этаж'},
+        {t:'Jeans', r:'Джинсы', rev:true},
+        {t:'Jacket', r:'Куртка', rev:true},
+        {t:'Free', r:'Свободный', rev:true},
+        {t:'Sea', r:'Море', rev:true},
+        {t:'Purple', r:'Фиолетовый', rev:true},
+        {t:'Orange', r:'Оранжевый', rev:true}
+      ]},
+      { type:'words', title:'Дом и комнаты · 2', scene:'flat', cefr:'A1: Can describe where they live.', newCount:11, words:[
         {t:'Wall', r:'Стена'},
         {t:'Table', r:'Стол'},
         {t:'Chair', r:'Стул'},
@@ -556,13 +903,21 @@ const COURSE = {
         {t:'Upstairs', r:'Наверху'},
         {t:'Downstairs', r:'Внизу'},
         {t:'Under', r:'Под'},
-        {t:'Outside', r:'Снаружи'}
+        {t:'Outside', r:'Снаружи'},
+        {t:'Drink', r:'Напиток', rev:true},
+        {t:'Water', r:'Вода', rev:true},
+        {t:'Coffee', r:'Кофе', rev:true},
+        {t:'Cheese', r:'Сыр', rev:true},
+        {t:'Egg', r:'Яйцо', rev:true},
+        {t:'Meat', r:'Мясо', rev:true}
       ]},
       { type:'build', title:'Собери: Дом и комнаты', scene:'flat', cefr:'A1: Can describe where they live.', tasks:[
         {ru:'Я живу в маленькой квартире.', parts:['I','live','in','a','small','flat.'], answer:'I live in a small flat.'},
         {ru:'Кухня рядом с ванной.', parts:['The','kitchen','is','next','to','the','bathroom.'], answer:'The kitchen is next to the bathroom.'},
         {ru:'Моя спальня наверху.', parts:['My','bedroom','is','upstairs.'], answer:'My bedroom is upstairs.'},
-        {ru:'Пожалуйста, закройте окно.', parts:['Please','close','the','window.'], answer:'Please close the window.'}
+        {ru:'Пожалуйста, закройте окно.', parts:['Please','close','the','window.'], answer:'Please close the window.'},
+        {ru:'Чашку кофе, пожалуйста.', parts:['A','cup','of','coffee,','please.'], answer:'A cup of coffee, please.'},
+        {ru:'Можно стакан воды?', parts:['Can','I','have','a','glass','of','water?'], answer:'Can I have a glass of water?'}
       ]},
       { type:'dialog', title:'Показать квартиру', scene:'flat', cefr:'A1: Can describe where they live.',
         intro:'Ты показываешь новую квартиру другу.',
@@ -575,9 +930,18 @@ const COURSE = {
             options:['The kitchen is next to the door.','Kitchen door near have.','Door there kitchen is yes.']},
           {who:'them', text:'And the bedroom?', ru:'А спальня?'},
           {who:'you', ru:'Скажи, что наверху.', best:2,
-            options:['Up there sleep room.','Bedroom is up yes.','It is upstairs.']}
+            options:['Up there sleep room.','Bedroom is up yes.','It is upstairs.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
         ]},
-      { type:'words', title:'Вещи в доме', scene:'flat', cefr:'A1: Can name everyday objects at home.', words:[
+      { type:'words', title:'Вещи в доме · 1', scene:'flat', cefr:'A1: Can name everyday objects at home.', newCount:10, words:[
         {t:'Television', r:'Телевизор'},
         {t:'Tv', r:'Телевизор'},
         {t:'Radio', r:'Радио'},
@@ -588,6 +952,16 @@ const COURSE = {
         {t:'Phone', r:'Телефон'},
         {t:'Cup', r:'Чашка'},
         {t:'Glass', r:'Стакан'},
+        {t:'February', r:'Февраль', rev:true},
+        {t:'Nice', r:'Приятный', rev:true},
+        {t:'Meet', r:'Встречать / знакомиться', rev:true},
+        {t:'Cream', r:'Сливки', rev:true},
+        {t:'Meal', r:'Приём пищи', rev:true},
+        {t:'Dish', r:'Блюдо', rev:true},
+        {t:'House', r:'Дом', rev:true},
+        {t:'Home', r:'Дом (жильё)', rev:true}
+      ]},
+      { type:'words', title:'Вещи в доме · 2', scene:'flat', cefr:'A1: Can name everyday objects at home.', newCount:10, words:[
         {t:'Box', r:'Коробка'},
         {t:'Bag', r:'Сумка'},
         {t:'Paper', r:'Бумага'},
@@ -597,13 +971,24 @@ const COURSE = {
         {t:'Picture', r:'Картинка'},
         {t:'Clock', r:'Часы'},
         {t:'Photo', r:'Фото'},
-        {t:'Shower', r:'Душ'}
+        {t:'Shower', r:'Душ'},
+        {t:'Flat', r:'Квартира', rev:true},
+        {t:'Tea', r:'Чай', rev:true},
+        {t:'Juice', r:'Сок', rev:true},
+        {t:'Beer', r:'Пиво', rev:true},
+        {t:'Chicken', r:'Курица', rev:true},
+        {t:'Fish', r:'Рыба', rev:true},
+        {t:'Face', r:'Лицо', rev:true},
+        {t:'Hand', r:'Рука (кисть)', rev:true},
+        {t:'January', r:'Январь', rev:true}
       ]},
       { type:'build', title:'Собери: Вещи в доме', scene:'flat', cefr:'A1: Can name everyday objects at home.', tasks:[
         {ru:'Свет не работает.', parts:['The','light','does','not','work.'], answer:'The light does not work.'},
         {ru:'Можно мне ручку и бумагу?', parts:['Can','I','have','a','pen','and','paper?'], answer:'Can I have a pen and paper?'},
         {ru:'Телевизор в гостиной.', parts:['The','television','is','in','the','living','room.'], answer:'The television is in the living room.'},
-        {ru:'Положи книгу на стол.', parts:['Put','the','book','on','the','table.'], answer:'Put the book on the table.'}
+        {ru:'Положи книгу на стол.', parts:['Put','the','book','on','the','table.'], answer:'Put the book on the table.'},
+        {ru:'Я живу в маленькой квартире.', parts:['I','live','in','a','small','flat.'], answer:'I live in a small flat.'},
+        {ru:'Кухня рядом с ванной.', parts:['The','kitchen','is','next','to','the','bathroom.'], answer:'The kitchen is next to the bathroom.'}
       ]},
       { type:'dialog', title:'Что-то сломалось', scene:'flat', cefr:'A1: Can name everyday objects at home.',
         intro:'Ты звонишь хозяину квартиры.',
@@ -616,9 +1001,18 @@ const COURSE = {
             options:['Since yesterday evening.','Yesterday night from is.','Evening before no light.']},
           {who:'them', text:'I will come tomorrow morning.', ru:'Приду завтра утром.'},
           {who:'you', ru:'Поблагодари.', best:1,
-            options:['Ok come you morning.','Thank you very much.','Tomorrow good yes wait me.']}
+            options:['Ok come you morning.','Thank you very much.','Tomorrow good yes wait me.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
         ]},
-      { type:'words', title:'Город вокруг', scene:'street', cefr:'A1: Can name places in a town.', words:[
+      { type:'words', title:'Город вокруг · 1', scene:'street', cefr:'A1: Can name places in a town.', newCount:12, words:[
         {t:'City', r:'Город'},
         {t:'Town', r:'Городок'},
         {t:'Street', r:'Улица'},
@@ -631,6 +1025,15 @@ const COURSE = {
         {t:'Post', r:'Почта'},
         {t:'School', r:'Школа'},
         {t:'University', r:'Университет'},
+        {t:'Coat', r:'Пальто', rev:true},
+        {t:'Sweater', r:'Свитер', rev:true},
+        {t:'Now', r:'Сейчас', rev:true},
+        {t:'Later', r:'Позже', rev:true},
+        {t:'Email', r:'Электронная почта', rev:true},
+        {t:'Passport', r:'Паспорт', rev:true},
+        {t:'Television', r:'Телевизор', rev:true}
+      ]},
+      { type:'words', title:'Город вокруг · 2', scene:'street', cefr:'A1: Can name places in a town.', newCount:12, words:[
         {t:'Library', r:'Библиотека'},
         {t:'Museum', r:'Музей'},
         {t:'Cinema', r:'Кинотеатр'},
@@ -642,13 +1045,22 @@ const COURSE = {
         {t:'Building', r:'Здание'},
         {t:'Village', r:'Деревня'},
         {t:'River', r:'Река'},
-        {t:'Centre', r:'Центр'}
+        {t:'Centre', r:'Центр'},
+        {t:'Tv', r:'Телевизор', rev:true},
+        {t:'Radio', r:'Радио', rev:true},
+        {t:'Apartment', r:'Квартира', rev:true},
+        {t:'Room', r:'Комната', rev:true},
+        {t:'Kitchen', r:'Кухня', rev:true},
+        {t:'Wine', r:'Вино', rev:true},
+        {t:'Bottle', r:'Бутылка', rev:true}
       ]},
       { type:'build', title:'Собери: Город вокруг', scene:'street', cefr:'A1: Can name places in a town.', tasks:[
         {ru:'Где ближайший банк?', parts:['Where','is','the','nearest','bank?'], answer:'Where is the nearest bank?'},
         {ru:'Музей находится в центре.', parts:['The','museum','is','in','the','centre.'], answer:'The museum is in the centre.'},
         {ru:'Есть ли рядом супермаркет?', parts:['Is','there','a','supermarket','near','here?'], answer:'Is there a supermarket near here?'},
-        {ru:'Я иду на вокзал.', parts:['I','am','going','to','the','station.'], answer:'I am going to the station.'}
+        {ru:'Я иду на вокзал.', parts:['I','am','going','to','the','station.'], answer:'I am going to the station.'},
+        {ru:'Свет не работает.', parts:['The','light','does','not','work.'], answer:'The light does not work.'},
+        {ru:'Можно мне ручку и бумагу?', parts:['Can','I','have','a','pen','and','paper?'], answer:'Can I have a pen and paper?'}
       ]},
       { type:'dialog', title:'Найти банк', scene:'street', cefr:'A1: Can name places in a town.',
         intro:'Ты останавливаешь прохожего на улице.',
@@ -661,9 +1073,18 @@ const COURSE = {
             options:['Is it far from here?','Far is it much?','Walk long time yes no?']},
           {who:'them', text:'No, two minutes.', ru:'Нет, две минуты.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok two minute go.','Good near is thanks.','Thank you very much.']}
+            options:['Ok two minute go.','Good near is thanks.','Thank you very much.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Транспорт', scene:'street', cefr:'A1: Can use public transport and buy tickets.', words:[
+      { type:'words', title:'Транспорт · 1', scene:'street', cefr:'A1: Can use public transport and buy tickets.', newCount:10, words:[
         {t:'Bus', r:'Автобус'},
         {t:'Train', r:'Поезд'},
         {t:'Taxi', r:'Такси'},
@@ -674,6 +1095,17 @@ const COURSE = {
         {t:'Boat', r:'Лодка'},
         {t:'Flight', r:'Рейс'},
         {t:'Ticket', r:'Билет'},
+        {t:'Parent', r:'Родитель', rev:true},
+        {t:'Key', r:'Ключ', rev:true},
+        {t:'Garden', r:'Сад', rev:true},
+        {t:'Upstairs', r:'Наверху', rev:true},
+        {t:'Downstairs', r:'Внизу', rev:true},
+        {t:'Outside', r:'Снаружи', rev:true},
+        {t:'City', r:'Город', rev:true},
+        {t:'Town', r:'Городок', rev:true},
+        {t:'Street', r:'Улица', rev:true}
+      ]},
+      { type:'words', title:'Транспорт · 2', scene:'street', cefr:'A1: Can use public transport and buy tickets.', newCount:10, words:[
         {t:'Travel', r:'Путешествовать'},
         {t:'Trip', r:'Поездка'},
         {t:'Journey', r:'Поездка / путь'},
@@ -683,13 +1115,25 @@ const COURSE = {
         {t:'Leave', r:'Уезжать'},
         {t:'Wait', r:'Ждать'},
         {t:'Stop', r:'Остановка / останавливаться'},
-        {t:'Way', r:'Путь'}
+        {t:'Way', r:'Путь'},
+        {t:'Computer', r:'Компьютер', rev:true},
+        {t:'Camera', r:'Фотоаппарат', rev:true},
+        {t:'Machine', r:'Машина / прибор', rev:true},
+        {t:'Bedroom', r:'Спальня', rev:true},
+        {t:'Bathroom', r:'Ванная', rev:true},
+        {t:'Rice', r:'Рис', rev:true},
+        {t:'Soup', r:'Суп', rev:true},
+        {t:'Spring', r:'Весна', rev:true},
+        {t:'Summer', r:'Лето', rev:true},
+        {t:'Wife', r:'Жена', rev:true}
       ]},
       { type:'build', title:'Собери: Транспорт', scene:'street', cefr:'A1: Can use public transport and buy tickets.', tasks:[
         {ru:'Два билета на поезд, пожалуйста.', parts:['Two','train','tickets,','please.'], answer:'Two train tickets, please.'},
         {ru:'Во сколько уходит автобус?', parts:['What','time','does','the','bus','leave?'], answer:'What time does the bus leave?'},
         {ru:'Я приеду в шесть.', parts:['I','will','arrive','at','six.'], answer:'I will arrive at six.'},
-        {ru:'Где остановка такси?', parts:['Where','is','the','taxi','stop?'], answer:'Where is the taxi stop?'}
+        {ru:'Где остановка такси?', parts:['Where','is','the','taxi','stop?'], answer:'Where is the taxi stop?'},
+        {ru:'Где ближайший банк?', parts:['Where','is','the','nearest','bank?'], answer:'Where is the nearest bank?'},
+        {ru:'Музей находится в центре.', parts:['The','museum','is','in','the','centre.'], answer:'The museum is in the centre.'}
       ]},
       { type:'dialog', title:'Купить билет', scene:'street', cefr:'A1: Can use public transport and buy tickets.',
         intro:'Ты в кассе на вокзале.',
@@ -702,9 +1146,40 @@ const COURSE = {
             options:['Return, please.','Back also yes come.','Two way ticket me.']},
           {who:'them', text:'That is six euros.', ru:'Шесть евро.'},
           {who:'you', ru:'Спроси, во сколько отходит поезд.', best:2,
-            options:['Train go when time?','Time what train leave say.','Thank you. What time does the train leave?']}
+            options:['Train go when time?','Time what train leave say.','Thank you. What time does the train leave?']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Дорога и направление', scene:'street', cefr:'A1: Can ask for and give simple directions.', words:[
+      { type:'words', title:'Контроль: темы 13–16', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Toilet', r:'Туалет', rev:true},
+        {t:'Door', r:'Дверь', rev:true},
+        {t:'Window', r:'Окно', rev:true},
+        {t:'Floor', r:'Пол / этаж', rev:true},
+        {t:'Wall', r:'Стена', rev:true},
+        {t:'Table', r:'Стол', rev:true},
+        {t:'Chair', r:'Стул', rev:true},
+        {t:'Bed', r:'Кровать', rev:true},
+        {t:'Desk', r:'Письменный стол', rev:true},
+        {t:'Under', r:'Под', rev:true},
+        {t:'Light', r:'Свет', rev:true},
+        {t:'Box', r:'Коробка', rev:true},
+        {t:'Bag', r:'Сумка', rev:true},
+        {t:'Paper', r:'Бумага', rev:true},
+        {t:'Pen', r:'Ручка', rev:true},
+        {t:'Pencil', r:'Карандаш', rev:true},
+        {t:'Book', r:'Книга', rev:true},
+        {t:'Picture', r:'Картинка', rev:true},
+        {t:'Photo', r:'Фото', rev:true},
+        {t:'Shower', r:'Душ', rev:true}
+      ]},
+      { type:'words', title:'Дорога и направление · 1', scene:'street', cefr:'A1: Can ask for and give simple directions.', newCount:10, words:[
         {t:'Left', r:'Налево'},
         {t:'Right', r:'Направо'},
         {t:'Long', r:'Длинный'},
@@ -715,6 +1190,15 @@ const COURSE = {
         {t:'East', r:'Восток'},
         {t:'West', r:'Запад'},
         {t:'Map', r:'Карта'},
+        {t:'Order', r:'Заказ', rev:true},
+        {t:'Waiter', r:'Официант', rev:true},
+        {t:'Arm', r:'Рука', rev:true},
+        {t:'Leg', r:'Нога', rev:true},
+        {t:'Fifteen', r:'Пятнадцать', rev:true},
+        {t:'Twenty', r:'Двадцать', rev:true},
+        {t:'Bus', r:'Автобус', rev:true}
+      ]},
+      { type:'words', title:'Дорога и направление · 2', scene:'street', cefr:'A1: Can ask for and give simple directions.', newCount:10, words:[
         {t:'Place', r:'Место'},
         {t:'Front', r:'Перед'},
         {t:'Behind', r:'Позади'},
@@ -724,13 +1208,22 @@ const COURSE = {
         {t:'Turn', r:'Поворачивать'},
         {t:'Follow', r:'Следовать'},
         {t:'Across', r:'Через'},
-        {t:'Metre', r:'Метр'}
+        {t:'Metre', r:'Метр'},
+        {t:'Train', r:'Поезд', rev:true},
+        {t:'Taxi', r:'Такси', rev:true},
+        {t:'Road', r:'Дорога', rev:true},
+        {t:'Area', r:'Район', rev:true},
+        {t:'Park', r:'Парк', rev:true},
+        {t:'Light', r:'Свет', rev:true},
+        {t:'Box', r:'Коробка', rev:true}
       ]},
       { type:'build', title:'Собери: Дорога и направление', scene:'street', cefr:'A1: Can ask for and give simple directions.', tasks:[
         {ru:'Идите прямо и поверните налево.', parts:['Go','straight','and','turn','left.'], answer:'Go straight and turn left.'},
         {ru:'Это напротив банка.', parts:['It','is','opposite','the','bank.'], answer:'It is opposite the bank.'},
         {ru:'Аптека между школой и парком.', parts:['The','pharmacy','is','between','the','school','and','the','park.'], answer:'The pharmacy is between the school and the park.'},
-        {ru:'Это далеко пешком?', parts:['Is','it','far','on','foot?'], answer:'Is it far on foot?'}
+        {ru:'Это далеко пешком?', parts:['Is','it','far','on','foot?'], answer:'Is it far on foot?'},
+        {ru:'Два билета на поезд, пожалуйста.', parts:['Two','train','tickets,','please.'], answer:'Two train tickets, please.'},
+        {ru:'Во сколько уходит автобус?', parts:['What','time','does','the','bus','leave?'], answer:'What time does the bus leave?'}
       ]},
       { type:'dialog', title:'Объяснить дорогу', scene:'street', cefr:'A1: Can ask for and give simple directions.',
         intro:'Турист останавливает тебя на улице.',
@@ -743,9 +1236,18 @@ const COURSE = {
             options:['About five minutes on foot.','Five minute walk is.','Foot five time go.']},
           {who:'them', text:'Thank you so much!', ru:'Большое спасибо!'},
           {who:'you', ru:'Ответь «не за что».', best:1,
-            options:['Ok go now bye.','You are welcome.','No problem have good.']}
+            options:['Ok go now bye.','You are welcome.','No problem have good.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Работа и профессии', scene:'office', cefr:'A1: Can say what they do for a living.', words:[
+      { type:'words', title:'Работа и профессии · 1', scene:'office', cefr:'A1: Can say what they do for a living.', newCount:12, words:[
         {t:'Work', r:'Работа / работать'},
         {t:'Job', r:'Работа (должность)'},
         {t:'Worker', r:'Работник'},
@@ -758,6 +1260,16 @@ const COURSE = {
         {t:'Driver', r:'Водитель'},
         {t:'Waiter', r:'Официант'},
         {t:'Farmer', r:'Фермер'},
+        {t:'Boot', r:'Сапог', rev:true},
+        {t:'Big', r:'Большой', rev:true},
+        {t:'Small', r:'Маленький', rev:true},
+        {t:'Building', r:'Здание', rev:true},
+        {t:'Village', r:'Деревня', rev:true},
+        {t:'Centre', r:'Центр', rev:true},
+        {t:'Left', r:'Налево', rev:true},
+        {t:'Right', r:'Направо', rev:true}
+      ]},
+      { type:'words', title:'Работа и профессии · 2', scene:'office', cefr:'A1: Can say what they do for a living.', newCount:12, words:[
         {t:'Artist', r:'Художник'},
         {t:'Actor', r:'Актёр'},
         {t:'Actress', r:'Актриса'},
@@ -769,13 +1281,24 @@ const COURSE = {
         {t:'Teach', r:'Учить'},
         {t:'Career', r:'Карьера'},
         {t:'Meeting', r:'Встреча / совещание'},
-        {t:'Busy', r:'Занятый'}
+        {t:'Busy', r:'Занятый'},
+        {t:'Long', r:'Длинный', rev:true},
+        {t:'Car', r:'Машина', rev:true},
+        {t:'Bike', r:'Велосипед', rev:true},
+        {t:'Bicycle', r:'Велосипед', rev:true},
+        {t:'Market', r:'Рынок', rev:true},
+        {t:'Bank', r:'Банк', rev:true},
+        {t:'Toilet', r:'Туалет', rev:true},
+        {t:'Door', r:'Дверь', rev:true},
+        {t:'Shoe', r:'Ботинок', rev:true}
       ]},
       { type:'build', title:'Собери: Работа и профессии', scene:'office', cefr:'A1: Can say what they do for a living.', tasks:[
         {ru:'Я работаю в маленькой компании.', parts:['I','work','in','a','small','company.'], answer:'I work in a small company.'},
         {ru:'Моя сестра — учительница.', parts:['My','sister','is','a','teacher.'], answer:'My sister is a teacher.'},
         {ru:'Кем вы работаете?', parts:['What','is','your','job?'], answer:'What is your job?'},
-        {ru:'Сегодня я очень занят.', parts:['I','am','very','busy','today.'], answer:'I am very busy today.'}
+        {ru:'Сегодня я очень занят.', parts:['I','am','very','busy','today.'], answer:'I am very busy today.'},
+        {ru:'Идите прямо и поверните налево.', parts:['Go','straight','and','turn','left.'], answer:'Go straight and turn left.'},
+        {ru:'Это напротив банка.', parts:['It','is','opposite','the','bank.'], answer:'It is opposite the bank.'}
       ]},
       { type:'dialog', title:'Рассказать о работе', scene:'office', cefr:'A1: Can say what they do for a living.',
         intro:'На вечеринке кто-то спрашивает о работе.',
@@ -788,9 +1311,18 @@ const COURSE = {
             options:['Work much yes like.','Yes, but there is a lot of work.','Like yes work big have.']},
           {who:'them', text:'I know that feeling.', ru:'Знакомое чувство.'},
           {who:'you', ru:'Спроси, кем работает он.', best:2,
-            options:['You job what is?','Work you where say me.','And what about you?']}
+            options:['You job what is?','Work you where say me.','And what about you?']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Учёба', scene:'office', cefr:'A1: Can talk about school and studying.', words:[
+      { type:'words', title:'Учёба · 1', scene:'office', cefr:'A1: Can talk about school and studying.', newCount:13, words:[
         {t:'School', r:'Школа'},
         {t:'University', r:'Университет'},
         {t:'College', r:'Колледж'},
@@ -804,6 +1336,15 @@ const COURSE = {
         {t:'Test', r:'Тест'},
         {t:'Homework', r:'Домашняя работа'},
         {t:'Book', r:'Книга'},
+        {t:'Paper', r:'Бумага', rev:true},
+        {t:'Salad', r:'Салат', rev:true},
+        {t:'Sandwich', r:'Бутерброд', rev:true},
+        {t:'March', r:'Март', rev:true},
+        {t:'May', r:'Май', rev:true},
+        {t:'Way', r:'Путь', rev:true},
+        {t:'Work', r:'Работа / работать', rev:true}
+      ]},
+      { type:'words', title:'Учёба · 2', scene:'office', cefr:'A1: Can talk about school and studying.', newCount:12, words:[
         {t:'Dictionary', r:'Словарь'},
         {t:'Page', r:'Страница'},
         {t:'Word', r:'Слово'},
@@ -815,13 +1356,23 @@ const COURSE = {
         {t:'History', r:'История'},
         {t:'Geography', r:'География'},
         {t:'Read', r:'Читать'},
-        {t:'Write', r:'Писать'}
+        {t:'Write', r:'Писать'},
+        {t:'Job', r:'Работа (должность)', rev:true},
+        {t:'Worker', r:'Работник', rev:true},
+        {t:'Near', r:'Рядом', rev:true},
+        {t:'Far', r:'Далеко', rev:true},
+        {t:'North', r:'Север', rev:true},
+        {t:'Plane', r:'Самолёт', rev:true},
+        {t:'Boat', r:'Лодка', rev:true},
+        {t:'Bag', r:'Сумка', rev:true}
       ]},
       { type:'build', title:'Собери: Учёба', scene:'office', cefr:'A1: Can talk about school and studying.', tasks:[
         {ru:'Я учу английский два года.', parts:['I','have','studied','English','for','two','years.'], answer:'I have studied English for two years.'},
         {ru:'У меня завтра экзамен.', parts:['I','have','an','exam','tomorrow.'], answer:'I have an exam tomorrow.'},
         {ru:'Как пишется это слово?', parts:['How','do','you','spell','this','word?'], answer:'How do you spell this word?'},
-        {ru:'Можно повторить вопрос?', parts:['Can','you','repeat','the','question?'], answer:'Can you repeat the question?'}
+        {ru:'Можно повторить вопрос?', parts:['Can','you','repeat','the','question?'], answer:'Can you repeat the question?'},
+        {ru:'Я работаю в маленькой компании.', parts:['I','work','in','a','small','company.'], answer:'I work in a small company.'},
+        {ru:'Моя сестра — учительница.', parts:['My','sister','is','a','teacher.'], answer:'My sister is a teacher.'}
       ]},
       { type:'dialog', title:'На языковых курсах', scene:'office', cefr:'A1: Can talk about school and studying.',
         intro:'Первое занятие, преподаватель знакомится с группой.',
@@ -834,9 +1385,18 @@ const COURSE = {
             options:['Speaking is difficult for me.','Talk hard is me have.','Difficult speak yes much.']},
           {who:'them', text:'We will practise a lot.', ru:'Мы будем много практиковаться.'},
           {who:'you', ru:'Скажи «хорошо, спасибо».', best:2,
-            options:['Ok practice much good.','Practice yes need me.','Good, thank you.']}
+            options:['Ok practice much good.','Practice yes need me.','Good, thank you.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Деньги и оплата', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.', words:[
+      { type:'words', title:'Деньги и оплата · 1', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.', newCount:10, words:[
         {t:'Money', r:'Деньги'},
         {t:'Price', r:'Цена'},
         {t:'Cost', r:'Стоить'},
@@ -847,6 +1407,15 @@ const COURSE = {
         {t:'Expensive', r:'Дорогой'},
         {t:'Bill', r:'Счёт'},
         {t:'Card', r:'Карта'},
+        {t:'Library', r:'Библиотека', rev:true},
+        {t:'Drink', r:'Напиток', rev:true},
+        {t:'Water', r:'Вода', rev:true},
+        {t:'Soon', r:'Скоро', rev:true},
+        {t:'Today', r:'Сегодня', rev:true},
+        {t:'Metre', r:'Метр', rev:true},
+        {t:'College', r:'Колледж', rev:true}
+      ]},
+      { type:'words', title:'Деньги и оплата · 2', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.', newCount:10, words:[
         {t:'Spend', r:'Тратить'},
         {t:'Euro', r:'Евро'},
         {t:'Dollar', r:'Доллар'},
@@ -856,13 +1425,23 @@ const COURSE = {
         {t:'Change', r:'Сдача / менять'},
         {t:'Free', r:'Бесплатный'},
         {t:'Note', r:'Купюра'},
-        {t:'Rich', r:'Богатый'}
+        {t:'Rich', r:'Богатый'},
+        {t:'Class', r:'Класс / занятие', rev:true},
+        {t:'Classroom', r:'Аудитория', rev:true},
+        {t:'Office', r:'Офис', rev:true},
+        {t:'Business', r:'Дело / бизнес', rev:true},
+        {t:'Company', r:'Компания', rev:true},
+        {t:'South', r:'Юг', rev:true},
+        {t:'East', r:'Восток', rev:true},
+        {t:'Post', r:'Почта', rev:true}
       ]},
       { type:'build', title:'Собери: Деньги и оплата', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.', tasks:[
         {ru:'Сколько это стоит?', parts:['How','much','does','it','cost?'], answer:'How much does it cost?'},
         {ru:'Можно заплатить картой?', parts:['Can','I','pay','by','card?'], answer:'Can I pay by card?'},
         {ru:'Это слишком дорого.', parts:['It','is','too','expensive.'], answer:'It is too expensive.'},
-        {ru:'Вот ваша сдача.', parts:['Here','is','your','change.'], answer:'Here is your change.'}
+        {ru:'Вот ваша сдача.', parts:['Here','is','your','change.'], answer:'Here is your change.'},
+        {ru:'Я учу английский два года.', parts:['I','have','studied','English','for','two','years.'], answer:'I have studied English for two years.'},
+        {ru:'У меня завтра экзамен.', parts:['I','have','an','exam','tomorrow.'], answer:'I have an exam tomorrow.'}
       ]},
       { type:'dialog', title:'Оплата на кассе', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.',
         intro:'Кассир пробивает покупки.',
@@ -875,9 +1454,40 @@ const COURSE = {
             options:['Here you are.','Take card here.','Card give you now.']},
           {who:'them', text:'Do you need a receipt?', ru:'Чек нужен?'},
           {who:'you', ru:'Скажи: да, пожалуйста.', best:1,
-            options:['Paper yes give.','Yes, please.','Receipt want me have.']}
+            options:['Paper yes give.','Yes, please.','Receipt want me have.']},
+          {who:'them', text:'Do you have any other questions?', ru:'Ещё вопросы есть?'},
+          {who:'you', ru:'Спроси, когда всё будет готово.', best:1,
+            options:['Ready when is?','When will it be ready?','Time ready what say?']},
+          {who:'them', text:'In about five working days.', ru:'Примерно пять рабочих дней.'},
+          {who:'you', ru:'Спроси, позвонят ли тебе.', best:0,
+            options:['Will you call me?','Phone me you can?','Call have me yes no?']},
+          {who:'them', text:'Yes, we will send a message.', ru:'Да, отправим сообщение.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok message wait.','Good send yes me.','Thank you very much for your help.']}
         ]},
-      { type:'words', title:'В банке', scene:'bank', cefr:'A1: Can carry out simple bank transactions.', words:[
+      { type:'words', title:'Контроль: темы 17–20', scene:'bank', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'West', r:'Запад', rev:true},
+        {t:'Map', r:'Карта', rev:true},
+        {t:'Place', r:'Место', rev:true},
+        {t:'Front', r:'Перед', rev:true},
+        {t:'Behind', r:'Позади', rev:true},
+        {t:'Between', r:'Между', rev:true},
+        {t:'Opposite', r:'Напротив', rev:true},
+        {t:'Walk', r:'Идти пешком', rev:true},
+        {t:'Turn', r:'Поворачивать', rev:true},
+        {t:'Follow', r:'Следовать', rev:true},
+        {t:'Across', r:'Через', rev:true},
+        {t:'Teacher', r:'Учитель', rev:true},
+        {t:'Farmer', r:'Фермер', rev:true},
+        {t:'Artist', r:'Художник', rev:true},
+        {t:'Actor', r:'Актёр', rev:true},
+        {t:'Actress', r:'Актриса', rev:true},
+        {t:'Singer', r:'Певец', rev:true},
+        {t:'Writer', r:'Писатель', rev:true},
+        {t:'Scientist', r:'Учёный', rev:true},
+        {t:'Policeman', r:'Полицейский', rev:true}
+      ]},
+      { type:'words', title:'В банке · 1', scene:'bank', cefr:'A1: Can carry out simple bank transactions.', newCount:10, words:[
         {t:'Customer', r:'Клиент'},
         {t:'Open', r:'Открыть'},
         {t:'Close', r:'Закрыть'},
@@ -888,6 +1498,15 @@ const COURSE = {
         {t:'Letter', r:'Письмо'},
         {t:'Passport', r:'Паспорт'},
         {t:'Number', r:'Номер'},
+        {t:'Ticket', r:'Билет', rev:true},
+        {t:'Window', r:'Окно', rev:true},
+        {t:'Floor', r:'Пол / этаж', rev:true},
+        {t:'Autumn', r:'Осень', rev:true},
+        {t:'Winter', r:'Зима', rev:true},
+        {t:'Career', r:'Карьера', rev:true},
+        {t:'Money', r:'Деньги', rev:true}
+      ]},
+      { type:'words', title:'В банке · 2', scene:'bank', cefr:'A1: Can carry out simple bank transactions.', newCount:10, words:[
         {t:'Help', r:'Помощь'},
         {t:'Need', r:'Нуждаться'},
         {t:'Want', r:'Хотеть'},
@@ -897,13 +1516,23 @@ const COURSE = {
         {t:'Ready', r:'Готов'},
         {t:'Send', r:'Отправить'},
         {t:'Return', r:'Возвращать'},
-        {t:'Check', r:'Проверить'}
+        {t:'Check', r:'Проверить'},
+        {t:'Price', r:'Цена', rev:true},
+        {t:'Cost', r:'Стоить', rev:true},
+        {t:'Lesson', r:'Урок', rev:true},
+        {t:'Study', r:'Учиться', rev:true},
+        {t:'Learn', r:'Учить', rev:true},
+        {t:'Teacher', r:'Учитель', rev:true},
+        {t:'Farmer', r:'Фермер', rev:true},
+        {t:'Flight', r:'Рейс', rev:true}
       ]},
       { type:'build', title:'Собери: В банке', scene:'bank', cefr:'A1: Can carry out simple bank transactions.', tasks:[
         {ru:'Я хочу открыть счёт.', parts:['I','want','to','open','an','account.'], answer:'I want to open an account.'},
         {ru:'Какие документы нужны?', parts:['What','documents','do','I','need?'], answer:'What documents do I need?'},
         {ru:'Подпишите здесь, пожалуйста.', parts:['Please','sign','here.'], answer:'Please sign here.'},
-        {ru:'Сколько времени это займёт?', parts:['How','long','does','it','take?'], answer:'How long does it take?'}
+        {ru:'Сколько времени это займёт?', parts:['How','long','does','it','take?'], answer:'How long does it take?'},
+        {ru:'Сколько это стоит?', parts:['How','much','does','it','cost?'], answer:'How much does it cost?'},
+        {ru:'Можно заплатить картой?', parts:['Can','I','pay','by','card?'], answer:'Can I pay by card?'}
       ]},
       { type:'dialog', title:'Открыть счёт', scene:'bank', cefr:'A1: Can carry out simple bank transactions.',
         intro:'Ты в отделении банка.',
@@ -916,9 +1545,18 @@ const COURSE = {
             options:['Yes, here it is.','Passport have me yes give.','Here passport take you.']},
           {who:'them', text:'Please fill in this form.', ru:'Заполните эту форму.'},
           {who:'you', ru:'Спроси, где подписать.', best:2,
-            options:['Sign where is me?','Paper write where say.','Where do I sign?']}
+            options:['Sign where is me?','Paper write where say.','Where do I sign?']},
+          {who:'them', text:'Do you have any other questions?', ru:'Ещё вопросы есть?'},
+          {who:'you', ru:'Спроси, когда всё будет готово.', best:1,
+            options:['Ready when is?','When will it be ready?','Time ready what say?']},
+          {who:'them', text:'In about five working days.', ru:'Примерно пять рабочих дней.'},
+          {who:'you', ru:'Спроси, позвонят ли тебе.', best:0,
+            options:['Will you call me?','Phone me you can?','Call have me yes no?']},
+          {who:'them', text:'Yes, we will send a message.', ru:'Да, отправим сообщение.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok message wait.','Good send yes me.','Thank you very much for your help.']}
         ]},
-      { type:'words', title:'Покупки в супермаркете', scene:'market', cefr:'A1: Can make simple purchases.', words:[
+      { type:'words', title:'Покупки в супермаркете · 1', scene:'market', cefr:'A1: Can make simple purchases.', newCount:10, words:[
         {t:'Supermarket', r:'Супермаркет'},
         {t:'Shopping', r:'Покупки'},
         {t:'List', r:'Список'},
@@ -929,6 +1567,17 @@ const COURSE = {
         {t:'Onion', r:'Лук'},
         {t:'Carrot', r:'Морковь'},
         {t:'Fruit', r:'Фрукт'},
+        {t:'Foot', r:'Ступня', rev:true},
+        {t:'Back', r:'Спина', rev:true},
+        {t:'Hello', r:'Здравствуйте', rev:true},
+        {t:'Hi', r:'Привет', rev:true},
+        {t:'History', r:'История', rev:true},
+        {t:'Geography', r:'География', rev:true},
+        {t:'Customer', r:'Клиент', rev:true},
+        {t:'Open', r:'Открыть', rev:true},
+        {t:'Close', r:'Закрыть', rev:true}
+      ]},
+      { type:'words', title:'Покупки в супермаркете · 2', scene:'market', cefr:'A1: Can make simple purchases.', newCount:10, words:[
         {t:'Vegetable', r:'Овощ'},
         {t:'Cake', r:'Торт'},
         {t:'Chocolate', r:'Шоколад'},
@@ -938,13 +1587,24 @@ const COURSE = {
         {t:'Bag', r:'Пакет'},
         {t:'Piece', r:'Кусок'},
         {t:'Kilometre', r:'Километр'},
-        {t:'Extra', r:'Дополнительный'}
+        {t:'Extra', r:'Дополнительный'},
+        {t:'Pay', r:'Платить', rev:true},
+        {t:'Buy', r:'Покупать', rev:true},
+        {t:'Sell', r:'Продавать', rev:true},
+        {t:'Exam', r:'Экзамен', rev:true},
+        {t:'Test', r:'Тест', rev:true},
+        {t:'West', r:'Запад', rev:true},
+        {t:'Map', r:'Карта', rev:true},
+        {t:'Pen', r:'Ручка', rev:true},
+        {t:'Pencil', r:'Карандаш', rev:true}
       ]},
       { type:'build', title:'Собери: Покупки в супермаркете', scene:'market', cefr:'A1: Can make simple purchases.', tasks:[
         {ru:'Мне нужны хлеб и молоко.', parts:['I','need','bread','and','milk.'], answer:'I need bread and milk.'},
         {ru:'Килограмм яблок, пожалуйста.', parts:['A','kilo','of','apples,','please.'], answer:'A kilo of apples, please.'},
         {ru:'Где овощи?', parts:['Where','are','the','vegetables?'], answer:'Where are the vegetables?'},
-        {ru:'Можно пакет?', parts:['Can','I','have','a','bag?'], answer:'Can I have a bag?'}
+        {ru:'Можно пакет?', parts:['Can','I','have','a','bag?'], answer:'Can I have a bag?'},
+        {ru:'Я хочу открыть счёт.', parts:['I','want','to','open','an','account.'], answer:'I want to open an account.'},
+        {ru:'Какие документы нужны?', parts:['What','documents','do','I','need?'], answer:'What documents do I need?'}
       ]},
       { type:'dialog', title:'В овощном отделе', scene:'market', cefr:'A1: Can make simple purchases.',
         intro:'Продавец за прилавком.',
@@ -957,9 +1617,18 @@ const COURSE = {
             options:['Onion carrot too give.','Also this and this.','And some onions and carrots, please.']},
           {who:'them', text:'That is four euros.', ru:'Четыре евро.'},
           {who:'you', ru:'Попроси пакет.', best:1,
-            options:['Bag give me.','Could I have a bag, please?','Paper bag want yes.']}
+            options:['Bag give me.','Could I have a bag, please?','Paper bag want yes.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
         ]},
-      { type:'words', title:'В ресторане', scene:'cafe', cefr:'A1: Can order a meal and ask for the bill.', words:[
+      { type:'words', title:'В ресторане · 1', scene:'cafe', cefr:'A1: Can order a meal and ask for the bill.', newCount:9, words:[
         {t:'Restaurant', r:'Ресторан'},
         {t:'Table', r:'Столик'},
         {t:'Menu', r:'Меню'},
@@ -969,6 +1638,16 @@ const COURSE = {
         {t:'Dinner', r:'Ужин'},
         {t:'Waiter', r:'Официант'},
         {t:'Bill', r:'Счёт'},
+        {t:'Cinema', r:'Кинотеатр', rev:true},
+        {t:'Hat', r:'Шляпа', rev:true},
+        {t:'Pair', r:'Пара', rev:true},
+        {t:'I', r:'Я', rev:true},
+        {t:'You', r:'Ты / вы', rev:true},
+        {t:'Rich', r:'Богатый', rev:true},
+        {t:'Supermarket', r:'Супермаркет', rev:true},
+        {t:'List', r:'Список', rev:true}
+      ]},
+      { type:'words', title:'В ресторане · 2', scene:'cafe', cefr:'A1: Can order a meal and ask for the bill.', newCount:9, words:[
         {t:'Customer', r:'Посетитель'},
         {t:'Delicious', r:'Очень вкусно'},
         {t:'Hungry', r:'Голодный'},
@@ -977,13 +1656,24 @@ const COURSE = {
         {t:'Drink', r:'Пить'},
         {t:'Choose', r:'Выбирать'},
         {t:'Book', r:'Забронировать'},
-        {t:'Ready', r:'Готов'}
+        {t:'Ready', r:'Готов'},
+        {t:'Apple', r:'Яблоко', rev:true},
+        {t:'Form', r:'Бланк', rev:true},
+        {t:'Letter', r:'Письмо', rev:true},
+        {t:'Help', r:'Помощь', rev:true},
+        {t:'Cheap', r:'Дешёвый', rev:true},
+        {t:'Expensive', r:'Дорогой', rev:true},
+        {t:'Artist', r:'Художник', rev:true},
+        {t:'Actor', r:'Актёр', rev:true},
+        {t:'Museum', r:'Музей', rev:true}
       ]},
       { type:'build', title:'Собери: В ресторане', scene:'cafe', cefr:'A1: Can order a meal and ask for the bill.', tasks:[
         {ru:'Столик на двоих, пожалуйста.', parts:['A','table','for','two,','please.'], answer:'A table for two, please.'},
         {ru:'Я готов заказать.', parts:['I','am','ready','to','order.'], answer:'I am ready to order.'},
         {ru:'Это было очень вкусно.', parts:['That','was','delicious.'], answer:'That was delicious.'},
-        {ru:'Счёт, пожалуйста.', parts:['The','bill,','please.'], answer:'The bill, please.'}
+        {ru:'Счёт, пожалуйста.', parts:['The','bill,','please.'], answer:'The bill, please.'},
+        {ru:'Мне нужны хлеб и молоко.', parts:['I','need','bread','and','milk.'], answer:'I need bread and milk.'},
+        {ru:'Килограмм яблок, пожалуйста.', parts:['A','kilo','of','apples,','please.'], answer:'A kilo of apples, please.'}
       ]},
       { type:'dialog', title:'Ужин вдвоём', scene:'cafe', cefr:'A1: Can order a meal and ask for the bill.',
         intro:'Официант встречает у входа.',
@@ -996,9 +1686,18 @@ const COURSE = {
             options:['Thank you.','Ok go we.','Good yes follow.']},
           {who:'them', text:'Are you ready to order?', ru:'Готовы заказать?'},
           {who:'you', ru:'Попроси пару минут.', best:2,
-            options:['Wait small time.','Minute two more give.','Could we have a few minutes, please?']}
+            options:['Wait small time.','Minute two more give.','Could we have a few minutes, please?']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
         ]},
-      { type:'words', title:'Свободное время', scene:'street', cefr:'A1: Can talk about hobbies and free time.', words:[
+      { type:'words', title:'Свободное время · 1', scene:'street', cefr:'A1: Can talk about hobbies and free time.', newCount:13, words:[
         {t:'Free', r:'Свободный'},
         {t:'Hobby', r:'Хобби'},
         {t:'Music', r:'Музыка'},
@@ -1012,6 +1711,16 @@ const COURSE = {
         {t:'Tennis', r:'Теннис'},
         {t:'Swim', r:'Плавать'},
         {t:'Swimming', r:'Плавание'},
+        {t:'Travel', r:'Путешествовать', rev:true},
+        {t:'Trip', r:'Поездка', rev:true},
+        {t:'Salt', r:'Соль', rev:true},
+        {t:'Pepper', r:'Перец', rev:true},
+        {t:'Aunt', r:'Тётя', rev:true},
+        {t:'Uncle', r:'Дядя', rev:true},
+        {t:'Breakfast', r:'Завтрак', rev:true},
+        {t:'Lunch', r:'Обед', rev:true}
+      ]},
+      { type:'words', title:'Свободное время · 2', scene:'street', cefr:'A1: Can talk about hobbies and free time.', newCount:12, words:[
         {t:'Run', r:'Бегать'},
         {t:'Walk', r:'Гулять'},
         {t:'Read', r:'Читать'},
@@ -1023,13 +1732,23 @@ const COURSE = {
         {t:'Guitar', r:'Гитара'},
         {t:'Piano', r:'Пианино'},
         {t:'Photo', r:'Фото'},
-        {t:'Relax', r:'Отдыхать'}
+        {t:'Relax', r:'Отдыхать'},
+        {t:'Dinner', r:'Ужин', rev:true},
+        {t:'Banana', r:'Банан', rev:true},
+        {t:'Potato', r:'Картофель', rev:true},
+        {t:'Tomato', r:'Помидор', rev:true},
+        {t:'Need', r:'Нуждаться', rev:true},
+        {t:'Want', r:'Хотеть', rev:true},
+        {t:'Homework', r:'Домашняя работа', rev:true},
+        {t:'Dictionary', r:'Словарь', rev:true}
       ]},
       { type:'build', title:'Собери: Свободное время', scene:'street', cefr:'A1: Can talk about hobbies and free time.', tasks:[
         {ru:'Я люблю слушать музыку.', parts:['I','like','listening','to','music.'], answer:'I like listening to music.'},
         {ru:'По выходным я играю в футбол.', parts:['At','the','weekend','I','play','football.'], answer:'At the weekend I play football.'},
         {ru:'Пойдём в кино вечером?', parts:['Shall','we','go','to','the','cinema','tonight?'], answer:'Shall we go to the cinema tonight?'},
-        {ru:'Я играю на гитаре.', parts:['I','play','the','guitar.'], answer:'I play the guitar.'}
+        {ru:'Я играю на гитаре.', parts:['I','play','the','guitar.'], answer:'I play the guitar.'},
+        {ru:'Столик на двоих, пожалуйста.', parts:['A','table','for','two,','please.'], answer:'A table for two, please.'},
+        {ru:'Я готов заказать.', parts:['I','am','ready','to','order.'], answer:'I am ready to order.'}
       ]},
       { type:'dialog', title:'Позвать в кино', scene:'street', cefr:'A1: Can talk about hobbies and free time.',
         intro:'Друг пишет тебе вечером.',
@@ -1042,9 +1761,40 @@ const COURSE = {
             options:['Film yes what time?','Time say me go.','Sure! What time?']},
           {who:'them', text:'At eight, at the cinema in the centre.', ru:'В восемь, в кинотеатре в центре.'},
           {who:'you', ru:'Подтверди.', best:1,
-            options:['Ok eight go there.','See you at eight then.','Eight centre yes come me.']}
+            options:['Ok eight go there.','See you at eight then.','Eight centre yes come me.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Спорт и движение', scene:'street', cefr:'A1: Can talk about sport and physical activity.', words:[
+      { type:'words', title:'Контроль: темы 21–24', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Problem', r:'Проблема', rev:true},
+        {t:'Send', r:'Отправить', rev:true},
+        {t:'Return', r:'Возвращать', rev:true},
+        {t:'Check', r:'Проверить', rev:true},
+        {t:'Onion', r:'Лук', rev:true},
+        {t:'Carrot', r:'Морковь', rev:true},
+        {t:'Fruit', r:'Фрукт', rev:true},
+        {t:'Vegetable', r:'Овощ', rev:true},
+        {t:'Cake', r:'Торт', rev:true},
+        {t:'Chocolate', r:'Шоколад', rev:true},
+        {t:'Ice cream', r:'Мороженое', rev:true},
+        {t:'Piece', r:'Кусок', rev:true},
+        {t:'Kilometre', r:'Километр', rev:true},
+        {t:'Extra', r:'Дополнительный', rev:true},
+        {t:'Delicious', r:'Очень вкусно', rev:true},
+        {t:'Hungry', r:'Голодный', rev:true},
+        {t:'Thirsty', r:'Жаждущий', rev:true},
+        {t:'Eat', r:'Есть', rev:true},
+        {t:'Choose', r:'Выбирать', rev:true},
+        {t:'Hobby', r:'Хобби', rev:true}
+      ]},
+      { type:'words', title:'Спорт и движение · 1', scene:'street', cefr:'A1: Can talk about sport and physical activity.', newCount:10, words:[
         {t:'Sport', r:'Спорт'},
         {t:'Team', r:'Команда'},
         {t:'Player', r:'Игрок'},
@@ -1055,6 +1805,16 @@ const COURSE = {
         {t:'Club', r:'Клуб'},
         {t:'Gym', r:'Спортзал'},
         {t:'Pool', r:'Бассейн'},
+        {t:'Place', r:'Место', rev:true},
+        {t:'Front', r:'Перед', rev:true},
+        {t:'Coffee', r:'Кофе', rev:true},
+        {t:'Tea', r:'Чай', rev:true},
+        {t:'Thirty', r:'Тридцать', rev:true},
+        {t:'Fifty', r:'Пятьдесят', rev:true},
+        {t:'Hobby', r:'Хобби', rev:true},
+        {t:'Music', r:'Музыка', rev:true}
+      ]},
+      { type:'words', title:'Спорт и движение · 2', scene:'street', cefr:'A1: Can talk about sport and physical activity.', newCount:10, words:[
         {t:'Exercise', r:'Упражнение'},
         {t:'Strong', r:'Сильный'},
         {t:'Fast', r:'Быстрый'},
@@ -1064,13 +1824,23 @@ const COURSE = {
         {t:'Start', r:'Начинать'},
         {t:'Finish', r:'Заканчивать'},
         {t:'Practice', r:'Практика'},
-        {t:'Practise', r:'Практиковаться'}
+        {t:'Practise', r:'Практиковаться'},
+        {t:'Song', r:'Песня', rev:true},
+        {t:'Delicious', r:'Очень вкусно', rev:true},
+        {t:'Hungry', r:'Голодный', rev:true},
+        {t:'Thirsty', r:'Жаждущий', rev:true},
+        {t:'Onion', r:'Лук', rev:true},
+        {t:'Carrot', r:'Морковь', rev:true},
+        {t:'Card', r:'Карта', rev:true},
+        {t:'Spend', r:'Тратить', rev:true}
       ]},
       { type:'build', title:'Собери: Спорт и движение', scene:'street', cefr:'A1: Can talk about sport and physical activity.', tasks:[
         {ru:'Наша команда вчера выиграла.', parts:['Our','team','won','yesterday.'], answer:'Our team won yesterday.'},
         {ru:'Я хожу в спортзал по утрам.', parts:['I','go','to','the','gym','in','the','mornings.'], answer:'I go to the gym in the mornings.'},
         {ru:'Матч начинается в семь.', parts:['The','match','starts','at','seven.'], answer:'The match starts at seven.'},
-        {ru:'Я плаваю в бассейне два раза в неделю.', parts:['I','swim','in','the','pool','twice','a','week.'], answer:'I swim in the pool twice a week.'}
+        {ru:'Я плаваю в бассейне два раза в неделю.', parts:['I','swim','in','the','pool','twice','a','week.'], answer:'I swim in the pool twice a week.'},
+        {ru:'Я люблю слушать музыку.', parts:['I','like','listening','to','music.'], answer:'I like listening to music.'},
+        {ru:'По выходным я играю в футбол.', parts:['At','the','weekend','I','play','football.'], answer:'At the weekend I play football.'}
       ]},
       { type:'dialog', title:'Записаться в зал', scene:'street', cefr:'A1: Can talk about sport and physical activity.',
         intro:'Ты на стойке спортзала.',
@@ -1083,9 +1853,18 @@ const COURSE = {
             options:['Is there a pool?','Pool have you here?','Swim place is inside?']},
           {who:'them', text:'Yes, downstairs.', ru:'Да, внизу.'},
           {who:'you', ru:'Скажи, что берёшь.', best:2,
-            options:['Ok take month one.','Good pool yes want.','Great, I will join.']}
+            options:['Ok take month one.','Good pool yes want.','Great, I will join.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Животные', scene:'street', cefr:'A1: Can name common animals.', words:[
+      { type:'words', title:'Животные · 1', scene:'street', cefr:'A1: Can name common animals.', newCount:10, words:[
         {t:'Animal', r:'Животное'},
         {t:'Dog', r:'Собака'},
         {t:'Cat', r:'Кошка'},
@@ -1096,6 +1875,16 @@ const COURSE = {
         {t:'Pig', r:'Свинья'},
         {t:'Sheep', r:'Овца'},
         {t:'Mouse', r:'Мышь'},
+        {t:'Actress', r:'Актриса', rev:true},
+        {t:'Singer', r:'Певец', rev:true},
+        {t:'Wall', r:'Стена', rev:true},
+        {t:'Chair', r:'Стул', rev:true},
+        {t:'Large', r:'Крупный', rev:true},
+        {t:'Short', r:'Короткий', rev:true},
+        {t:'Team', r:'Команда', rev:true},
+        {t:'Player', r:'Игрок', rev:true}
+      ]},
+      { type:'words', title:'Животные · 2', scene:'street', cefr:'A1: Can name common animals.', newCount:10, words:[
         {t:'Lion', r:'Лев'},
         {t:'Elephant', r:'Слон'},
         {t:'Snake', r:'Змея'},
@@ -1105,13 +1894,23 @@ const COURSE = {
         {t:'Plant', r:'Растение'},
         {t:'Grow', r:'Расти'},
         {t:'Land', r:'Земля'},
-        {t:'Mountain', r:'Гора'}
+        {t:'Mountain', r:'Гора'},
+        {t:'Ball', r:'Мяч', rev:true},
+        {t:'Sing', r:'Петь', rev:true},
+        {t:'Dance', r:'Танцевать', rev:true},
+        {t:'Dancing', r:'Танцы', rev:true},
+        {t:'Eat', r:'Есть', rev:true},
+        {t:'Choose', r:'Выбирать', rev:true},
+        {t:'Problem', r:'Проблема', rev:true},
+        {t:'Send', r:'Отправить', rev:true}
       ]},
       { type:'build', title:'Собери: Животные', scene:'street', cefr:'A1: Can name common animals.', tasks:[
         {ru:'У меня есть собака и кошка.', parts:['I','have','a','dog','and','a','cat.'], answer:'I have a dog and a cat.'},
         {ru:'На ферме есть коровы и овцы.', parts:['There','are','cows','and','sheep','on','the','farm.'], answer:'There are cows and sheep on the farm.'},
         {ru:'Эти цветы очень красивые.', parts:['These','flowers','are','very','beautiful.'], answer:'These flowers are very beautiful.'},
-        {ru:'Птицы поют утром.', parts:['The','birds','sing','in','the','morning.'], answer:'The birds sing in the morning.'}
+        {ru:'Птицы поют утром.', parts:['The','birds','sing','in','the','morning.'], answer:'The birds sing in the morning.'},
+        {ru:'Наша команда вчера выиграла.', parts:['Our','team','won','yesterday.'], answer:'Our team won yesterday.'},
+        {ru:'Я хожу в спортзал по утрам.', parts:['I','go','to','the','gym','in','the','mornings.'], answer:'I go to the gym in the mornings.'}
       ]},
       { type:'dialog', title:'Разговор о питомце', scene:'street', cefr:'A1: Can name common animals.',
         intro:'Сосед выгуливает собаку.',
@@ -1124,9 +1923,18 @@ const COURSE = {
             options:['Yes, I also have a cat.','Cat have me too yes.','Also cat in home is.']},
           {who:'them', text:'Nice. Have a good walk!', ru:'Здорово. Хорошей прогулки!'},
           {who:'you', ru:'Поблагодари.', best:1,
-            options:['Ok walk go now.','Thanks, you too!','Walk good you have.']}
+            options:['Ok walk go now.','Thanks, you too!','Walk good you have.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Чувства и настроение', scene:'flat', cefr:'A1: Can express how they feel using basic expressions.', words:[
+      { type:'words', title:'Чувства и настроение · 1', scene:'flat', cefr:'A1: Can express how they feel using basic expressions.', newCount:10, words:[
         {t:'Happy', r:'Счастливый'},
         {t:'Sad', r:'Грустный'},
         {t:'Angry', r:'Сердитый'},
@@ -1137,6 +1945,17 @@ const COURSE = {
         {t:'Feel', r:'Чувствовать'},
         {t:'Feeling', r:'Чувство'},
         {t:'Love', r:'Любить'},
+        {t:'Picture', r:'Картинка', rev:true},
+        {t:'Shower', r:'Душ', rev:true},
+        {t:'June', r:'Июнь', rev:true},
+        {t:'July', r:'Июль', rev:true},
+        {t:'Piano', r:'Пианино', rev:true},
+        {t:'Relax', r:'Отдыхать', rev:true},
+        {t:'Animal', r:'Животное', rev:true},
+        {t:'Dog', r:'Собака', rev:true},
+        {t:'Cat', r:'Кошка', rev:true}
+      ]},
+      { type:'words', title:'Чувства и настроение · 2', scene:'flat', cefr:'A1: Can express how they feel using basic expressions.', newCount:10, words:[
         {t:'Hate', r:'Ненавидеть'},
         {t:'Like', r:'Нравиться'},
         {t:'Prefer', r:'Предпочитать'},
@@ -1146,13 +1965,24 @@ const COURSE = {
         {t:'Enjoy', r:'Радоваться'},
         {t:'Laugh', r:'Смеяться'},
         {t:'Die', r:'Умирать'},
-        {t:'Fine', r:'Нормально'}
+        {t:'Fine', r:'Нормально'},
+        {t:'Win', r:'Выигрывать', rev:true},
+        {t:'Lose', r:'Проигрывать', rev:true},
+        {t:'Match', r:'Матч', rev:true},
+        {t:'Play', r:'Играть', rev:true},
+        {t:'Game', r:'Игра', rev:true},
+        {t:'Fruit', r:'Фрукт', rev:true},
+        {t:'Vegetable', r:'Овощ', rev:true},
+        {t:'Page', r:'Страница', rev:true},
+        {t:'Word', r:'Слово', rev:true}
       ]},
       { type:'build', title:'Собери: Чувства и настроение', scene:'flat', cefr:'A1: Can express how they feel using basic expressions.', tasks:[
         {ru:'Я очень устал сегодня.', parts:['I','am','very','tired','today.'], answer:'I am very tired today.'},
         {ru:'Она счастлива на новой работе.', parts:['She','is','happy','in','her','new','job.'], answer:'She is happy in her new job.'},
         {ru:'Я надеюсь, всё будет хорошо.', parts:['I','hope','everything','will','be','fine.'], answer:'I hope everything will be fine.'},
-        {ru:'Не волнуйся.', parts:['Do','not','worry.'], answer:'Do not worry.'}
+        {ru:'Не волнуйся.', parts:['Do','not','worry.'], answer:'Do not worry.'},
+        {ru:'У меня есть собака и кошка.', parts:['I','have','a','dog','and','a','cat.'], answer:'I have a dog and a cat.'},
+        {ru:'На ферме есть коровы и овцы.', parts:['There','are','cows','and','sheep','on','the','farm.'], answer:'There are cows and sheep on the farm.'}
       ]},
       { type:'dialog', title:'Поддержать друга', scene:'flat', cefr:'A1: Can express how they feel using basic expressions.',
         intro:'Друг выглядит расстроенным.',
@@ -1165,9 +1995,18 @@ const COURSE = {
             options:['Work bad yes ok soon.','Problem no big be happy.','I understand. I hope it will be fine.']},
           {who:'them', text:'Thanks for listening.', ru:'Спасибо, что выслушал.'},
           {who:'you', ru:'Скажи «всегда пожалуйста».', best:1,
-            options:['Ok listen me always.','Any time.','Listen you me always yes.']}
+            options:['Ok listen me always.','Any time.','Listen you me always yes.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
         ]},
-      { type:'words', title:'Внешность и люди', scene:'street', cefr:'A1: Can describe people simply.', words:[
+      { type:'words', title:'Внешность и люди · 1', scene:'street', cefr:'A1: Can describe people simply.', newCount:10, words:[
         {t:'Man', r:'Мужчина'},
         {t:'Woman', r:'Женщина'},
         {t:'Boy', r:'Мальчик'},
@@ -1178,6 +2017,16 @@ const COURSE = {
         {t:'Neighbour', r:'Сосед'},
         {t:'Partner', r:'Партнёр'},
         {t:'Member', r:'Участник'},
+        {t:'Dollar', r:'Доллар', rev:true},
+        {t:'Theatre', r:'Театр', rev:true},
+        {t:'Hotel', r:'Гостиница', rev:true},
+        {t:'Tomorrow', r:'Завтра', rev:true},
+        {t:'Yesterday', r:'Вчера', rev:true},
+        {t:'Practise', r:'Практиковаться', rev:true},
+        {t:'Happy', r:'Счастливый', rev:true},
+        {t:'Sad', r:'Грустный', rev:true}
+      ]},
+      { type:'words', title:'Внешность и люди · 2', scene:'street', cefr:'A1: Can describe people simply.', newCount:10, words:[
         {t:'Teenager', r:'Подросток'},
         {t:'Young', r:'Молодой'},
         {t:'Old', r:'Старый'},
@@ -1187,13 +2036,24 @@ const COURSE = {
         {t:'Nice', r:'Приятный'},
         {t:'Kind', r:'Добрый'},
         {t:'Blonde', r:'Светловолосый'},
-        {t:'Dark', r:'Тёмный'}
+        {t:'Dark', r:'Тёмный'},
+        {t:'Angry', r:'Сердитый', rev:true},
+        {t:'Bird', r:'Птица', rev:true},
+        {t:'Horse', r:'Лошадь', rev:true},
+        {t:'Cow', r:'Корова', rev:true},
+        {t:'Club', r:'Клуб', rev:true},
+        {t:'Gym', r:'Спортзал', rev:true},
+        {t:'Restaurant', r:'Ресторан', rev:true},
+        {t:'Table', r:'Столик', rev:true},
+        {t:'Euro', r:'Евро', rev:true}
       ]},
       { type:'build', title:'Собери: Внешность и люди', scene:'street', cefr:'A1: Can describe people simply.', tasks:[
         {ru:'Мой сосед очень дружелюбный.', parts:['My','neighbour','is','very','friendly.'], answer:'My neighbour is very friendly.'},
         {ru:'Она высокая, со светлыми волосами.', parts:['She','is','tall','with','blonde','hair.'], answer:'She is tall with blonde hair.'},
         {ru:'Здесь много людей.', parts:['There','are','a','lot','of','people','here.'], answer:'There are a lot of people here.'},
-        {ru:'Он мой хороший друг.', parts:['He','is','a','good','friend','of','mine.'], answer:'He is a good friend of mine.'}
+        {ru:'Он мой хороший друг.', parts:['He','is','a','good','friend','of','mine.'], answer:'He is a good friend of mine.'},
+        {ru:'Я очень устал сегодня.', parts:['I','am','very','tired','today.'], answer:'I am very tired today.'},
+        {ru:'Она счастлива на новой работе.', parts:['She','is','happy','in','her','new','job.'], answer:'She is happy in her new job.'}
       ]},
       { type:'dialog', title:'Найти человека', scene:'street', cefr:'A1: Can describe people simply.',
         intro:'Ты ищешь коллегу в холле.',
@@ -1206,9 +2066,40 @@ const COURSE = {
             options:['He is tall with dark hair.','Tall dark hair man is.','Hair dark tall he have.']},
           {who:'them', text:'I think he is upstairs.', ru:'Кажется, он наверху.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Up go me now.','Ok find him there.','Thank you, I will go up.']}
+            options:['Up go me now.','Ok find him there.','Thank you, I will go up.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Дни и планы', scene:'office', cefr:'A1: Can make simple arrangements.', words:[
+      { type:'words', title:'Контроль: темы 25–28', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Pool', r:'Бассейн', rev:true},
+        {t:'Exercise', r:'Упражнение', rev:true},
+        {t:'Strong', r:'Сильный', rev:true},
+        {t:'Fast', r:'Быстрый', rev:true},
+        {t:'Slow', r:'Медленный', rev:true},
+        {t:'Climb', r:'Лазить', rev:true},
+        {t:'Ride', r:'Ездить верхом / кататься', rev:true},
+        {t:'Start', r:'Начинать', rev:true},
+        {t:'Finish', r:'Заканчивать', rev:true},
+        {t:'Practice', r:'Практика', rev:true},
+        {t:'Pig', r:'Свинья', rev:true},
+        {t:'Sheep', r:'Овца', rev:true},
+        {t:'Mouse', r:'Мышь', rev:true},
+        {t:'Lion', r:'Лев', rev:true},
+        {t:'Elephant', r:'Слон', rev:true},
+        {t:'Snake', r:'Змея', rev:true},
+        {t:'Farm', r:'Ферма', rev:true},
+        {t:'Tree', r:'Дерево', rev:true},
+        {t:'Flower', r:'Цветок', rev:true},
+        {t:'Plant', r:'Растение', rev:true}
+      ]},
+      { type:'words', title:'Дни и планы · 1', scene:'office', cefr:'A1: Can make simple arrangements.', newCount:10, words:[
         {t:'Plan', r:'План'},
         {t:'Meeting', r:'Встреча'},
         {t:'Join', r:'Присоединяться'},
@@ -1219,6 +2110,17 @@ const COURSE = {
         {t:'Give', r:'Давать'},
         {t:'Call', r:'Звонить'},
         {t:'Telephone', r:'Телефон'},
+        {t:'Journey', r:'Поездка / путь', rev:true},
+        {t:'Drive', r:'Водить', rev:true},
+        {t:'Umbrella', r:'Зонт', rev:true},
+        {t:'Cool', r:'Прохладно', rev:true},
+        {t:'Grow', r:'Расти', rev:true},
+        {t:'Land', r:'Земля', rev:true},
+        {t:'Man', r:'Мужчина', rev:true},
+        {t:'Woman', r:'Женщина', rev:true},
+        {t:'Boy', r:'Мальчик', rev:true}
+      ]},
+      { type:'words', title:'Дни и планы · 2', scene:'office', cefr:'A1: Can make simple arrangements.', newCount:10, words:[
         {t:'Message', r:'Сообщение'},
         {t:'Answer', r:'Отвечать'},
         {t:'Ask', r:'Спрашивать'},
@@ -1228,13 +2130,24 @@ const COURSE = {
         {t:'Talk', r:'Разговаривать'},
         {t:'Meet', r:'Встречаться'},
         {t:'Visit', r:'Навещать'},
-        {t:'Stay', r:'Оставаться'}
+        {t:'Stay', r:'Оставаться'},
+        {t:'Tired', r:'Усталый', rev:true},
+        {t:'Afraid', r:'Испуганный', rev:true},
+        {t:'Excited', r:'Взволнованный', rev:true},
+        {t:'Pig', r:'Свинья', rev:true},
+        {t:'Sheep', r:'Овца', rev:true},
+        {t:'Football', r:'Футбол', rev:true},
+        {t:'Tennis', r:'Теннис', rev:true},
+        {t:'Return', r:'Возвращать', rev:true},
+        {t:'Check', r:'Проверить', rev:true}
       ]},
       { type:'build', title:'Собери: Дни и планы', scene:'office', cefr:'A1: Can make simple arrangements.', tasks:[
         {ru:'Позвони мне завтра.', parts:['Call','me','tomorrow.'], answer:'Call me tomorrow.'},
         {ru:'Я приду в семь.', parts:['I','will','come','at','seven.'], answer:'I will come at seven.'},
         {ru:'Можешь принести книгу?', parts:['Can','you','bring','the','book?'], answer:'Can you bring the book?'},
-        {ru:'Я оставлю сообщение.', parts:['I','will','leave','a','message.'], answer:'I will leave a message.'}
+        {ru:'Я оставлю сообщение.', parts:['I','will','leave','a','message.'], answer:'I will leave a message.'},
+        {ru:'Мой сосед очень дружелюбный.', parts:['My','neighbour','is','very','friendly.'], answer:'My neighbour is very friendly.'},
+        {ru:'Она высокая, со светлыми волосами.', parts:['She','is','tall','with','blonde','hair.'], answer:'She is tall with blonde hair.'}
       ]},
       { type:'dialog', title:'Договориться о встрече', scene:'office', cefr:'A1: Can make simple arrangements.',
         intro:'Коллега пишет по работе.',
@@ -1247,9 +2160,18 @@ const COURSE = {
             options:['Ten is fine for me.','Ten ok yes come.','Morning ten good me have.']},
           {who:'them', text:'Great, see you then.', ru:'Отлично, до встречи.'},
           {who:'you', ru:'Скажи, что принесёшь документы.', best:1,
-            options:['Paper bring me yes.','I will bring the documents.','Document take me come.']}
+            options:['Paper bring me yes.','I will bring the documents.','Document take me come.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Праздники и события', scene:'street', cefr:'A1: Can talk about celebrations.', words:[
+      { type:'words', title:'Праздники и события · 1', scene:'street', cefr:'A1: Can talk about celebrations.', newCount:10, words:[
         {t:'Birthday', r:'День рождения'},
         {t:'Party', r:'Вечеринка'},
         {t:'Festival', r:'Фестиваль'},
@@ -1260,6 +2182,16 @@ const COURSE = {
         {t:'Card', r:'Открытка'},
         {t:'Welcome', r:'Приветствовать'},
         {t:'Become', r:'Становиться'},
+        {t:'Cake', r:'Торт', rev:true},
+        {t:'Chocolate', r:'Шоколад', rev:true},
+        {t:'Behind', r:'Позади', rev:true},
+        {t:'Between', r:'Между', rev:true},
+        {t:'Health', r:'Здоровье', rev:true},
+        {t:'Healthy', r:'Здоровый', rev:true},
+        {t:'Plan', r:'План', rev:true},
+        {t:'Join', r:'Присоединяться', rev:true}
+      ]},
+      { type:'words', title:'Праздники и события · 2', scene:'street', cefr:'A1: Can talk about celebrations.', newCount:10, words:[
         {t:'Happy', r:'Счастливый'},
         {t:'Enjoy', r:'Наслаждаться'},
         {t:'Fun', r:'Веселье'},
@@ -1269,13 +2201,23 @@ const COURSE = {
         {t:'Friend', r:'Друг'},
         {t:'Together', r:'Вместе'},
         {t:'Year', r:'Год'},
-        {t:'Special', r:'Особенный'}
+        {t:'Special', r:'Особенный'},
+        {t:'Come', r:'Приходить', rev:true},
+        {t:'Girl', r:'Девочка', rev:true},
+        {t:'People', r:'Люди', rev:true},
+        {t:'Friendly', r:'Дружелюбный', rev:true},
+        {t:'Bored', r:'Скучающий', rev:true},
+        {t:'Feel', r:'Чувствовать', rev:true},
+        {t:'Pool', r:'Бассейн', rev:true},
+        {t:'Exercise', r:'Упражнение', rev:true}
       ]},
       { type:'build', title:'Собери: Праздники и события', scene:'street', cefr:'A1: Can talk about celebrations.', tasks:[
         {ru:'У меня день рождения в мае.', parts:['My','birthday','is','in','May.'], answer:'My birthday is in May.'},
         {ru:'Спасибо за подарок!', parts:['Thank','you','for','the','present!'], answer:'Thank you for the present!'},
         {ru:'Мы отмечаем вместе.', parts:['We','celebrate','together.'], answer:'We celebrate together.'},
-        {ru:'Это был очень весёлый вечер.', parts:['It','was','a','very','fun','evening.'], answer:'It was a very fun evening.'}
+        {ru:'Это был очень весёлый вечер.', parts:['It','was','a','very','fun','evening.'], answer:'It was a very fun evening.'},
+        {ru:'Позвони мне завтра.', parts:['Call','me','tomorrow.'], answer:'Call me tomorrow.'},
+        {ru:'Я приду в семь.', parts:['I','will','come','at','seven.'], answer:'I will come at seven.'}
       ]},
       { type:'dialog', title:'Пригласить на праздник', scene:'street', cefr:'A1: Can talk about celebrations.',
         intro:'Ты зовёшь соседа на день рождения.',
@@ -1288,9 +2230,18 @@ const COURSE = {
             options:['Thank you! Come to my party.','Party you come yes.','Come house party me have.']},
           {who:'them', text:'I would love to. What time?', ru:'С удовольствием. Во сколько?'},
           {who:'you', ru:'Скажи: в семь вечера.', best:2,
-            options:['Seven night come you.','Time seven have party.','At seven in the evening.']}
+            options:['Seven night come you.','Time seven have party.','At seven in the evening.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Проблемы и помощь', scene:'street', cefr:'A1: Can ask for help in simple situations.', words:[
+      { type:'words', title:'Проблемы и помощь · 1', scene:'street', cefr:'A1: Can ask for help in simple situations.', newCount:10, words:[
         {t:'Help', r:'Помощь'},
         {t:'Problem', r:'Проблема'},
         {t:'Police', r:'Полиция'},
@@ -1301,6 +2252,16 @@ const COURSE = {
         {t:'Mistake', r:'Ошибка'},
         {t:'Sorry', r:'Извините'},
         {t:'Quiet', r:'Тихий'},
+        {t:'Menu', r:'Меню', rev:true},
+        {t:'Breakfast', r:'Завтрак', rev:true},
+        {t:'Writer', r:'Писатель', rev:true},
+        {t:'Scientist', r:'Учёный', rev:true},
+        {t:'Wear', r:'Носить', rev:true},
+        {t:'Type', r:'Тип / вид', rev:true},
+        {t:'Birthday', r:'День рождения', rev:true},
+        {t:'Festival', r:'Фестиваль', rev:true}
+      ]},
+      { type:'words', title:'Проблемы и помощь · 2', scene:'street', cefr:'A1: Can ask for help in simple situations.', newCount:10, words:[
         {t:'Traffic', r:'Движение (транспорт)'},
         {t:'Dangerous', r:'Опасный'},
         {t:'Fire', r:'Пожар'},
@@ -1310,13 +2271,23 @@ const COURSE = {
         {t:'Quickly', r:'Быстро'},
         {t:'Stop', r:'Остановить'},
         {t:'Wait', r:'Подождать'},
-        {t:'Understand', r:'Понимать'}
+        {t:'Understand', r:'Понимать'},
+        {t:'Vacation', r:'Отпуск', rev:true},
+        {t:'Go', r:'Идти', rev:true},
+        {t:'Bring', r:'Приносить', rev:true},
+        {t:'Take', r:'Брать', rev:true},
+        {t:'Neighbour', r:'Сосед', rev:true},
+        {t:'Partner', r:'Партнёр', rev:true},
+        {t:'Mouse', r:'Мышь', rev:true},
+        {t:'Lion', r:'Лев', rev:true}
       ]},
       { type:'build', title:'Собери: Проблемы и помощь', scene:'street', cefr:'A1: Can ask for help in simple situations.', tasks:[
         {ru:'Помогите, пожалуйста!', parts:['Help','me,','please!'], answer:'Help me, please!'},
         {ru:'Я потерял телефон.', parts:['I','have','lost','my','phone.'], answer:'I have lost my phone.'},
         {ru:'Вызовите полицию.', parts:['Call','the','police.'], answer:'Call the police.'},
-        {ru:'Извините, я не понимаю.', parts:['Sorry,','I','do','not','understand.'], answer:'Sorry, I do not understand.'}
+        {ru:'Извините, я не понимаю.', parts:['Sorry,','I','do','not','understand.'], answer:'Sorry, I do not understand.'},
+        {ru:'У меня день рождения в мае.', parts:['My','birthday','is','in','May.'], answer:'My birthday is in May.'},
+        {ru:'Спасибо за подарок!', parts:['Thank','you','for','the','present!'], answer:'Thank you for the present!'}
       ]},
       { type:'dialog', title:'Потерял сумку', scene:'street', cefr:'A1: Can ask for help in simple situations.',
         intro:'Ты подходишь к сотруднику вокзала.',
@@ -1329,9 +2300,18 @@ const COURSE = {
             options:['Train in was it.','Inside train see me.','On the train, about ten minutes ago.']},
           {who:'them', text:'Come with me to the office.', ru:'Пойдёмте со мной в офис.'},
           {who:'you', ru:'Поблагодари.', best:1,
-            options:['Ok go office now.','Thank you very much.','Office go me follow you.']}
+            options:['Ok go office now.','Thank you very much.','Office go me follow you.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Интернет и связь', scene:'office', cefr:'A1: Can use simple digital vocabulary.', words:[
+      { type:'words', title:'Интернет и связь · 1', scene:'office', cefr:'A1: Can use simple digital vocabulary.', newCount:10, words:[
         {t:'Internet', r:'Интернет'},
         {t:'Online', r:'Онлайн'},
         {t:'Website', r:'Сайт'},
@@ -1342,6 +2322,16 @@ const COURSE = {
         {t:'Video', r:'Видео'},
         {t:'Photograph', r:'Фотография'},
         {t:'Blog', r:'Блог'},
+        {t:'Swim', r:'Плавать', rev:true},
+        {t:'Swimming', r:'Плавание', rev:true},
+        {t:'Sentence', r:'Предложение', rev:true},
+        {t:'Question', r:'Вопрос', rev:true},
+        {t:'Sugar', r:'Сахар', rev:true},
+        {t:'Milk', r:'Молоко', rev:true},
+        {t:'Police', r:'Полиция', rev:true},
+        {t:'Forget', r:'Забывать', rev:true}
+      ]},
+      { type:'words', title:'Интернет и связь · 2', scene:'office', cefr:'A1: Can use simple digital vocabulary.', newCount:10, words:[
         {t:'Information', r:'Информация'},
         {t:'News', r:'Новости'},
         {t:'Send', r:'Отправлять'},
@@ -1351,13 +2341,23 @@ const COURSE = {
         {t:'Write', r:'Писать'},
         {t:'Read', r:'Читать'},
         {t:'Call', r:'Звонок'},
-        {t:'Answer', r:'Отвечать'}
+        {t:'Answer', r:'Отвечать'},
+        {t:'Find', r:'Находить', rev:true},
+        {t:'Event', r:'Событие', rev:true},
+        {t:'Present', r:'Подарок', rev:true},
+        {t:'Become', r:'Становиться', rev:true},
+        {t:'Give', r:'Давать', rev:true},
+        {t:'Telephone', r:'Телефон', rev:true},
+        {t:'Feeling', r:'Чувство', rev:true},
+        {t:'Love', r:'Любить', rev:true}
       ]},
       { type:'build', title:'Собери: Интернет и связь', scene:'office', cefr:'A1: Can use simple digital vocabulary.', tasks:[
         {ru:'Я отправлю тебе письмо.', parts:['I','will','send','you','an','email.'], answer:'I will send you an email.'},
         {ru:'Какой пароль от интернета?', parts:['What','is','the','internet','password?'], answer:'What is the internet password?'},
         {ru:'Я прочитал это на сайте.', parts:['I','read','it','on','the','website.'], answer:'I read it on the website.'},
-        {ru:'Позвони мне по видео.', parts:['Call','me','on','video.'], answer:'Call me on video.'}
+        {ru:'Позвони мне по видео.', parts:['Call','me','on','video.'], answer:'Call me on video.'},
+        {ru:'Помогите, пожалуйста!', parts:['Help','me,','please!'], answer:'Help me, please!'},
+        {ru:'Я потерял телефон.', parts:['I','have','lost','my','phone.'], answer:'I have lost my phone.'}
       ]},
       { type:'dialog', title:'Проблема с интернетом', scene:'office', cefr:'A1: Can use simple digital vocabulary.',
         intro:'Ты звонишь хозяину квартиры.',
@@ -1370,9 +2370,40 @@ const COURSE = {
             options:['Yes, I checked it.','Check yes me do.','Look it me yes have.']},
           {who:'them', text:'I will send someone today.', ru:'Пришлю кого-нибудь сегодня.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok today come man.','Send yes good today.','Thank you very much.']}
+            options:['Ok today come man.','Send yes good today.','Thank you very much.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Описать вещь', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.', words:[
+      { type:'words', title:'Контроль: темы 29–32', scene:'office', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Ask', r:'Спрашивать', rev:true},
+        {t:'Tell', r:'Говорить', rev:true},
+        {t:'Say', r:'Сказать', rev:true},
+        {t:'Speak', r:'Говорить', rev:true},
+        {t:'Talk', r:'Разговаривать', rev:true},
+        {t:'Visit', r:'Навещать', rev:true},
+        {t:'Stay', r:'Оставаться', rev:true},
+        {t:'Fun', r:'Веселье', rev:true},
+        {t:'Funny', r:'Смешной', rev:true},
+        {t:'Together', r:'Вместе', rev:true},
+        {t:'Special', r:'Особенный', rev:true},
+        {t:'Wrong', r:'Неправильный', rev:true},
+        {t:'Mistake', r:'Ошибка', rev:true},
+        {t:'Quiet', r:'Тихий', rev:true},
+        {t:'Traffic', r:'Движение (транспорт)', rev:true},
+        {t:'Dangerous', r:'Опасный', rev:true},
+        {t:'Fire', r:'Пожар', rev:true},
+        {t:'Happen', r:'Случаться', rev:true},
+        {t:'Quick', r:'Быстрый', rev:true},
+        {t:'Quickly', r:'Быстро', rev:true}
+      ]},
+      { type:'words', title:'Описать вещь · 1', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.', newCount:10, words:[
         {t:'New', r:'Новый'},
         {t:'Old', r:'Старый'},
         {t:'Good', r:'Хороший'},
@@ -1383,6 +2414,16 @@ const COURSE = {
         {t:'Difficult', r:'Трудный'},
         {t:'Hard', r:'Твёрдый / трудный'},
         {t:'Clean', r:'Чистый'},
+        {t:'Strong', r:'Сильный', rev:true},
+        {t:'Fast', r:'Быстрый', rev:true},
+        {t:'Pound', r:'Фунт', rev:true},
+        {t:'Cent', r:'Цент', rev:true},
+        {t:'Juice', r:'Сок', rev:true},
+        {t:'Beer', r:'Пиво', rev:true},
+        {t:'Internet', r:'Интернет', rev:true},
+        {t:'Online', r:'Онлайн', rev:true}
+      ]},
+      { type:'words', title:'Описать вещь · 2', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.', newCount:10, words:[
         {t:'Dirty', r:'Грязный'},
         {t:'Full', r:'Полный'},
         {t:'High', r:'Высокий'},
@@ -1392,13 +2433,23 @@ const COURSE = {
         {t:'Ready', r:'Готовый'},
         {t:'Same', r:'Такой же'},
         {t:'Different', r:'Другой'},
-        {t:'Similar', r:'Похожий'}
+        {t:'Similar', r:'Похожий'},
+        {t:'Website', r:'Сайт', rev:true},
+        {t:'Wrong', r:'Неправильный', rev:true},
+        {t:'Mistake', r:'Ошибка', rev:true},
+        {t:'Quiet', r:'Тихий', rev:true},
+        {t:'Fun', r:'Веселье', rev:true},
+        {t:'Funny', r:'Смешной', rev:true},
+        {t:'Member', r:'Участник', rev:true},
+        {t:'Teenager', r:'Подросток', rev:true}
       ]},
       { type:'build', title:'Собери: Описать вещь', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.', tasks:[
         {ru:'Эта вещь сломана.', parts:['This','thing','is','broken.'], answer:'This thing is broken.'},
         {ru:'Комната очень чистая.', parts:['The','room','is','very','clean.'], answer:'The room is very clean.'},
         {ru:'Магазин закрыт.', parts:['The','shop','is','closed.'], answer:'The shop is closed.'},
-        {ru:'Это точно такое же.', parts:['This','is','exactly','the','same.'], answer:'This is exactly the same.'}
+        {ru:'Это точно такое же.', parts:['This','is','exactly','the','same.'], answer:'This is exactly the same.'},
+        {ru:'Я отправлю тебе письмо.', parts:['I','will','send','you','an','email.'], answer:'I will send you an email.'},
+        {ru:'Какой пароль от интернета?', parts:['What','is','the','internet','password?'], answer:'What is the internet password?'}
       ]},
       { type:'dialog', title:'Вернуть товар', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.',
         intro:'Ты возвращаешь покупку в магазин.',
@@ -1411,9 +2462,18 @@ const COURSE = {
             options:['Yesterday.','Day before buy me.','Buy me one day past.']},
           {who:'them', text:'Do you have the receipt?', ru:'Чек есть?'},
           {who:'you', ru:'Скажи «да, вот он».', best:1,
-            options:['Paper here take yes.','Yes, here it is.','Receipt have me give you.']}
+            options:['Paper here take yes.','Yes, here it is.','Receipt have me give you.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
         ]},
-      { type:'words', title:'Простые действия', scene:'flat', cefr:'A1: Can describe daily actions.', words:[
+      { type:'words', title:'Простые действия · 1', scene:'flat', cefr:'A1: Can describe daily actions.', newCount:10, words:[
         {t:'Wake', r:'Просыпаться'},
         {t:'Sleep', r:'Спать'},
         {t:'Wash', r:'Мыть'},
@@ -1424,6 +2484,16 @@ const COURSE = {
         {t:'Clean', r:'Убирать'},
         {t:'Sit', r:'Сидеть'},
         {t:'Stand', r:'Стоять'},
+        {t:'Elephant', r:'Слон', rev:true},
+        {t:'Snake', r:'Змея', rev:true},
+        {t:'Form', r:'Бланк', rev:true},
+        {t:'Letter', r:'Письмо', rev:true},
+        {t:'Bed', r:'Кровать', rev:true},
+        {t:'Desk', r:'Письменный стол', rev:true},
+        {t:'New', r:'Новый', rev:true},
+        {t:'Good', r:'Хороший', rev:true}
+      ]},
+      { type:'words', title:'Простые действия · 2', scene:'flat', cefr:'A1: Can describe daily actions.', newCount:10, words:[
         {t:'Put', r:'Класть'},
         {t:'Carry', r:'Нести'},
         {t:'Cut', r:'Резать'},
@@ -1433,13 +2503,23 @@ const COURSE = {
         {t:'Close', r:'Закрывать'},
         {t:'Break', r:'Ломать'},
         {t:'Build', r:'Строить'},
-        {t:'Try', r:'Пробовать'}
+        {t:'Try', r:'Пробовать'},
+        {t:'Bad', r:'Плохой', rev:true},
+        {t:'Video', r:'Видео', rev:true},
+        {t:'Photograph', r:'Фотография', rev:true},
+        {t:'Blog', r:'Блог', rev:true},
+        {t:'Traffic', r:'Движение (транспорт)', rev:true},
+        {t:'Dangerous', r:'Опасный', rev:true},
+        {t:'Ask', r:'Спрашивать', rev:true},
+        {t:'Tell', r:'Говорить', rev:true}
       ]},
       { type:'build', title:'Собери: Простые действия', scene:'flat', cefr:'A1: Can describe daily actions.', tasks:[
         {ru:'Я просыпаюсь в семь утра.', parts:['I','wake','up','at','seven','in','the','morning.'], answer:'I wake up at seven in the morning.'},
         {ru:'Он готовит ужин каждый вечер.', parts:['He','cooks','dinner','every','evening.'], answer:'He cooks dinner every evening.'},
         {ru:'Закройте дверь, пожалуйста.', parts:['Please','close','the','door.'], answer:'Please close the door.'},
-        {ru:'Я попробую это сделать.', parts:['I','will','try','to','do','it.'], answer:'I will try to do it.'}
+        {ru:'Я попробую это сделать.', parts:['I','will','try','to','do','it.'], answer:'I will try to do it.'},
+        {ru:'Эта вещь сломана.', parts:['This','thing','is','broken.'], answer:'This thing is broken.'},
+        {ru:'Комната очень чистая.', parts:['The','room','is','very','clean.'], answer:'The room is very clean.'}
       ]},
       { type:'dialog', title:'Утро в общей кухне', scene:'flat', cefr:'A1: Can describe daily actions.',
         intro:'Сосед по квартире на кухне.',
@@ -1452,9 +2532,18 @@ const COURSE = {
             options:['Coffee yes want me.','Yes, please. Thank you.','Give coffee thanks have.']},
           {who:'them', text:'I am cooking eggs too.', ru:'Я ещё яйца готовлю.'},
           {who:'you', ru:'Скажи, что тоже будешь.', best:2,
-            options:['Egg me want also.','Also eggs give me yes.','Eggs sound great, thanks.']}
+            options:['Egg me want also.','Also eggs give me yes.','Eggs sound great, thanks.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
         ]},
-      { type:'words', title:'Мнение и согласие', scene:'cafe', cefr:'A1: Can express simple opinions and agree or disagree.', words:[
+      { type:'words', title:'Мнение и согласие · 1', scene:'cafe', cefr:'A1: Can express simple opinions and agree or disagree.', newCount:10, words:[
         {t:'Think', r:'Думать'},
         {t:'Know', r:'Знать'},
         {t:'Believe', r:'Верить'},
@@ -1465,6 +2554,16 @@ const COURSE = {
         {t:'Wrong', r:'Неправильный'},
         {t:'True', r:'Правда'},
         {t:'False', r:'Неправда'},
+        {t:'Hate', r:'Ненавидеть', rev:true},
+        {t:'Like', r:'Нравиться', rev:true},
+        {t:'Ice cream', r:'Мороженое', rev:true},
+        {t:'Piece', r:'Кусок', rev:true},
+        {t:'Television', r:'Телевизор', rev:true},
+        {t:'Tv', r:'Телевизор', rev:true},
+        {t:'Wake', r:'Просыпаться', rev:true},
+        {t:'Sleep', r:'Спать', rev:true}
+      ]},
+      { type:'words', title:'Мнение и согласие · 2', scene:'cafe', cefr:'A1: Can express simple opinions and agree or disagree.', newCount:10, words:[
         {t:'Maybe', r:'Может быть'},
         {t:'Sure', r:'Конечно'},
         {t:'Course', r:'Конечно (of course)'},
@@ -1474,13 +2573,23 @@ const COURSE = {
         {t:'Interesting', r:'Интересный'},
         {t:'Boring', r:'Скучный'},
         {t:'Favourite', r:'Любимый'},
-        {t:'Best', r:'Лучший'}
+        {t:'Best', r:'Лучший'},
+        {t:'Wash', r:'Мыть', rev:true},
+        {t:'Great', r:'Отличный', rev:true},
+        {t:'Terrible', r:'Ужасный', rev:true},
+        {t:'Easy', r:'Лёгкий', rev:true},
+        {t:'Information', r:'Информация', rev:true},
+        {t:'News', r:'Новости', rev:true},
+        {t:'Together', r:'Вместе', rev:true},
+        {t:'Special', r:'Особенный', rev:true}
       ]},
       { type:'build', title:'Собери: Мнение и согласие', scene:'cafe', cefr:'A1: Can express simple opinions and agree or disagree.', tasks:[
         {ru:'Я думаю, это хорошая идея.', parts:['I','think','it','is','a','good','idea.'], answer:'I think it is a good idea.'},
         {ru:'Я согласен с тобой.', parts:['I','agree','with','you.'], answer:'I agree with you.'},
         {ru:'Это мой любимый фильм.', parts:['It','is','my','favourite','film.'], answer:'It is my favourite film.'},
-        {ru:'Может быть, ты прав.', parts:['Maybe','you','are','right.'], answer:'Maybe you are right.'}
+        {ru:'Может быть, ты прав.', parts:['Maybe','you','are','right.'], answer:'Maybe you are right.'},
+        {ru:'Я просыпаюсь в семь утра.', parts:['I','wake','up','at','seven','in','the','morning.'], answer:'I wake up at seven in the morning.'},
+        {ru:'Он готовит ужин каждый вечер.', parts:['He','cooks','dinner','every','evening.'], answer:'He cooks dinner every evening.'}
       ]},
       { type:'dialog', title:'Обсудить фильм', scene:'cafe', cefr:'A1: Can express simple opinions and agree or disagree.',
         intro:'После кино друг спрашивает мнение.',
@@ -1493,9 +2602,18 @@ const COURSE = {
             options:['Really? I do not agree. I think it was good.','No boring is bad you say.','Wrong you. Film good is.']},
           {who:'them', text:'Well, everyone is different.', ru:'Ну, все разные.'},
           {who:'you', ru:'Согласись.', best:2,
-            options:['Different yes people all.','People all not same is.','That is true.']}
+            options:['Different yes people all.','People all not same is.','That is true.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
         ]},
-      { type:'words', title:'Большие числа и даты', scene:'bank', cefr:'A1: Can handle larger numbers and dates.', words:[
+      { type:'words', title:'Большие числа и даты · 1', scene:'bank', cefr:'A1: Can handle larger numbers and dates.', newCount:10, words:[
         {t:'Thirteen', r:'Тринадцать'},
         {t:'Fourteen', r:'Четырнадцать'},
         {t:'Sixteen', r:'Шестнадцать'},
@@ -1506,6 +2624,16 @@ const COURSE = {
         {t:'Sixty', r:'Шестьдесят'},
         {t:'Seventy', r:'Семьдесят'},
         {t:'Eighty', r:'Восемьдесят'},
+        {t:'Beautiful', r:'Красивый', rev:true},
+        {t:'Pretty', r:'Симпатичный', rev:true},
+        {t:'Lunch', r:'Обед', rev:true},
+        {t:'Dinner', r:'Ужин', rev:true},
+        {t:'Station', r:'Вокзал', rev:true},
+        {t:'Airport', r:'Аэропорт', rev:true},
+        {t:'Think', r:'Думать', rev:true},
+        {t:'Know', r:'Знать', rev:true}
+      ]},
+      { type:'words', title:'Большие числа и даты · 2', scene:'bank', cefr:'A1: Can handle larger numbers and dates.', newCount:10, words:[
         {t:'Ninety', r:'Девяносто'},
         {t:'Thousand', r:'Тысяча'},
         {t:'Million', r:'Миллион'},
@@ -1515,13 +2643,23 @@ const COURSE = {
         {t:'Fifth', r:'Пятый'},
         {t:'Twice', r:'Дважды'},
         {t:'April', r:'Апрель'},
-        {t:'November', r:'Ноябрь'}
+        {t:'November', r:'Ноябрь'},
+        {t:'Believe', r:'Верить', rev:true},
+        {t:'Cook', r:'Готовить', rev:true},
+        {t:'Cooking', r:'Готовка', rev:true},
+        {t:'Sit', r:'Сидеть', rev:true},
+        {t:'Difficult', r:'Трудный', rev:true},
+        {t:'Hard', r:'Твёрдый / трудный', rev:true},
+        {t:'Fire', r:'Пожар', rev:true},
+        {t:'Happen', r:'Случаться', rev:true}
       ]},
       { type:'build', title:'Собери: Большие числа и даты', scene:'bank', cefr:'A1: Can handle larger numbers and dates.', tasks:[
         {ru:'Мне нужно тысяча евро.', parts:['I','need','a','thousand','euros.'], answer:'I need a thousand euros.'},
         {ru:'Это мой второй визит.', parts:['This','is','my','second','visit.'], answer:'This is my second visit.'},
         {ru:'Я был здесь дважды.', parts:['I','have','been','here','twice.'], answer:'I have been here twice.'},
-        {ru:'В апреле я уезжаю.', parts:['In','April','I','am','leaving.'], answer:'In April I am leaving.'}
+        {ru:'В апреле я уезжаю.', parts:['In','April','I','am','leaving.'], answer:'In April I am leaving.'},
+        {ru:'Я думаю, это хорошая идея.', parts:['I','think','it','is','a','good','idea.'], answer:'I think it is a good idea.'},
+        {ru:'Я согласен с тобой.', parts:['I','agree','with','you.'], answer:'I agree with you.'}
       ]},
       { type:'dialog', title:'Перевод денег', scene:'bank', cefr:'A1: Can handle larger numbers and dates.',
         intro:'Ты в банке оформляешь перевод.',
@@ -1534,9 +2672,40 @@ const COURSE = {
             options:['Before the nineteenth of November.','November nineteen day before.','Time November go fast.']},
           {who:'them', text:'That is fine.', ru:'Хорошо.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok money go now.','Send yes good time.','Thank you very much.']}
+            options:['Ok money go now.','Send yes good time.','Thank you very much.']},
+          {who:'them', text:'Do you have any other questions?', ru:'Ещё вопросы есть?'},
+          {who:'you', ru:'Спроси, когда всё будет готово.', best:1,
+            options:['Ready when is?','When will it be ready?','Time ready what say?']},
+          {who:'them', text:'In about five working days.', ru:'Примерно пять рабочих дней.'},
+          {who:'you', ru:'Спроси, позвонят ли тебе.', best:0,
+            options:['Will you call me?','Phone me you can?','Call have me yes no?']},
+          {who:'them', text:'Yes, we will send a message.', ru:'Да, отправим сообщение.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok message wait.','Good send yes me.','Thank you very much for your help.']}
         ]},
-      { type:'words', title:'Рассказать о себе', scene:'office', cefr:'A1: Can introduce themselves at length.', words:[
+      { type:'words', title:'Контроль: темы 33–36', scene:'bank', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Dirty', r:'Грязный', rev:true},
+        {t:'Full', r:'Полный', rev:true},
+        {t:'High', r:'Высокий', rev:true},
+        {t:'Common', r:'Обычный', rev:true},
+        {t:'Poor', r:'Плохой / бедный', rev:true},
+        {t:'Same', r:'Такой же', rev:true},
+        {t:'Different', r:'Другой', rev:true},
+        {t:'Similar', r:'Похожий', rev:true},
+        {t:'Stand', r:'Стоять', rev:true},
+        {t:'Put', r:'Класть', rev:true},
+        {t:'Carry', r:'Нести', rev:true},
+        {t:'Cut', r:'Резать', rev:true},
+        {t:'Fill', r:'Наполнять', rev:true},
+        {t:'Move', r:'Двигать', rev:true},
+        {t:'Break', r:'Ломать', rev:true},
+        {t:'Build', r:'Строить', rev:true},
+        {t:'Try', r:'Пробовать', rev:true},
+        {t:'Agree', r:'Соглашаться', rev:true},
+        {t:'Opinion', r:'Мнение', rev:true},
+        {t:'Idea', r:'Идея', rev:true}
+      ]},
+      { type:'words', title:'Рассказать о себе · 1', scene:'office', cefr:'A1: Can introduce themselves at length.', newCount:10, words:[
         {t:'Be', r:'Быть'},
         {t:'Live', r:'Жить'},
         {t:'Born', r:'Рождённый'},
@@ -1547,6 +2716,16 @@ const COURSE = {
         {t:'Girlfriend', r:'Девушка'},
         {t:'Boyfriend', r:'Парень'},
         {t:'Life', r:'Жизнь'},
+        {t:'Say', r:'Сказать', rev:true},
+        {t:'Speak', r:'Говорить', rev:true},
+        {t:'Run', r:'Бегать', rev:true},
+        {t:'Film', r:'Фильм', rev:true},
+        {t:'Arrive', r:'Прибывать', rev:true},
+        {t:'Leave', r:'Уезжать', rev:true},
+        {t:'Thirteen', r:'Тринадцать', rev:true},
+        {t:'Fourteen', r:'Четырнадцать', rev:true}
+      ]},
+      { type:'words', title:'Рассказать о себе · 2', scene:'office', cefr:'A1: Can introduce themselves at length.', newCount:10, words:[
         {t:'Year', r:'Год'},
         {t:'Local', r:'Местный'},
         {t:'Island', r:'Остров'},
@@ -1556,13 +2735,23 @@ const COURSE = {
         {t:'Introduce', r:'Представлять'},
         {t:'Interested', r:'Заинтересованный'},
         {t:'Interest', r:'Интерес'},
-        {t:'Skill', r:'Навык'}
+        {t:'Skill', r:'Навык'},
+        {t:'Sixteen', r:'Шестнадцать', rev:true},
+        {t:'Agree', r:'Соглашаться', rev:true},
+        {t:'Opinion', r:'Мнение', rev:true},
+        {t:'Idea', r:'Идея', rev:true},
+        {t:'Stand', r:'Стоять', rev:true},
+        {t:'Put', r:'Класть', rev:true},
+        {t:'Share', r:'Делиться', rev:true},
+        {t:'Internet', r:'Интернет', rev:true}
       ]},
       { type:'build', title:'Собери: Рассказать о себе', scene:'office', cefr:'A1: Can introduce themselves at length.', tasks:[
         {ru:'Я родился в России.', parts:['I','was','born','in','Russia.'], answer:'I was born in Russia.'},
         {ru:'Я живу здесь два года.', parts:['I','have','lived','here','for','two','years.'], answer:'I have lived here for two years.'},
         {ru:'Я говорю на двух языках.', parts:['I','speak','two','languages.'], answer:'I speak two languages.'},
-        {ru:'Я женат, у меня один ребёнок.', parts:['I','am','married','and','I','have','one','child.'], answer:'I am married and I have one child.'}
+        {ru:'Я женат, у меня один ребёнок.', parts:['I','am','married','and','I','have','one','child.'], answer:'I am married and I have one child.'},
+        {ru:'Мне нужно тысяча евро.', parts:['I','need','a','thousand','euros.'], answer:'I need a thousand euros.'},
+        {ru:'Это мой второй визит.', parts:['This','is','my','second','visit.'], answer:'This is my second visit.'}
       ]},
       { type:'dialog', title:'Собеседование', scene:'office', cefr:'A1: Can introduce themselves at length.',
         intro:'Первый вопрос на собеседовании.',
@@ -1575,9 +2764,18 @@ const COURSE = {
             options:['Russian and English.','Two language me speak have.','Language Russia England yes.']},
           {who:'them', text:'Good. Why are you interested in this job?', ru:'Хорошо. Почему вас интересует эта работа?'},
           {who:'you', ru:'Скажи, что нравится компания.', best:1,
-            options:['Company good money have.','I like this company and the work.','Job want me need money.']}
+            options:['Company good money have.','I like this company and the work.','Job want me need money.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Понять и переспросить', scene:'street', cefr:'A1: Can ask for repetition and clarification.', words:[
+      { type:'words', title:'Понять и переспросить · 1', scene:'street', cefr:'A1: Can ask for repetition and clarification.', newCount:10, words:[
         {t:'Understand', r:'Понимать'},
         {t:'Repeat', r:'Повторить'},
         {t:'Slow', r:'Медленный'},
@@ -1588,6 +2786,16 @@ const COURSE = {
         {t:'Spell', r:'Произносить по буквам'},
         {t:'Spelling', r:'Написание'},
         {t:'Say', r:'Сказать'},
+        {t:'Birthday', r:'День рождения', rev:true},
+        {t:'Party', r:'Вечеринка', rev:true},
+        {t:'Climb', r:'Лазить', rev:true},
+        {t:'Ride', r:'Ездить верхом / кататься', rev:true},
+        {t:'Opposite', r:'Напротив', rev:true},
+        {t:'Follow', r:'Следовать', rev:true},
+        {t:'Be', r:'Быть', rev:true},
+        {t:'Live', r:'Жить', rev:true}
+      ]},
+      { type:'words', title:'Понять и переспросить · 2', scene:'street', cefr:'A1: Can ask for repetition and clarification.', newCount:10, words:[
         {t:'Hear', r:'Слышать'},
         {t:'Listen', r:'Слушать'},
         {t:'Speak', r:'Говорить'},
@@ -1597,13 +2805,23 @@ const COURSE = {
         {t:'Dictionary', r:'Словарь'},
         {t:'Conversation', r:'Разговор'},
         {t:'Know', r:'Знать'},
-        {t:'Sorry', r:'Извините'}
+        {t:'Sorry', r:'Извините'},
+        {t:'Born', r:'Рождённый', rev:true},
+        {t:'Seventeen', r:'Семнадцать', rev:true},
+        {t:'Eighteen', r:'Восемнадцать', rev:true},
+        {t:'Nineteen', r:'Девятнадцать', rev:true},
+        {t:'True', r:'Правда', rev:true},
+        {t:'False', r:'Неправда', rev:true},
+        {t:'Dirty', r:'Грязный', rev:true},
+        {t:'Full', r:'Полный', rev:true}
       ]},
       { type:'build', title:'Собери: Понять и переспросить', scene:'street', cefr:'A1: Can ask for repetition and clarification.', tasks:[
         {ru:'Извините, я не понимаю.', parts:['Sorry,','I','do','not','understand.'], answer:'Sorry, I do not understand.'},
         {ru:'Можете повторить, пожалуйста?', parts:['Can','you','repeat','that,','please?'], answer:'Can you repeat that, please?'},
         {ru:'Говорите медленнее, пожалуйста.', parts:['Please','speak','more','slowly.'], answer:'Please speak more slowly.'},
-        {ru:'Что означает это слово?', parts:['What','does','this','word','mean?'], answer:'What does this word mean?'}
+        {ru:'Что означает это слово?', parts:['What','does','this','word','mean?'], answer:'What does this word mean?'},
+        {ru:'Я родился в России.', parts:['I','was','born','in','Russia.'], answer:'I was born in Russia.'},
+        {ru:'Я живу здесь два года.', parts:['I','have','lived','here','for','two','years.'], answer:'I have lived here for two years.'}
       ]},
       { type:'dialog', title:'Не расслышал', scene:'street', cefr:'A1: Can ask for repetition and clarification.',
         intro:'Тебе быстро объясняют, ты теряешь нить.',
@@ -1616,9 +2834,18 @@ const COURSE = {
             options:['The second left, right?','Two left yes is?','Left second you say me?']},
           {who:'them', text:'Exactly.', ru:'Именно.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok understand now go.','Good know me now.','Now I understand. Thank you.']}
+            options:['Ok understand now go.','Good know me now.','Now I understand. Thank you.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Отпуск и путешествие', scene:'airport', cefr:'A1: Can talk about travel and holidays.', words:[
+      { type:'words', title:'Отпуск и путешествие · 1', scene:'airport', cefr:'A1: Can talk about travel and holidays.', newCount:10, words:[
         {t:'Holiday', r:'Отпуск'},
         {t:'Vacation', r:'Отпуск'},
         {t:'Tourist', r:'Турист'},
@@ -1629,6 +2856,18 @@ const COURSE = {
         {t:'Mountain', r:'Гора'},
         {t:'River', r:'Река'},
         {t:'Island', r:'Остров'},
+        {t:'Policeman', r:'Полицейский', rev:true},
+        {t:'Teach', r:'Учить', rev:true},
+        {t:'Fifth', r:'Пятый', rev:true},
+        {t:'Twice', r:'Дважды', rev:true},
+        {t:'April', r:'Апрель', rev:true},
+        {t:'November', r:'Ноябрь', rev:true},
+        {t:'Repeat', r:'Повторить', rev:true},
+        {t:'Again', r:'Снова', rev:true},
+        {t:'Mean', r:'Значить', rev:true},
+        {t:'Country', r:'Страна', rev:true}
+      ]},
+      { type:'words', title:'Отпуск и путешествие · 2', scene:'airport', cefr:'A1: Can talk about travel and holidays.', newCount:10, words:[
         {t:'Hotel', r:'Отель'},
         {t:'Book', r:'Бронировать'},
         {t:'Stay', r:'Останавливаться'},
@@ -1638,13 +2877,25 @@ const COURSE = {
         {t:'Trip', r:'Поездка'},
         {t:'Travel', r:'Путешествовать'},
         {t:'Camera', r:'Фотоаппарат'},
-        {t:'Photo', r:'Фото'}
+        {t:'Photo', r:'Фото'},
+        {t:'Language', r:'Язык', rev:true},
+        {t:'Married', r:'Женат / замужем', rev:true},
+        {t:'Forty', r:'Сорок', rev:true},
+        {t:'Sixty', r:'Шестьдесят', rev:true},
+        {t:'Carry', r:'Нести', rev:true},
+        {t:'Cut', r:'Резать', rev:true},
+        {t:'Quick', r:'Быстрый', rev:true},
+        {t:'Quickly', r:'Быстро', rev:true},
+        {t:'Farm', r:'Ферма', rev:true},
+        {t:'Tree', r:'Дерево', rev:true}
       ]},
       { type:'build', title:'Собери: Отпуск и путешествие', scene:'airport', cefr:'A1: Can talk about travel and holidays.', tasks:[
         {ru:'Я забронировал номер на две ночи.', parts:['I','booked','a','room','for','two','nights.'], answer:'I booked a room for two nights.'},
         {ru:'Мы едем на море летом.', parts:['We','go','to','the','sea','in','summer.'], answer:'We go to the sea in summer.'},
         {ru:'Это мой первый визит сюда.', parts:['This','is','my','first','visit','here.'], answer:'This is my first visit here.'},
-        {ru:'Можно сделать фото?', parts:['Can','I','take','a','photo?'], answer:'Can I take a photo?'}
+        {ru:'Можно сделать фото?', parts:['Can','I','take','a','photo?'], answer:'Can I take a photo?'},
+        {ru:'Извините, я не понимаю.', parts:['Sorry,','I','do','not','understand.'], answer:'Sorry, I do not understand.'},
+        {ru:'Можете повторить, пожалуйста?', parts:['Can','you','repeat','that,','please?'], answer:'Can you repeat that, please?'}
       ]},
       { type:'dialog', title:'Заселение в отель', scene:'airport', cefr:'A1: Can talk about travel and holidays.',
         intro:'Ты приехал в отель поздно вечером.',
@@ -1657,9 +2908,18 @@ const COURSE = {
             options:['Anna. Passport here.','Name Anna give passport take.','Anna Petrova. Here is my passport.']},
           {who:'them', text:'Room twelve, second floor.', ru:'Номер двенадцать, второй этаж.'},
           {who:'you', ru:'Поблагодари.', best:1,
-            options:['Ok room go up.','Thank you very much.','Floor two room twelve yes.']}
+            options:['Ok room go up.','Thank you very much.','Floor two room twelve yes.']},
+          {who:'them', text:'Do you have any hand luggage?', ru:'Ручная кладь есть?'},
+          {who:'you', ru:'Скажи: только маленькая сумка.', best:0,
+            options:['Just a small bag.','Bag small one have.','One small bag me yes.']},
+          {who:'them', text:'That is fine. Here is your ticket.', ru:'Хорошо. Вот ваш билет.'},
+          {who:'you', ru:'Спроси, где выход на посадку.', best:2,
+            options:['Gate where is?','Where go me now?','Where is the gate, please?']},
+          {who:'them', text:'Straight ahead, then left.', ru:'Прямо, потом налево.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok go there.','Thank you very much.','Left yes see me go.']}
         ]},
-      { type:'words', title:'Искусство и культура', scene:'street', cefr:'A1: Can talk about films, books and music simply.', words:[
+      { type:'words', title:'Искусство и культура · 1', scene:'street', cefr:'A1: Can talk about films, books and music simply.', newCount:13, words:[
         {t:'Art', r:'Искусство'},
         {t:'Artist', r:'Художник'},
         {t:'Paint', r:'Рисовать'},
@@ -1673,6 +2933,16 @@ const COURSE = {
         {t:'Band', r:'Группа'},
         {t:'Star', r:'Звезда'},
         {t:'Film', r:'Фильм'},
+        {t:'Website', r:'Сайт', rev:true},
+        {t:'Prefer', r:'Предпочитать', rev:true},
+        {t:'Hope', r:'Надеяться', rev:true},
+        {t:'Subject', r:'Предмет', rev:true},
+        {t:'Science', r:'Наука', rev:true},
+        {t:'Skill', r:'Навык', rev:true},
+        {t:'Tourist', r:'Турист', rev:true},
+        {t:'Visitor', r:'Посетитель', rev:true}
+      ]},
+      { type:'words', title:'Искусство и культура · 2', scene:'street', cefr:'A1: Can talk about films, books and music simply.', newCount:12, words:[
         {t:'Story', r:'История'},
         {t:'Book', r:'Книга'},
         {t:'Magazine', r:'Журнал'},
@@ -1684,13 +2954,24 @@ const COURSE = {
         {t:'Writing', r:'Письмо / творчество'},
         {t:'Title', r:'Название'},
         {t:'Famous', r:'Знаменитый'},
-        {t:'Modern', r:'Современный'}
+        {t:'Modern', r:'Современный'},
+        {t:'Beach', r:'Пляж', rev:true},
+        {t:'Meaning', r:'Значение', rev:true},
+        {t:'Spell', r:'Произносить по буквам', rev:true},
+        {t:'Spelling', r:'Написание', rev:true},
+        {t:'Girlfriend', r:'Девушка', rev:true},
+        {t:'Boyfriend', r:'Парень', rev:true},
+        {t:'Maybe', r:'Может быть', rev:true},
+        {t:'Course', r:'Конечно (of course)', rev:true},
+        {t:'Online', r:'Онлайн', rev:true}
       ]},
       { type:'build', title:'Собери: Искусство и культура', scene:'street', cefr:'A1: Can talk about films, books and music simply.', tasks:[
         {ru:'Я хочу пойти в музей.', parts:['I','want','to','go','to','the','museum.'], answer:'I want to go to the museum.'},
         {ru:'Это очень известная картина.', parts:['It','is','a','very','famous','painting.'], answer:'It is a very famous painting.'},
         {ru:'Я читаю газету каждое утро.', parts:['I','read','the','newspaper','every','morning.'], answer:'I read the newspaper every morning.'},
-        {ru:'Мне нравится современное искусство.', parts:['I','like','modern','art.'], answer:'I like modern art.'}
+        {ru:'Мне нравится современное искусство.', parts:['I','like','modern','art.'], answer:'I like modern art.'},
+        {ru:'Я забронировал номер на две ночи.', parts:['I','booked','a','room','for','two','nights.'], answer:'I booked a room for two nights.'},
+        {ru:'Мы едем на море летом.', parts:['We','go','to','the','sea','in','summer.'], answer:'We go to the sea in summer.'}
       ]},
       { type:'dialog', title:'В музее', scene:'street', cefr:'A1: Can talk about films, books and music simply.',
         intro:'Сотрудник музея у входа.',
@@ -1703,9 +2984,40 @@ const COURSE = {
             options:['Do you have modern art here?','Modern art have you?','Art new is inside here?']},
           {who:'them', text:'Yes, on the second floor.', ru:'Да, на втором этаже.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Floor two go me.','Ok second up yes.','Thank you very much.']}
+            options:['Floor two go me.','Ok second up yes.','Thank you very much.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Планы на будущее', scene:'cafe', cefr:'A1: Can talk about simple future plans.', words:[
+      { type:'words', title:'Контроль: темы 37–40', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Life', r:'Жизнь', rev:true},
+        {t:'Local', r:'Местный', rev:true},
+        {t:'Capital', r:'Столица', rev:true},
+        {t:'World', r:'Мир', rev:true},
+        {t:'Interview', r:'Собеседование', rev:true},
+        {t:'Introduce', r:'Представлять', rev:true},
+        {t:'Interested', r:'Заинтересованный', rev:true},
+        {t:'Interest', r:'Интерес', rev:true},
+        {t:'Hear', r:'Слышать', rev:true},
+        {t:'Listen', r:'Слушать', rev:true},
+        {t:'Explain', r:'Объяснять', rev:true},
+        {t:'Example', r:'Пример', rev:true},
+        {t:'Phrase', r:'Фраза', rev:true},
+        {t:'Conversation', r:'Разговор', rev:true},
+        {t:'Bath', r:'Ванна', rev:true},
+        {t:'Art', r:'Искусство', rev:true},
+        {t:'Paint', r:'Рисовать', rev:true},
+        {t:'Painting', r:'Картина', rev:true},
+        {t:'Draw', r:'Рисовать', rev:true},
+        {t:'Design', r:'Дизайн', rev:true}
+      ]},
+      { type:'words', title:'Планы на будущее · 1', scene:'cafe', cefr:'A1: Can talk about simple future plans.', newCount:10, words:[
         {t:'Future', r:'Будущее'},
         {t:'Will', r:'Будет'},
         {t:'Plan', r:'Планировать'},
@@ -1716,6 +3028,16 @@ const COURSE = {
         {t:'Prepare', r:'Готовиться'},
         {t:'Project', r:'Проект'},
         {t:'Programme', r:'Программа'},
+        {t:'High', r:'Высокий', rev:true},
+        {t:'Common', r:'Обычный', rev:true},
+        {t:'Kind', r:'Добрый', rev:true},
+        {t:'Blonde', r:'Светловолосый', rev:true},
+        {t:'Change', r:'Сдача / менять', rev:true},
+        {t:'Note', r:'Купюра', rev:true},
+        {t:'Art', r:'Искусство', rev:true},
+        {t:'Paint', r:'Рисовать', rev:true}
+      ]},
+      { type:'words', title:'Планы на будущее · 2', scene:'cafe', cefr:'A1: Can talk about simple future plans.', newCount:10, words:[
         {t:'Start', r:'Начинать'},
         {t:'Begin', r:'Начинать'},
         {t:'Beginning', r:'Начало'},
@@ -1725,13 +3047,23 @@ const COURSE = {
         {t:'Soon', r:'Скоро'},
         {t:'Later', r:'Позже'},
         {t:'Become', r:'Становиться'},
-        {t:'Improve', r:'Улучшать'}
+        {t:'Improve', r:'Улучшать'},
+        {t:'Painting', r:'Картина', rev:true},
+        {t:'Bath', r:'Ванна', rev:true},
+        {t:'Tourist', r:'Турист', rev:true},
+        {t:'Visitor', r:'Посетитель', rev:true},
+        {t:'Hear', r:'Слышать', rev:true},
+        {t:'Listen', r:'Слушать', rev:true},
+        {t:'Seventy', r:'Семьдесят', rev:true},
+        {t:'Eighty', r:'Восемьдесят', rev:true}
       ]},
       { type:'build', title:'Собери: Планы на будущее', scene:'cafe', cefr:'A1: Can talk about simple future plans.', tasks:[
         {ru:'Я планирую переехать в мае.', parts:['I','plan','to','move','in','May.'], answer:'I plan to move in May.'},
         {ru:'Надеюсь, скоро найду работу.', parts:['I','hope','I','will','find','a','job','soon.'], answer:'I hope I will find a job soon.'},
         {ru:'Я хочу улучшить свой английский.', parts:['I','want','to','improve','my','English.'], answer:'I want to improve my English.'},
-        {ru:'Проект начинается на следующей неделе.', parts:['The','project','starts','next','week.'], answer:'The project starts next week.'}
+        {ru:'Проект начинается на следующей неделе.', parts:['The','project','starts','next','week.'], answer:'The project starts next week.'},
+        {ru:'Я хочу пойти в музей.', parts:['I','want','to','go','to','the','museum.'], answer:'I want to go to the museum.'},
+        {ru:'Это очень известная картина.', parts:['It','is','a','very','famous','painting.'], answer:'It is a very famous painting.'}
       ]},
       { type:'dialog', title:'О планах', scene:'cafe', cefr:'A1: Can talk about simple future plans.',
         intro:'Друг спрашивает про твои планы.',
@@ -1744,9 +3076,18 @@ const COURSE = {
             options:['I study a little every day.','Every day study me do.','Day all learn me have.']},
           {who:'them', text:'I hope it goes well.', ru:'Надеюсь, получится.'},
           {who:'you', ru:'Поблагодари.', best:1,
-            options:['Ok hope me too.','Thank you, I hope so too.','Hope yes good be.']}
+            options:['Ok hope me too.','Thank you, I hope so too.','Hope yes good be.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
         ]},
-      { type:'words', title:'Сравнение и выбор', scene:'market', cefr:'A1: Can compare simple options.', words:[
+      { type:'words', title:'Сравнение и выбор · 1', scene:'market', cefr:'A1: Can compare simple options.', newCount:10, words:[
         {t:'Better', r:'Лучше'},
         {t:'Best', r:'Лучший'},
         {t:'More', r:'Больше'},
@@ -1757,6 +3098,16 @@ const COURSE = {
         {t:'Another', r:'Ещё один'},
         {t:'Both', r:'Оба'},
         {t:'Each', r:'Каждый'},
+        {t:'Fill', r:'Наполнять', rev:true},
+        {t:'Move', r:'Двигать', rev:true},
+        {t:'Talk', r:'Разговаривать', rev:true},
+        {t:'Meeting', r:'Встреча', rev:true},
+        {t:'Number', r:'Номер', rev:true},
+        {t:'Need', r:'Нуждаться', rev:true},
+        {t:'Future', r:'Будущее', rev:true},
+        {t:'Will', r:'Будет', rev:true}
+      ]},
+      { type:'words', title:'Сравнение и выбор · 2', scene:'market', cefr:'A1: Can compare simple options.', newCount:10, words:[
         {t:'Compare', r:'Сравнивать'},
         {t:'Choose', r:'Выбирать'},
         {t:'Difference', r:'Разница'},
@@ -1766,13 +3117,23 @@ const COURSE = {
         {t:'Model', r:'Модель'},
         {t:'Part', r:'Часть'},
         {t:'Cheap', r:'Дешёвый'},
-        {t:'Expensive', r:'Дорогой'}
+        {t:'Expensive', r:'Дорогой'},
+        {t:'Would', r:'Бы', rev:true},
+        {t:'Draw', r:'Рисовать', rev:true},
+        {t:'Design', r:'Дизайн', rev:true},
+        {t:'Culture', r:'Культура', rev:true},
+        {t:'Visit', r:'Посещать', rev:true},
+        {t:'Beach', r:'Пляж', rev:true},
+        {t:'Life', r:'Жизнь', rev:true},
+        {t:'Local', r:'Местный', rev:true}
       ]},
       { type:'build', title:'Собери: Сравнение и выбор', scene:'market', cefr:'A1: Can compare simple options.', tasks:[
         {ru:'Этот лучше, чем тот.', parts:['This','one','is','better','than','that','one.'], answer:'This one is better than that one.'},
         {ru:'В чём разница?', parts:['What','is','the','difference?'], answer:'What is the difference?'},
         {ru:'Я возьму другой.', parts:['I','will','take','the','other','one.'], answer:'I will take the other one.'},
-        {ru:'Оба хорошие, но этот дешевле.', parts:['Both','are','good,','but','this','one','is','cheaper.'], answer:'Both are good, but this one is cheaper.'}
+        {ru:'Оба хорошие, но этот дешевле.', parts:['Both','are','good,','but','this','one','is','cheaper.'], answer:'Both are good, but this one is cheaper.'},
+        {ru:'Я планирую переехать в мае.', parts:['I','plan','to','move','in','May.'], answer:'I plan to move in May.'},
+        {ru:'Надеюсь, скоро найду работу.', parts:['I','hope','I','will','find','a','job','soon.'], answer:'I hope I will find a job soon.'}
       ]},
       { type:'dialog', title:'Выбрать из двух', scene:'market', cefr:'A1: Can compare simple options.',
         intro:'Продавец показывает два телефона.',
@@ -1785,9 +3146,18 @@ const COURSE = {
             options:['Cheap one take me.','I think I will take the cheaper one.','Money small give this.']},
           {who:'them', text:'Good choice.', ru:'Хороший выбор.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok buy now this.','Choose good yes me.','Thank you for your help.']}
+            options:['Ok buy now this.','Choose good yes me.','Thank you for your help.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
         ]},
-      { type:'words', title:'Тело: движение и состояние', scene:'clinic', cefr:'A1: Can describe simple physical states.', words:[
+      { type:'words', title:'Тело: движение и состояние · 1', scene:'clinic', cefr:'A1: Can describe simple physical states.', newCount:10, words:[
         {t:'Tired', r:'Усталый'},
         {t:'Hungry', r:'Голодный'},
         {t:'Thirsty', r:'Жаждущий'},
@@ -1798,6 +3168,17 @@ const COURSE = {
         {t:'Stand', r:'Стоять'},
         {t:'Fall', r:'Падать'},
         {t:'Feel', r:'Чувствовать'},
+        {t:'Festival', r:'Фестиваль', rev:true},
+        {t:'Event', r:'Событие', rev:true},
+        {t:'Kilometre', r:'Километр', rev:true},
+        {t:'Extra', r:'Дополнительный', rev:true},
+        {t:'Writing', r:'Письмо / творчество', rev:true},
+        {t:'Famous', r:'Знаменитый', rev:true},
+        {t:'Better', r:'Лучше', rev:true},
+        {t:'More', r:'Больше', rev:true},
+        {t:'Most', r:'Больше всего', rev:true}
+      ]},
+      { type:'words', title:'Тело: движение и состояние · 2', scene:'clinic', cefr:'A1: Can describe simple physical states.', newCount:10, words:[
         {t:'Advice', r:'Совет'},
         {t:'Help', r:'Помощь'},
         {t:'Cafe', r:'Кафе'},
@@ -1807,13 +3188,24 @@ const COURSE = {
         {t:'Life', r:'Жизнь'},
         {t:'Diet', r:'Диета'},
         {t:'Healthy', r:'Здоровый'},
-        {t:'Exercise', r:'Упражнение'}
+        {t:'Exercise', r:'Упражнение'},
+        {t:'Decide', r:'Решать', rev:true},
+        {t:'Prepare', r:'Готовиться', rev:true},
+        {t:'Project', r:'Проект', rev:true},
+        {t:'Band', r:'Группа', rev:true},
+        {t:'Star', r:'Звезда', rev:true},
+        {t:'Explain', r:'Объяснять', rev:true},
+        {t:'Example', r:'Пример', rev:true},
+        {t:'Reason', r:'Причина', rev:true},
+        {t:'Because', r:'Потому что', rev:true}
       ]},
       { type:'build', title:'Собери: Тело: движение и состояние', scene:'clinic', cefr:'A1: Can describe simple physical states.', tasks:[
         {ru:'Я очень устал и голоден.', parts:['I','am','very','tired','and','hungry.'], answer:'I am very tired and hungry.'},
         {ru:'Мне нужно лекарство от головной боли.', parts:['I','need','medicine','for','a','headache.'], answer:'I need medicine for a headache.'},
         {ru:'Где ближайшая аптека?', parts:['Where','is','the','nearest','pharmacy?'], answer:'Where is the nearest pharmacy?'},
-        {ru:'У меня температура.', parts:['I','have','a','temperature.'], answer:'I have a temperature.'}
+        {ru:'У меня температура.', parts:['I','have','a','temperature.'], answer:'I have a temperature.'},
+        {ru:'Этот лучше, чем тот.', parts:['This','one','is','better','than','that','one.'], answer:'This one is better than that one.'},
+        {ru:'В чём разница?', parts:['What','is','the','difference?'], answer:'What is the difference?'}
       ]},
       { type:'dialog', title:'В аптеке', scene:'clinic', cefr:'A1: Can describe simple physical states.',
         intro:'Ты подходишь к окошку аптеки.',
@@ -1826,9 +3218,18 @@ const COURSE = {
             options:['No, just my head.','Head only no hot me.','Temperature no. Head yes bad.']},
           {who:'them', text:'Take this twice a day.', ru:'Принимайте дважды в день.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Two time day ok.','Twice yes take me.','Thank you very much.']}
+            options:['Two time day ok.','Twice yes take me.','Thank you very much.']},
+          {who:'them', text:'Do you have any questions?', ru:'Есть вопросы?'},
+          {who:'you', ru:'Спроси, когда прийти снова.', best:2,
+            options:['Come when again?','Next time when is?','When should I come again?']},
+          {who:'them', text:'In one week, if it does not get better.', ru:'Через неделю, если не станет лучше.'},
+          {who:'you', ru:'Подтверди.', best:0,
+            options:['One week. I understand.','Week one ok yes.','Understand me time week.']},
+          {who:'them', text:'Take care of yourself.', ru:'Берегите себя.'},
+          {who:'you', ru:'Поблагодари врача.', best:1,
+            options:['Ok me care.','Thank you, doctor. Goodbye.','Care yes bye go.']}
         ]},
-      { type:'words', title:'Разговор ни о чём', scene:'cafe', cefr:'A1: Can make simple small talk.', words:[
+      { type:'words', title:'Разговор ни о чём · 1', scene:'cafe', cefr:'A1: Can make simple small talk.', newCount:14, words:[
         {t:'How', r:'Как'},
         {t:'Fine', r:'Нормально'},
         {t:'Well', r:'Хорошо'},
@@ -1843,18 +3244,46 @@ const COURSE = {
         {t:'Exciting', r:'Захватывающий'},
         {t:'Boring', r:'Скучный'},
         {t:'Funny', r:'Смешной'},
+        {t:'Ninety', r:'Девяносто', rev:true},
+        {t:'Thousand', r:'Тысяча', rev:true},
+        {t:'Police', r:'Полиция', rev:true},
+        {t:'Forget', r:'Забывать', rev:true},
+        {t:'Bill', r:'Счёт', rev:true},
+        {t:'Delicious', r:'Очень вкусно', rev:true},
+        {t:'Keep', r:'Держать', rev:true},
+        {t:'Fall', r:'Падать', rev:true}
+      ]},
+      { type:'words', title:'Разговор ни о чём · 2', scene:'cafe', cefr:'A1: Can make simple small talk.', newCount:14, words:[
         {t:'Fun', r:'Весело'},
         {t:'Guess', r:'Догадываться'},
         {t:'Remember', r:'Помнить'},
-        {t:'Forget', r:'Забывать'},
         {t:'Miss', r:'Скучать'},
-        {t:'Thank', r:'Благодарить'}
+        {t:'Thank', r:'Благодарить'},
+        {t:'Century', r:'Век'},
+        {t:'Dear', r:'Дорогой'},
+        {t:'Fact', r:'Факт'},
+        {t:'Mile', r:'Миля'},
+        {t:'Period', r:'Период'},
+        {t:'Personal', r:'Личный'},
+        {t:'Product', r:'Продукт'},
+        {t:'Tonight', r:'Сегодня вечером'},
+        {t:'Dancer', r:'Танцор'},
+        {t:'Advice', r:'Совет', rev:true},
+        {t:'Little', r:'Мало', rev:true},
+        {t:'Other', r:'Другой', rev:true},
+        {t:'Another', r:'Ещё один', rev:true},
+        {t:'Programme', r:'Программа', rev:true},
+        {t:'Begin', r:'Начинать', rev:true},
+        {t:'Mountain', r:'Гора', rev:true},
+        {t:'River', r:'Река', rev:true}
       ]},
       { type:'build', title:'Собери: Разговор ни о чём', scene:'cafe', cefr:'A1: Can make simple small talk.', tasks:[
         {ru:'Как дела? — Отлично, спасибо.', parts:['How','are','you?','—','Great,','thanks.'], answer:'How are you? — Great, thanks.'},
         {ru:'Ты не поверишь, что случилось.', parts:['You','will','not','believe','what','happened.'], answer:'You will not believe what happened.'},
         {ru:'Это было замечательно.', parts:['It','was','wonderful.'], answer:'It was wonderful.'},
-        {ru:'Я скучаю по дому.', parts:['I','miss','home.'], answer:'I miss home.'}
+        {ru:'Я скучаю по дому.', parts:['I','miss','home.'], answer:'I miss home.'},
+        {ru:'Я очень устал и голоден.', parts:['I','am','very','tired','and','hungry.'], answer:'I am very tired and hungry.'},
+        {ru:'Мне нужно лекарство от головной боли.', parts:['I','need','medicine','for','a','headache.'], answer:'I need medicine for a headache.'}
       ]},
       { type:'dialog', title:'Встретил знакомого', scene:'cafe', cefr:'A1: Can make simple small talk.',
         intro:'Ты столкнулся со старым знакомым.',
@@ -1867,9 +3296,40 @@ const COURSE = {
             options:['I am fine, just a lot of work.','Good me work much have.','Fine yes work big have me.']},
           {who:'them', text:'Let us have a coffee some time.', ru:'Давай как-нибудь выпьем кофе.'},
           {who:'you', ru:'Согласись.', best:1,
-            options:['Ok coffee yes go.','That sounds great!','Coffee good time we have.']}
+            options:['Ok coffee yes go.','That sounds great!','Coffee good time we have.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
         ]},
-      { type:'words', title:'Место и положение', scene:'flat', cefr:'A1: Can say where things are.', words:[
+      { type:'words', title:'Контроль: темы 41–44', scene:'cafe', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Beginning', r:'Начало', rev:true},
+        {t:'End', r:'Конец', rev:true},
+        {t:'Final', r:'Финальный', rev:true},
+        {t:'Next', r:'Следующий', rev:true},
+        {t:'Improve', r:'Улучшать', rev:true},
+        {t:'Both', r:'Оба', rev:true},
+        {t:'Each', r:'Каждый', rev:true},
+        {t:'Compare', r:'Сравнивать', rev:true},
+        {t:'Difference', r:'Разница', rev:true},
+        {t:'Style', r:'Стиль', rev:true},
+        {t:'Model', r:'Модель', rev:true},
+        {t:'Part', r:'Часть', rev:true},
+        {t:'Cafe', r:'Кафе', rev:true},
+        {t:'Air', r:'Воздух', rev:true},
+        {t:'Diet', r:'Диета', rev:true},
+        {t:'How', r:'Как', rev:true},
+        {t:'Well', r:'Хорошо', rev:true},
+        {t:'Really', r:'Правда', rev:true},
+        {t:'Amazing', r:'Удивительный', rev:true},
+        {t:'Wonderful', r:'Замечательный', rev:true}
+      ]},
+      { type:'words', title:'Место и положение · 1', scene:'flat', cefr:'A1: Can say where things are.', newCount:10, words:[
         {t:'Place', r:'Место'},
         {t:'Here', r:'Здесь'},
         {t:'There', r:'Там'},
@@ -1880,6 +3340,16 @@ const COURSE = {
         {t:'Next to', r:'Рядом с'},
         {t:'In', r:'В'},
         {t:'On', r:'На'},
+        {t:'Capital', r:'Столица', rev:true},
+        {t:'World', r:'Мир', rev:true},
+        {t:'Message', r:'Сообщение', rev:true},
+        {t:'Video', r:'Видео', rev:true},
+        {t:'Movie', r:'Кино', rev:true},
+        {t:'Guitar', r:'Гитара', rev:true},
+        {t:'How', r:'Как', rev:true},
+        {t:'Well', r:'Хорошо', rev:true}
+      ]},
+      { type:'words', title:'Место и положение · 2', scene:'flat', cefr:'A1: Can say where things are.', newCount:10, words:[
         {t:'At', r:'У'},
         {t:'Into', r:'В (внутрь)'},
         {t:'Out', r:'Наружу'},
@@ -1889,13 +3359,23 @@ const COURSE = {
         {t:'Across', r:'Через'},
         {t:'Through', r:'Сквозь'},
         {t:'Between', r:'Между'},
-        {t:'Space', r:'Место / пространство'}
+        {t:'Space', r:'Место / пространство'},
+        {t:'Really', r:'Правда', rev:true},
+        {t:'Cafe', r:'Кафе', rev:true},
+        {t:'Air', r:'Воздух', rev:true},
+        {t:'Diet', r:'Диета', rev:true},
+        {t:'Both', r:'Оба', rev:true},
+        {t:'Each', r:'Каждый', rev:true},
+        {t:'Story', r:'История', rev:true},
+        {t:'Magazine', r:'Журнал', rev:true}
       ]},
       { type:'build', title:'Собери: Место и положение', scene:'flat', cefr:'A1: Can say where things are.', tasks:[
         {ru:'Книга на столе.', parts:['The','book','is','on','the','table.'], answer:'The book is on the table.'},
         {ru:'Магазин рядом с банком.', parts:['The','shop','is','next','to','the','bank.'], answer:'The shop is next to the bank.'},
         {ru:'Иди прямо через парк.', parts:['Go','straight','through','the','park.'], answer:'Go straight through the park.'},
-        {ru:'Мой телефон под кроватью.', parts:['My','phone','is','under','the','bed.'], answer:'My phone is under the bed.'}
+        {ru:'Мой телефон под кроватью.', parts:['My','phone','is','under','the','bed.'], answer:'My phone is under the bed.'},
+        {ru:'Как дела? — Отлично, спасибо.', parts:['How','are','you?','—','Great,','thanks.'], answer:'How are you? — Great, thanks.'},
+        {ru:'Ты не поверишь, что случилось.', parts:['You','will','not','believe','what','happened.'], answer:'You will not believe what happened.'}
       ]},
       { type:'dialog', title:'Найти вещь', scene:'flat', cefr:'A1: Can say where things are.',
         intro:'Ты ищешь ключи, сосед подсказывает.',
@@ -1908,9 +3388,18 @@ const COURSE = {
             options:['Table no have there.','I looked there, they are not on the table.','No table key not is.']},
           {who:'them', text:'Maybe under the bag?', ru:'Может, под сумкой?'},
           {who:'you', ru:'Скажи, что нашёл.', best:2,
-            options:['Yes here find me.','Bag under is yes.','Found them! Thank you.']}
+            options:['Yes here find me.','Bag under is yes.','Found them! Thank you.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
         ]},
-      { type:'words', title:'Количество', scene:'market', cefr:'A1: Can express quantity.', words:[
+      { type:'words', title:'Количество · 1', scene:'market', cefr:'A1: Can express quantity.', newCount:10, words:[
         {t:'All', r:'Все'},
         {t:'Any', r:'Любой'},
         {t:'Some', r:'Несколько'},
@@ -1921,6 +3410,16 @@ const COURSE = {
         {t:'Enough', r:'Достаточно'},
         {t:'More', r:'Больше'},
         {t:'Extra', r:'Дополнительный'},
+        {t:'Phrase', r:'Фраза', rev:true},
+        {t:'Conversation', r:'Разговор', rev:true},
+        {t:'Poor', r:'Плохой / бедный', rev:true},
+        {t:'Different', r:'Другой', rev:true},
+        {t:'Finish', r:'Заканчивать', rev:true},
+        {t:'Practice', r:'Практика', rev:true},
+        {t:'Here', r:'Здесь', rev:true},
+        {t:'There', r:'Там', rev:true}
+      ]},
+      { type:'words', title:'Количество · 2', scene:'market', cefr:'A1: Can express quantity.', newCount:10, words:[
         {t:'Every', r:'Каждый'},
         {t:'Everything', r:'Всё'},
         {t:'Everyone', r:'Все'},
@@ -1930,13 +3429,23 @@ const COURSE = {
         {t:'Someone', r:'Кто-то'},
         {t:'Anything', r:'Что-нибудь'},
         {t:'Anyone', r:'Кто-нибудь'},
-        {t:'Only', r:'Только'}
+        {t:'Only', r:'Только'},
+        {t:'Above', r:'Над', rev:true},
+        {t:'Amazing', r:'Удивительный', rev:true},
+        {t:'Wonderful', r:'Замечательный', rev:true},
+        {t:'Fantastic', r:'Потрясающий', rev:true},
+        {t:'Keep', r:'Держать', rev:true},
+        {t:'Fall', r:'Падать', rev:true},
+        {t:'Beginning', r:'Начало', rev:true},
+        {t:'End', r:'Конец', rev:true}
       ]},
       { type:'build', title:'Собери: Количество', scene:'market', cefr:'A1: Can express quantity.', tasks:[
         {ru:'У меня достаточно денег.', parts:['I','have','enough','money.'], answer:'I have enough money.'},
         {ru:'Здесь слишком много людей.', parts:['There','are','too','many','people','here.'], answer:'There are too many people here.'},
         {ru:'Мне нужно ещё немного времени.', parts:['I','need','a','little','more','time.'], answer:'I need a little more time.'},
-        {ru:'Никто ничего не сказал.', parts:['Nobody','said','anything.'], answer:'Nobody said anything.'}
+        {ru:'Никто ничего не сказал.', parts:['Nobody','said','anything.'], answer:'Nobody said anything.'},
+        {ru:'Книга на столе.', parts:['The','book','is','on','the','table.'], answer:'The book is on the table.'},
+        {ru:'Магазин рядом с банком.', parts:['The','shop','is','next','to','the','bank.'], answer:'The shop is next to the bank.'}
       ]},
       { type:'dialog', title:'Хватит ли', scene:'market', cefr:'A1: Can express quantity.',
         intro:'Ты покупаешь еду на компанию.',
@@ -1949,9 +3458,18 @@ const COURSE = {
             options:['About ten people.','Ten person come maybe.','People many ten is.']},
           {who:'them', text:'Then we need two more bags.', ru:'Тогда нужно ещё два пакета.'},
           {who:'you', ru:'Согласись.', best:2,
-            options:['Ok two more take.','Bag two yes buy.','You are right, let us take two more.']}
+            options:['Ok two more take.','Bag two yes buy.','You are right, let us take two more.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
         ]},
-      { type:'words', title:'Модальность и вежливость', scene:'office', cefr:'A1: Can make polite requests.', words:[
+      { type:'words', title:'Модальность и вежливость · 1', scene:'office', cefr:'A1: Can make polite requests.', newCount:10, words:[
         {t:'Can', r:'Мочь'},
         {t:'Cannot', r:'Не мочь'},
         {t:'Could', r:'Мог бы'},
@@ -1962,6 +3480,18 @@ const COURSE = {
         {t:'Would', r:'Бы'},
         {t:'Let', r:'Позволять'},
         {t:'Need', r:'Нужно'},
+        {t:'Flower', r:'Цветок', rev:true},
+        {t:'Plant', r:'Растение', rev:true},
+        {t:'Personal', r:'Личный', rev:true},
+        {t:'Product', r:'Продукт', rev:true},
+        {t:'Tonight', r:'Сегодня вечером', rev:true},
+        {t:'Dancer', r:'Танцор', rev:true},
+        {t:'All', r:'Все', rev:true},
+        {t:'Any', r:'Любой', rev:true},
+        {t:'Some', r:'Несколько', rev:true},
+        {t:'Below', r:'Под', rev:true}
+      ]},
+      { type:'words', title:'Модальность и вежливость · 2', scene:'office', cefr:'A1: Can make polite requests.', newCount:10, words:[
         {t:'Possible', r:'Возможный'},
         {t:'Sure', r:'Конечно'},
         {t:'Course', r:'Конечно'},
@@ -1971,13 +3501,25 @@ const COURSE = {
         {t:'Use', r:'Использовать'},
         {t:'Useful', r:'Полезный'},
         {t:'Ready', r:'Готов'},
-        {t:'Wait', r:'Ждать'}
+        {t:'Wait', r:'Ждать'},
+        {t:'Over', r:'Над / через', rev:true},
+        {t:'Next to', r:'Рядом с', rev:true},
+        {t:'Exciting', r:'Захватывающий', rev:true},
+        {t:'Guess', r:'Догадываться', rev:true},
+        {t:'Compare', r:'Сравнивать', rev:true},
+        {t:'Difference', r:'Разница', rev:true},
+        {t:'Island', r:'Остров', rev:true},
+        {t:'Stay', r:'Останавливаться', rev:true},
+        {t:'Break', r:'Ломать', rev:true},
+        {t:'Build', r:'Строить', rev:true}
       ]},
       { type:'build', title:'Собери: Модальность и вежливость', scene:'office', cefr:'A1: Can make polite requests.', tasks:[
         {ru:'Не могли бы вы мне помочь?', parts:['Could','you','help','me,','please?'], answer:'Could you help me, please?'},
         {ru:'Можно воспользоваться вашим телефоном?', parts:['May','I','use','your','phone?'], answer:'May I use your phone?'},
         {ru:'Я должен идти сейчас.', parts:['I','must','go','now.'], answer:'I must go now.'},
-        {ru:'Вам следует поговорить с менеджером.', parts:['You','should','talk','to','the','manager.'], answer:'You should talk to the manager.'}
+        {ru:'Вам следует поговорить с менеджером.', parts:['You','should','talk','to','the','manager.'], answer:'You should talk to the manager.'},
+        {ru:'У меня достаточно денег.', parts:['I','have','enough','money.'], answer:'I have enough money.'},
+        {ru:'Здесь слишком много людей.', parts:['There','are','too','many','people','here.'], answer:'There are too many people here.'}
       ]},
       { type:'dialog', title:'Вежливая просьба', scene:'office', cefr:'A1: Can make polite requests.',
         intro:'Тебе нужна помощь коллеги.',
@@ -1990,9 +3532,18 @@ const COURSE = {
             options:['May I use your computer?','Computer me use can?','Give computer me want.']},
           {who:'them', text:'Of course, go ahead.', ru:'Конечно, пользуйтесь.'},
           {who:'you', ru:'Поблагодари.', best:1,
-            options:['Ok use it now.','Thank you, that is very kind.','Kind you thanks have.']}
+            options:['Ok use it now.','Thank you, that is very kind.','Kind you thanks have.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Разговор по телефону', scene:'office', cefr:'A1: Can handle a simple phone call.', words:[
+      { type:'words', title:'Разговор по телефону · 1', scene:'office', cefr:'A1: Can handle a simple phone call.', newCount:10, words:[
         {t:'Call', r:'Звонить'},
         {t:'Telephone', r:'Телефон'},
         {t:'Answer', r:'Отвечать'},
@@ -2003,6 +3554,17 @@ const COURSE = {
         {t:'Later', r:'Позже'},
         {t:'Busy', r:'Занято'},
         {t:'Line', r:'Линия'},
+        {t:'Important', r:'Важный', rev:true},
+        {t:'Interesting', r:'Интересный', rev:true},
+        {t:'Laugh', r:'Смеяться', rev:true},
+        {t:'Sad', r:'Грустный', rev:true},
+        {t:'Through', r:'Сквозь', rev:true},
+        {t:'Space', r:'Место / пространство', rev:true},
+        {t:'Can', r:'Мочь', rev:true},
+        {t:'Cannot', r:'Не мочь', rev:true},
+        {t:'Could', r:'Мог бы', rev:true}
+      ]},
+      { type:'words', title:'Разговор по телефону · 2', scene:'office', cefr:'A1: Can handle a simple phone call.', newCount:10, words:[
         {t:'Moment', r:'Момент'},
         {t:'Minute', r:'Минута'},
         {t:'Wait', r:'Подождать'},
@@ -2012,13 +3574,24 @@ const COURSE = {
         {t:'Sorry', r:'Извините'},
         {t:'Number', r:'Номер'},
         {t:'Wrong', r:'Неверный'},
-        {t:'Thank', r:'Благодарить'}
+        {t:'Thank', r:'Благодарить'},
+        {t:'Many', r:'Много', rev:true},
+        {t:'Much', r:'Много', rev:true},
+        {t:'Few', r:'Мало', rev:true},
+        {t:'In', r:'В', rev:true},
+        {t:'On', r:'На', rev:true},
+        {t:'Advice', r:'Совет', rev:true},
+        {t:'Cafe', r:'Кафе', rev:true},
+        {t:'Newspaper', r:'Газета', rev:true},
+        {t:'Article', r:'Статья', rev:true}
       ]},
       { type:'build', title:'Собери: Разговор по телефону', scene:'office', cefr:'A1: Can handle a simple phone call.', tasks:[
         {ru:'Алло, могу я поговорить с Анной?', parts:['Hello,','can','I','speak','to','Anna?'], answer:'Hello, can I speak to Anna?'},
         {ru:'Она сейчас занята.', parts:['She','is','busy','at','the','moment.'], answer:'She is busy at the moment.'},
         {ru:'Я перезвоню позже.', parts:['I','will','call','back','later.'], answer:'I will call back later.'},
-        {ru:'Извините, вы ошиблись номером.', parts:['Sorry,','wrong','number.'], answer:'Sorry, wrong number.'}
+        {ru:'Извините, вы ошиблись номером.', parts:['Sorry,','wrong','number.'], answer:'Sorry, wrong number.'},
+        {ru:'Не могли бы вы мне помочь?', parts:['Could','you','help','me,','please?'], answer:'Could you help me, please?'},
+        {ru:'Можно воспользоваться вашим телефоном?', parts:['May','I','use','your','phone?'], answer:'May I use your phone?'}
       ]},
       { type:'dialog', title:'Звонок в офис', scene:'office', cefr:'A1: Can handle a simple phone call.',
         intro:'Ты звонишь и просишь коллегу.',
@@ -2031,9 +3604,40 @@ const COURSE = {
             options:['I see. I will call back later.','Ok later call me do.','Later phone again me yes.']},
           {who:'them', text:'Would you like to leave a message?', ru:'Оставите сообщение?'},
           {who:'you', ru:'Откажись вежливо.', best:2,
-            options:['No message. Bye.','Message no need me.','No, thank you. I will try again this afternoon.']}
+            options:['No message. Bye.','Message no need me.','No, thank you. I will try again this afternoon.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Правила и запреты', scene:'street', cefr:'A1: Can understand simple rules and signs.', words:[
+      { type:'words', title:'Контроль: темы 45–48', scene:'office', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'At', r:'У', rev:true},
+        {t:'Into', r:'В (внутрь)', rev:true},
+        {t:'Out', r:'Наружу', rev:true},
+        {t:'Up', r:'Вверх', rev:true},
+        {t:'Down', r:'Вниз', rev:true},
+        {t:'Around', r:'Вокруг', rev:true},
+        {t:'Lot', r:'Много', rev:true},
+        {t:'Enough', r:'Достаточно', rev:true},
+        {t:'Every', r:'Каждый', rev:true},
+        {t:'Everything', r:'Всё', rev:true},
+        {t:'Everyone', r:'Все', rev:true},
+        {t:'Nothing', r:'Ничего', rev:true},
+        {t:'Nobody', r:'Никто', rev:true},
+        {t:'Something', r:'Что-то', rev:true},
+        {t:'Someone', r:'Кто-то', rev:true},
+        {t:'Anything', r:'Что-нибудь', rev:true},
+        {t:'Anyone', r:'Кто-нибудь', rev:true},
+        {t:'Only', r:'Только', rev:true},
+        {t:'Must', r:'Должен', rev:true},
+        {t:'Have to', r:'Приходится', rev:true}
+      ]},
+      { type:'words', title:'Правила и запреты · 1', scene:'street', cefr:'A1: Can understand simple rules and signs.', newCount:10, words:[
         {t:'Rule', r:'Правило'},
         {t:'Must', r:'Должен'},
         {t:'Add', r:'Добавлять'},
@@ -2044,6 +3648,17 @@ const COURSE = {
         {t:'Quiet', r:'Тихо'},
         {t:'Natural', r:'Природный'},
         {t:'Situation', r:'Ситуация'},
+        {t:'Second', r:'Второй', rev:true},
+        {t:'Dark', r:'Тёмный', rev:true},
+        {t:'Man', r:'Мужчина', rev:true},
+        {t:'Someone', r:'Кто-то', rev:true},
+        {t:'Anything', r:'Что-нибудь', rev:true},
+        {t:'Anyone', r:'Кто-нибудь', rev:true},
+        {t:'Line', r:'Линия', rev:true},
+        {t:'Moment', r:'Момент', rev:true},
+        {t:'Busy', r:'Занято', rev:true}
+      ]},
+      { type:'words', title:'Правила и запреты · 2', scene:'street', cefr:'A1: Can understand simple rules and signs.', newCount:10, words:[
         {t:'Police', r:'Полиция'},
         {t:'Ticket', r:'Штраф / билет'},
         {t:'Pay', r:'Платить'},
@@ -2053,13 +3668,25 @@ const COURSE = {
         {t:'Look', r:'Смотреть'},
         {t:'Point', r:'Место / пункт'},
         {t:'Free', r:'Свободный'},
-        {t:'Correct', r:'Правильный'}
+        {t:'Correct', r:'Правильный'},
+        {t:'Have to', r:'Приходится', rev:true},
+        {t:'Should', r:'Следует', rev:true},
+        {t:'Let', r:'Позволять', rev:true},
+        {t:'Lot', r:'Много', rev:true},
+        {t:'Enough', r:'Достаточно', rev:true},
+        {t:'Remember', r:'Помнить', rev:true},
+        {t:'Century', r:'Век', rev:true},
+        {t:'Final', r:'Финальный', rev:true},
+        {t:'Next', r:'Следующий', rev:true},
+        {t:'Million', r:'Миллион', rev:true}
       ]},
       { type:'build', title:'Собери: Правила и запреты', scene:'street', cefr:'A1: Can understand simple rules and signs.', tasks:[
         {ru:'Здесь нельзя курить.', parts:['You','cannot','smoke','here.'], answer:'You cannot smoke here.'},
         {ru:'Пожалуйста, соблюдайте тишину.', parts:['Please','be','quiet.'], answer:'Please be quiet.'},
         {ru:'Магазин закрыт по воскресеньям.', parts:['The','shop','is','closed','on','Sundays.'], answer:'The shop is closed on Sundays.'},
-        {ru:'Вход бесплатный.', parts:['Entry','is','free.'], answer:'Entry is free.'}
+        {ru:'Вход бесплатный.', parts:['Entry','is','free.'], answer:'Entry is free.'},
+        {ru:'Алло, могу я поговорить с Анной?', parts:['Hello,','can','I','speak','to','Anna?'], answer:'Hello, can I speak to Anna?'},
+        {ru:'Она сейчас занята.', parts:['She','is','busy','at','the','moment.'], answer:'She is busy at the moment.'}
       ]},
       { type:'dialog', title:'Замечание', scene:'street', cefr:'A1: Can understand simple rules and signs.',
         intro:'Охранник подходит к тебе в здании.',
@@ -2072,9 +3699,18 @@ const COURSE = {
             options:['Where outside is it?','Place where say me?','Where exactly is it?']},
           {who:'them', text:'Through that door, on the left.', ru:'Через ту дверь, налево.'},
           {who:'you', ru:'Поблагодари.', best:1,
-            options:['Ok go there now.','Thank you, I will go there.','Door left go me yes.']}
+            options:['Ok go there now.','Thank you, I will go there.','Door left go me yes.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Итоги дня', scene:'flat', cefr:'A1: Can describe a day in simple sentences.', words:[
+      { type:'words', title:'Итоги дня · 1', scene:'flat', cefr:'A1: Can describe a day in simple sentences.', newCount:10, words:[
         {t:'Day', r:'День'},
         {t:'Routine', r:'Распорядок'},
         {t:'Usually', r:'Обычно'},
@@ -2085,6 +3721,16 @@ const COURSE = {
         {t:'Once', r:'Один раз'},
         {t:'Again', r:'Снова'},
         {t:'Still', r:'Всё ещё'},
+        {t:'Style', r:'Стиль', rev:true},
+        {t:'Model', r:'Модель', rev:true},
+        {t:'Interview', r:'Собеседование', rev:true},
+        {t:'Introduce', r:'Представлять', rev:true},
+        {t:'Join', r:'Присоединяться', rev:true},
+        {t:'Go', r:'Идти', rev:true},
+        {t:'Rule', r:'Правило', rev:true},
+        {t:'Add', r:'Добавлять', rev:true}
+      ]},
+      { type:'words', title:'Итоги дня · 2', scene:'flat', cefr:'A1: Can describe a day in simple sentences.', newCount:10, words:[
         {t:'Ever', r:'Когда-либо'},
         {t:'Finish', r:'Заканчивать'},
         {t:'End', r:'Конец'},
@@ -2094,13 +3740,23 @@ const COURSE = {
         {t:'Detail', r:'Деталь'},
         {t:'Complete', r:'Завершить'},
         {t:'Correct', r:'Верный'},
-        {t:'Perfect', r:'Отличный'}
+        {t:'Perfect', r:'Отличный'},
+        {t:'Negative', r:'Отрицательный', rev:true},
+        {t:'Line', r:'Линия', rev:true},
+        {t:'Moment', r:'Момент', rev:true},
+        {t:'Thank', r:'Благодарить', rev:true},
+        {t:'Possible', r:'Возможный', rev:true},
+        {t:'Imagine', r:'Представлять', rev:true},
+        {t:'At', r:'У', rev:true},
+        {t:'Into', r:'В (внутрь)', rev:true}
       ]},
       { type:'build', title:'Собери: Итоги дня', scene:'flat', cefr:'A1: Can describe a day in simple sentences.', tasks:[
         {ru:'Обычно я заканчиваю в шесть.', parts:['I','usually','finish','at','six.'], answer:'I usually finish at six.'},
         {ru:'Иногда я работаю в субботу.', parts:['Sometimes','I','work','on','Saturday.'], answer:'Sometimes I work on Saturday.'},
         {ru:'Я никогда не опаздываю.', parts:['I','am','never','late.'], answer:'I am never late.'},
-        {ru:'День прошёл отлично.', parts:['The','day','went','perfectly.'], answer:'The day went perfectly.'}
+        {ru:'День прошёл отлично.', parts:['The','day','went','perfectly.'], answer:'The day went perfectly.'},
+        {ru:'Здесь нельзя курить.', parts:['You','cannot','smoke','here.'], answer:'You cannot smoke here.'},
+        {ru:'Пожалуйста, соблюдайте тишину.', parts:['Please','be','quiet.'], answer:'Please be quiet.'}
       ]},
       { type:'dialog', title:'Вечером дома', scene:'flat', cefr:'A1: Can describe a day in simple sentences.',
         intro:'Сосед спрашивает, как прошёл день.',
@@ -2113,9 +3769,18 @@ const COURSE = {
             options:['Usually at six.','Six time finish me always.','End work six is me.']},
           {who:'them', text:'That is not bad.', ru:'Неплохо.'},
           {who:'you', ru:'Согласись и пожелай доброй ночи.', best:2,
-            options:['Ok night good you.','Yes ok. Sleep now me.','True. Good night!']}
+            options:['Ok night good you.','Yes ok. Sleep now me.','True. Good night!']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
         ]},
-      { type:'words', title:'Разговор: связки', scene:'cafe', cefr:'A1: Can link simple sentences.', words:[
+      { type:'words', title:'Разговор: связки · 1', scene:'cafe', cefr:'A1: Can link simple sentences.', newCount:10, words:[
         {t:'And', r:'И'},
         {t:'But', r:'Но'},
         {t:'Or', r:'Или'},
@@ -2126,6 +3791,16 @@ const COURSE = {
         {t:'Too', r:'Тоже'},
         {t:'However', r:'Однако'},
         {t:'If', r:'Если'},
+        {t:'Air', r:'Воздух', rev:true},
+        {t:'Die', r:'Умирать', rev:true},
+        {t:'Understand', r:'Понимать', rev:true},
+        {t:'Repeat', r:'Повторить', rev:true},
+        {t:'Present', r:'Подарок', rev:true},
+        {t:'Enjoy', r:'Наслаждаться', rev:true},
+        {t:'Routine', r:'Распорядок', rev:true},
+        {t:'Usually', r:'Обычно', rev:true}
+      ]},
+      { type:'words', title:'Разговор: связки · 2', scene:'cafe', cefr:'A1: Can link simple sentences.', newCount:10, words:[
         {t:'When', r:'Когда'},
         {t:'About', r:'О / около'},
         {t:'After', r:'После'},
@@ -2135,13 +3810,23 @@ const COURSE = {
         {t:'Than', r:'Чем'},
         {t:'As', r:'Как'},
         {t:'With', r:'С'},
-        {t:'Without', r:'Без'}
+        {t:'Without', r:'Без'},
+        {t:'Always', r:'Всегда', rev:true},
+        {t:'Fly', r:'Летать', rev:true},
+        {t:'Natural', r:'Природный', rev:true},
+        {t:'Situation', r:'Ситуация', rev:true},
+        {t:'Telephone', r:'Телефон', rev:true},
+        {t:'Note', r:'Записка', rev:true},
+        {t:'Every', r:'Каждый', rev:true},
+        {t:'Everything', r:'Всё', rev:true}
       ]},
       { type:'build', title:'Собери: Разговор: связки', scene:'cafe', cefr:'A1: Can link simple sentences.', tasks:[
         {ru:'Я устал, но счастлив.', parts:['I','am','tired','but','happy.'], answer:'I am tired but happy.'},
         {ru:'Я остался дома, потому что шёл дождь.', parts:['I','stayed','home','because','it','was','raining.'], answer:'I stayed home because it was raining.'},
         {ru:'Позвони мне, когда придёшь.', parts:['Call','me','when','you','arrive.'], answer:'Call me when you arrive.'},
-        {ru:'Кофе без сахара, пожалуйста.', parts:['Coffee','without','sugar,','please.'], answer:'Coffee without sugar, please.'}
+        {ru:'Кофе без сахара, пожалуйста.', parts:['Coffee','without','sugar,','please.'], answer:'Coffee without sugar, please.'},
+        {ru:'Обычно я заканчиваю в шесть.', parts:['I','usually','finish','at','six.'], answer:'I usually finish at six.'},
+        {ru:'Иногда я работаю в субботу.', parts:['Sometimes','I','work','on','Saturday.'], answer:'Sometimes I work on Saturday.'}
       ]},
       { type:'dialog', title:'Объяснить причину', scene:'cafe', cefr:'A1: Can link simple sentences.',
         intro:'Друг спрашивает, почему тебя не было.',
@@ -2154,9 +3839,18 @@ const COURSE = {
             options:['Yes, but I am still tired.','Better yes tired still have.','Good me now tired also.']},
           {who:'them', text:'Take care of yourself.', ru:'Береги себя.'},
           {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok care me do.','Yes rest more me.','Thanks, I will.']}
+            options:['Ok care me do.','Yes rest more me.','Thanks, I will.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
         ]},
-      { type:'words', title:'Вопросительные слова', scene:'street', cefr:'A1: Can ask basic questions.', words:[
+      { type:'words', title:'Вопросительные слова · 1', scene:'street', cefr:'A1: Can ask basic questions.', newCount:10, words:[
         {t:'What', r:'Что'},
         {t:'Who', r:'Кто'},
         {t:'Where', r:'Где'},
@@ -2167,6 +3861,16 @@ const COURSE = {
         {t:'Else', r:'Ещё'},
         {t:'Question', r:'Вопрос'},
         {t:'Answer', r:'Ответ'},
+        {t:'Dear', r:'Дорогой', rev:true},
+        {t:'Fact', r:'Факт', rev:true},
+        {t:'Bath', r:'Ванна', rev:true},
+        {t:'Holiday', r:'Отпуск', rev:true},
+        {t:'Find', r:'Находить', rev:true},
+        {t:'Mistake', r:'Ошибка', rev:true},
+        {t:'And', r:'И', rev:true},
+        {t:'But', r:'Но', rev:true}
+      ]},
+      { type:'words', title:'Вопросительные слова · 2', scene:'street', cefr:'A1: Can ask basic questions.', newCount:10, words:[
         {t:'Ask', r:'Спрашивать'},
         {t:'Tell', r:'Рассказывать'},
         {t:'Know', r:'Знать'},
@@ -2176,13 +3880,23 @@ const COURSE = {
         {t:'Really', r:'Действительно'},
         {t:'Quite', r:'Довольно'},
         {t:'Very', r:'Очень'},
-        {t:'Just', r:'Просто'}
+        {t:'Just', r:'Просто'},
+        {t:'Or', r:'Или', rev:true},
+        {t:'Often', r:'Часто', rev:true},
+        {t:'Sometimes', r:'Иногда', rev:true},
+        {t:'Never', r:'Никогда', rev:true},
+        {t:'Show', r:'Показывать', rev:true},
+        {t:'Look', r:'Смотреть', rev:true},
+        {t:'Include', r:'Включать', rev:true},
+        {t:'Use', r:'Использовать', rev:true}
       ]},
       { type:'build', title:'Собери: Вопросительные слова', scene:'street', cefr:'A1: Can ask basic questions.', tasks:[
         {ru:'Где вы живёте?', parts:['Where','do','you','live?'], answer:'Where do you live?'},
         {ru:'Почему магазин закрыт?', parts:['Why','is','the','shop','closed?'], answer:'Why is the shop closed?'},
         {ru:'Какой из них ваш?', parts:['Which','one','is','yours?'], answer:'Which one is yours?'},
-        {ru:'Кто это?', parts:['Who','is','this?'], answer:'Who is this?'}
+        {ru:'Кто это?', parts:['Who','is','this?'], answer:'Who is this?'},
+        {ru:'Я устал, но счастлив.', parts:['I','am','tired','but','happy.'], answer:'I am tired but happy.'},
+        {ru:'Я остался дома, потому что шёл дождь.', parts:['I','stayed','home','because','it','was','raining.'], answer:'I stayed home because it was raining.'}
       ]},
       { type:'dialog', title:'Расспросить', scene:'street', cefr:'A1: Can ask basic questions.',
         intro:'Ты знакомишься с новым коллегой.',
@@ -2195,9 +3909,40 @@ const COURSE = {
             options:['Russia me. You home where?','Me Russia live here you where?','I am from Russia. Where do you live now?']},
           {who:'them', text:'Near the park. It is quite far.', ru:'Рядом с парком. Довольно далеко.'},
           {who:'you', ru:'Скажи, что живёшь рядом с работой.', best:1,
-            options:['Near work live me.','I live near the office, so it is easy.','Office close home me have good.']}
+            options:['Near work live me.','I live near the office, so it is easy.','Office close home me have good.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Местоимения и люди', scene:'office', cefr:'A1: Can refer to people correctly.', words:[
+      { type:'words', title:'Контроль: темы 49–52', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Point', r:'Место / пункт', rev:true},
+        {t:'Once', r:'Один раз', rev:true},
+        {t:'Still', r:'Всё ещё', rev:true},
+        {t:'Ever', r:'Когда-либо', rev:true},
+        {t:'Result', r:'Результат', rev:true},
+        {t:'Success', r:'Успех', rev:true},
+        {t:'Report', r:'Отчёт', rev:true},
+        {t:'Detail', r:'Деталь', rev:true},
+        {t:'Complete', r:'Завершить', rev:true},
+        {t:'Perfect', r:'Отличный', rev:true},
+        {t:'So', r:'Поэтому', rev:true},
+        {t:'Then', r:'Затем', rev:true},
+        {t:'Also', r:'Также', rev:true},
+        {t:'Too', r:'Тоже', rev:true},
+        {t:'However', r:'Однако', rev:true},
+        {t:'If', r:'Если', rev:true},
+        {t:'About', r:'О / около', rev:true},
+        {t:'After', r:'После', rev:true},
+        {t:'Before', r:'До', rev:true},
+        {t:'Until', r:'До тех пор', rev:true}
+      ]},
+      { type:'words', title:'Местоимения и люди · 1', scene:'office', cefr:'A1: Can refer to people correctly.', newCount:10, words:[
         {t:'He', r:'Он'},
         {t:'She', r:'Она'},
         {t:'They', r:'Они'},
@@ -2208,6 +3953,16 @@ const COURSE = {
         {t:'Her', r:'Её'},
         {t:'His', r:'Его (чей)'},
         {t:'Their', r:'Их (чей)'},
+        {t:'Out', r:'Наружу', rev:true},
+        {t:'Up', r:'Вверх', rev:true},
+        {t:'Reader', r:'Читатель', rev:true},
+        {t:'Reading', r:'Чтение', rev:true},
+        {t:'Photograph', r:'Фотография', rev:true},
+        {t:'Blog', r:'Блог', rev:true},
+        {t:'What', r:'Что', rev:true},
+        {t:'Who', r:'Кто', rev:true}
+      ]},
+      { type:'words', title:'Местоимения и люди · 2', scene:'office', cefr:'A1: Can refer to people correctly.', newCount:10, words:[
         {t:'Our', r:'Наш'},
         {t:'Its', r:'Его (о предмете)'},
         {t:'Yourself', r:'Сам'},
@@ -2217,13 +3972,23 @@ const COURSE = {
         {t:'Group', r:'Группа'},
         {t:'Part', r:'Часть'},
         {t:'Member', r:'Участник'},
-        {t:'Own', r:'Собственный'}
+        {t:'Own', r:'Собственный'},
+        {t:'Where', r:'Где', rev:true},
+        {t:'So', r:'Поэтому', rev:true},
+        {t:'Then', r:'Затем', rev:true},
+        {t:'Also', r:'Также', rev:true},
+        {t:'Once', r:'Один раз', rev:true},
+        {t:'Still', r:'Всё ещё', rev:true},
+        {t:'Busy', r:'Занято', rev:true},
+        {t:'Line', r:'Линия', rev:true}
       ]},
       { type:'build', title:'Собери: Местоимения и люди', scene:'office', cefr:'A1: Can refer to people correctly.', tasks:[
         {ru:'Они наши соседи.', parts:['They','are','our','neighbours.'], answer:'They are our neighbours.'},
         {ru:'Я видел её вчера.', parts:['I','saw','her','yesterday.'], answer:'I saw her yesterday.'},
         {ru:'Это его машина, а не наша.', parts:['It','is','his','car,','not','ours.'], answer:'It is his car, not ours.'},
-        {ru:'Никто не знает ответа.', parts:['No','one','knows','the','answer.'], answer:'No one knows the answer.'}
+        {ru:'Никто не знает ответа.', parts:['No','one','knows','the','answer.'], answer:'No one knows the answer.'},
+        {ru:'Где вы живёте?', parts:['Where','do','you','live?'], answer:'Where do you live?'},
+        {ru:'Почему магазин закрыт?', parts:['Why','is','the','shop','closed?'], answer:'Why is the shop closed?'}
       ]},
       { type:'dialog', title:'Кто это сделал', scene:'office', cefr:'A1: Can refer to people correctly.',
         intro:'На работе обсуждают, кто занимался задачей.',
@@ -2236,9 +4001,18 @@ const COURSE = {
             options:['She finished, but he did not.','Her finish him no yes.','Woman ok man no finish.']},
           {who:'them', text:'I will talk to him.', ru:'Я поговорю с ним.'},
           {who:'you', ru:'Согласись.', best:2,
-            options:['Ok talk him you.','Him yes speak good.','That is a good idea.']}
+            options:['Ok talk him you.','Him yes speak good.','That is a good idea.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Медиа и техника', scene:'flat', cefr:'A1: Can talk about simple media.', words:[
+      { type:'words', title:'Медиа и техника · 1', scene:'flat', cefr:'A1: Can talk about simple media.', newCount:10, words:[
         {t:'Watch', r:'Смотреть'},
         {t:'Show', r:'Шоу / показывать'},
         {t:'Programme', r:'Программа'},
@@ -2249,6 +4023,18 @@ const COURSE = {
         {t:'Text', r:'Текст'},
         {t:'Chart', r:'График'},
         {t:'Article', r:'Статья'},
+        {t:'Good', r:'Хороший', rev:true},
+        {t:'During', r:'Во время', rev:true},
+        {t:'Than', r:'Чем', rev:true},
+        {t:'As', r:'Как', rev:true},
+        {t:'With', r:'С', rev:true},
+        {t:'Without', r:'Без', rev:true},
+        {t:'He', r:'Он', rev:true},
+        {t:'She', r:'Она', rev:true},
+        {t:'They', r:'Они', rev:true},
+        {t:'Why', r:'Почему', rev:true}
+      ]},
+      { type:'words', title:'Медиа и техника · 2', scene:'flat', cefr:'A1: Can talk about simple media.', newCount:10, words:[
         {t:'Topic', r:'Тема'},
         {t:'Title', r:'Заголовок'},
         {t:'Section', r:'Раздел'},
@@ -2258,13 +4044,26 @@ const COURSE = {
         {t:'Describe', r:'Описывать'},
         {t:'Discuss', r:'Обсуждать'},
         {t:'Conversation', r:'Разговор'},
-        {t:'Dialogue', r:'Диалог'}
+        {t:'Dialogue', r:'Диалог'},
+        {t:'Which', r:'Который', rev:true},
+        {t:'Else', r:'Ещё', rev:true},
+        {t:'Too', r:'Тоже', rev:true},
+        {t:'However', r:'Однако', rev:true},
+        {t:'Point', r:'Место / пункт', rev:true},
+        {t:'Rule', r:'Правило', rev:true},
+        {t:'Everyone', r:'Все', rev:true},
+        {t:'Nothing', r:'Ничего', rev:true},
+        {t:'Improve', r:'Улучшать', rev:true},
+        {t:'Future', r:'Будущее', rev:true},
+        {t:'New', r:'Новый', rev:true}
       ]},
       { type:'build', title:'Собери: Медиа и техника', scene:'flat', cefr:'A1: Can talk about simple media.', tasks:[
         {ru:'Я смотрю эту программу каждый вечер.', parts:['I','watch','this','programme','every','evening.'], answer:'I watch this programme every evening.'},
         {ru:'Сделай звук потише, пожалуйста.', parts:['Turn','the','sound','down,','please.'], answer:'Turn the sound down, please.'},
         {ru:'Прочитай первый абзац.', parts:['Read','the','first','paragraph.'], answer:'Read the first paragraph.'},
-        {ru:'Мы обсудим эту тему завтра.', parts:['We','will','discuss','this','topic','tomorrow.'], answer:'We will discuss this topic tomorrow.'}
+        {ru:'Мы обсудим эту тему завтра.', parts:['We','will','discuss','this','topic','tomorrow.'], answer:'We will discuss this topic tomorrow.'},
+        {ru:'Они наши соседи.', parts:['They','are','our','neighbours.'], answer:'They are our neighbours.'},
+        {ru:'Я видел её вчера.', parts:['I','saw','her','yesterday.'], answer:'I saw her yesterday.'}
       ]},
       { type:'dialog', title:'Что посмотреть', scene:'flat', cefr:'A1: Can talk about simple media.',
         intro:'Вечером выбираете, что включить.',
@@ -2277,9 +4076,18 @@ const COURSE = {
             options:['What is it about?','About what is it?','Story what have film?']},
           {who:'them', text:'It is about a family in Italy.', ru:'Про семью в Италии.'},
           {who:'you', ru:'Согласись посмотреть.', best:1,
-            options:['Ok that one put.','Sounds good, let us watch it.','Family Italy yes see we.']}
+            options:['Ok that one put.','Sounds good, let us watch it.','Family Italy yes see we.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
         ]},
-      { type:'words', title:'Быт: мелочи', scene:'flat', cefr:'A1: Can handle small everyday matters.', words:[
+      { type:'words', title:'Быт: мелочи · 1', scene:'flat', cefr:'A1: Can handle small everyday matters.', newCount:10, words:[
         {t:'Thing', r:'Вещь'},
         {t:'Lie', r:'Лежать'},
         {t:'Piece', r:'Кусочек'},
@@ -2290,6 +4098,16 @@ const COURSE = {
         {t:'Get', r:'Получать'},
         {t:'Give', r:'Давать'},
         {t:'Take', r:'Брать'},
+        {t:'Useful', r:'Полезный', rev:true},
+        {t:'Can', r:'Мочь', rev:true},
+        {t:'Better', r:'Лучше', rev:true},
+        {t:'Best', r:'Лучший', rev:true},
+        {t:'Try', r:'Пробовать', rev:true},
+        {t:'Wash', r:'Мыть', rev:true},
+        {t:'Watch', r:'Смотреть', rev:true},
+        {t:'See', r:'Смотреть / видеть', rev:true}
+      ]},
+      { type:'words', title:'Быт: мелочи · 2', scene:'flat', cefr:'A1: Can handle small everyday matters.', newCount:10, words:[
         {t:'Keep', r:'Хранить'},
         {t:'Put', r:'Класть'},
         {t:'Bring', r:'Приносить'},
@@ -2299,13 +4117,23 @@ const COURSE = {
         {t:'Need', r:'Нужно'},
         {t:'Want', r:'Хотеть'},
         {t:'Have', r:'Иметь'},
-        {t:'Own', r:'Иметь свой'}
+        {t:'Own', r:'Иметь свой'},
+        {t:'Dvd', r:'Диск', rev:true},
+        {t:'We', r:'Мы', rev:true},
+        {t:'Us', r:'Нас', rev:true},
+        {t:'Them', r:'Их', rev:true},
+        {t:'Probably', r:'Вероятно', rev:true},
+        {t:'Quite', r:'Довольно', rev:true},
+        {t:'Ever', r:'Когда-либо', rev:true},
+        {t:'Result', r:'Результат', rev:true}
       ]},
       { type:'build', title:'Собери: Быт: мелочи', scene:'flat', cefr:'A1: Can handle small everyday matters.', tasks:[
         {ru:'Мне нужно кое-что купить.', parts:['I','need','to','buy','a','few','things.'], answer:'I need to buy a few things.'},
         {ru:'Можешь дать мне немного времени?', parts:['Can','you','give','me','a','bit','of','time?'], answer:'Can you give me a bit of time?'},
         {ru:'Положи это в коробку.', parts:['Put','it','in','the','box.'], answer:'Put it in the box.'},
-        {ru:'У меня своя машина.', parts:['I','have','my','own','car.'], answer:'I have my own car.'}
+        {ru:'У меня своя машина.', parts:['I','have','my','own','car.'], answer:'I have my own car.'},
+        {ru:'Я смотрю эту программу каждый вечер.', parts:['I','watch','this','programme','every','evening.'], answer:'I watch this programme every evening.'},
+        {ru:'Сделай звук потише, пожалуйста.', parts:['Turn','the','sound','down,','please.'], answer:'Turn the sound down, please.'}
       ]},
       { type:'dialog', title:'Просьба по мелочи', scene:'flat', cefr:'A1: Can handle small everyday matters.',
         intro:'Ты просишь соседа помочь.',
@@ -2318,9 +4146,18 @@ const COURSE = {
             options:['Thanks. I will get some tomorrow and give it back.','Ok tomorrow buy me give you.','Salt back tomorrow yes come.']},
           {who:'them', text:'No need, really.', ru:'Да не надо, правда.'},
           {who:'you', ru:'Настой вежливо.', best:2,
-            options:['No I give must.','Must give back me yes.','Are you sure? Well, thank you.']}
+            options:['No I give must.','Must give back me yes.','Are you sure? Well, thank you.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
         ]},
-      { type:'words', title:'Оценка и качество', scene:'market', cefr:'A1: Can give simple evaluations.', words:[
+      { type:'words', title:'Оценка и качество · 1', scene:'market', cefr:'A1: Can give simple evaluations.', newCount:10, words:[
         {t:'Good', r:'Хороший'},
         {t:'Bad', r:'Плохой'},
         {t:'Great', r:'Отличный'},
@@ -2331,6 +4168,19 @@ const COURSE = {
         {t:'Special', r:'Особый'},
         {t:'Main', r:'Главный'},
         {t:'Real', r:'Настоящий'},
+        {t:'Its', r:'Его (о предмете)', rev:true},
+        {t:'Yourself', r:'Сам', rev:true},
+        {t:'Everybody', r:'Все', rev:true},
+        {t:'Somebody', r:'Кто-то', rev:true},
+        {t:'No one', r:'Никто', rev:true},
+        {t:'Group', r:'Группа', rev:true},
+        {t:'Lie', r:'Лежать', rev:true},
+        {t:'Make', r:'Делать', rev:true},
+        {t:'Do', r:'Делать', rev:true},
+        {t:'Cd', r:'Диск', rev:true},
+        {t:'Sound', r:'Звук', rev:true}
+      ]},
+      { type:'words', title:'Оценка и качество · 2', scene:'market', cefr:'A1: Can give simple evaluations.', newCount:10, words:[
         {t:'True', r:'Правдивый'},
         {t:'False', r:'Ложный'},
         {t:'Correct', r:'Правильный'},
@@ -2340,13 +4190,27 @@ const COURSE = {
         {t:'Useful', r:'Полезный'},
         {t:'Natural', r:'Натуральный'},
         {t:'Modern', r:'Современный'},
-        {t:'Local', r:'Местный'}
+        {t:'Local', r:'Местный'},
+        {t:'Text', r:'Текст', rev:true},
+        {t:'Him', r:'Его', rev:true},
+        {t:'Her', r:'Её', rev:true},
+        {t:'If', r:'Если', rev:true},
+        {t:'About', r:'О / около', rev:true},
+        {t:'Moment', r:'Момент', rev:true},
+        {t:'Back', r:'Обратно', rev:true},
+        {t:'Diet', r:'Диета', rev:true},
+        {t:'Tired', r:'Усталый', rev:true},
+        {t:'Favourite', r:'Любимый', rev:true},
+        {t:'Think', r:'Думать', rev:true},
+        {t:'Our', r:'Наш', rev:true}
       ]},
       { type:'build', title:'Собери: Оценка и качество', scene:'market', cefr:'A1: Can give simple evaluations.', tasks:[
         {ru:'Это очень полезная книга.', parts:['It','is','a','very','useful','book.'], answer:'It is a very useful book.'},
         {ru:'Здесь местные продукты.', parts:['The','products','here','are','local.'], answer:'The products here are local.'},
         {ru:'Ответ правильный.', parts:['The','answer','is','correct.'], answer:'The answer is correct.'},
-        {ru:'Это самое главное.', parts:['This','is','the','main','thing.'], answer:'This is the main thing.'}
+        {ru:'Это самое главное.', parts:['This','is','the','main','thing.'], answer:'This is the main thing.'},
+        {ru:'Мне нужно кое-что купить.', parts:['I','need','to','buy','a','few','things.'], answer:'I need to buy a few things.'},
+        {ru:'Можешь дать мне немного времени?', parts:['Can','you','give','me','a','bit','of','time?'], answer:'Can you give me a bit of time?'}
       ]},
       { type:'dialog', title:'Спросить совет', scene:'market', cefr:'A1: Can give simple evaluations.',
         intro:'Ты выбираешь подарок и просишь совета.',
@@ -2359,9 +4223,40 @@ const COURSE = {
             options:['Friend man. Popular what?','For friend. Good thing what have?','For a friend. What is popular here?']},
           {who:'them', text:'This local tea is very popular.', ru:'Этот местный чай очень популярен.'},
           {who:'you', ru:'Согласись взять.', best:1,
-            options:['Ok tea take one.','That sounds perfect, I will take it.','Tea good yes buy me.']}
+            options:['Ok tea take one.','That sounds perfect, I will take it.','Tea good yes buy me.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
         ]},
-      { type:'words', title:'Прошлое', scene:'cafe', cefr:'A1: Can talk about the past simply.', words:[
+      { type:'words', title:'Контроль: темы 53–56', scene:'market', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'His', r:'Его (чей)', rev:true},
+        {t:'Their', r:'Их (чей)', rev:true},
+        {t:'Chart', r:'График', rev:true},
+        {t:'Topic', r:'Тема', rev:true},
+        {t:'Section', r:'Раздел', rev:true},
+        {t:'Paragraph', r:'Абзац', rev:true},
+        {t:'Statement', r:'Утверждение', rev:true},
+        {t:'Description', r:'Описание', rev:true},
+        {t:'Describe', r:'Описывать', rev:true},
+        {t:'Discuss', r:'Обсуждать', rev:true},
+        {t:'Dialogue', r:'Диалог', rev:true},
+        {t:'Get', r:'Получать', rev:true},
+        {t:'Create', r:'Создавать', rev:true},
+        {t:'Have', r:'Иметь', rev:true},
+        {t:'Popular', r:'Популярный', rev:true},
+        {t:'Main', r:'Главный', rev:true},
+        {t:'Real', r:'Настоящий', rev:true},
+        {t:'Positive', r:'Положительный', rev:true},
+        {t:'He', r:'Он', rev:true},
+        {t:'She', r:'Она', rev:true}
+      ]},
+      { type:'words', title:'Прошлое · 1', scene:'cafe', cefr:'A1: Can talk about the past simply.', newCount:10, words:[
         {t:'Yesterday', r:'Вчера'},
         {t:'Ago', r:'Назад'},
         {t:'Last', r:'Прошлый'},
@@ -2372,6 +4267,18 @@ const COURSE = {
         {t:'For', r:'Для / в течение'},
         {t:'From', r:'Из / от'},
         {t:'By', r:'К / посредством'},
+        {t:'Fourth', r:'Четвёртый', rev:true},
+        {t:'Statement', r:'Утверждение', rev:true},
+        {t:'Description', r:'Описание', rev:true},
+        {t:'Describe', r:'Описывать', rev:true},
+        {t:'Discuss', r:'Обсуждать', rev:true},
+        {t:'Dialogue', r:'Диалог', rev:true},
+        {t:'Popular', r:'Популярный', rev:true},
+        {t:'Main', r:'Главный', rev:true},
+        {t:'Real', r:'Настоящий', rev:true},
+        {t:'Get', r:'Получать', rev:true}
+      ]},
+      { type:'words', title:'Прошлое · 2', scene:'cafe', cefr:'A1: Can talk about the past simply.', newCount:10, words:[
         {t:'Happen', r:'Случиться'},
         {t:'Remember', r:'Помнить'},
         {t:'Forget', r:'Забыть'},
@@ -2381,13 +4288,26 @@ const COURSE = {
         {t:'Start', r:'Начал'},
         {t:'Leave', r:'Уехал'},
         {t:'Come', r:'Пришёл'},
-        {t:'Meet', r:'Встретил'}
+        {t:'Meet', r:'Встретил'},
+        {t:'Create', r:'Создавать', rev:true},
+        {t:'Have', r:'Иметь', rev:true},
+        {t:'Chart', r:'График', rev:true},
+        {t:'Topic', r:'Тема', rev:true},
+        {t:'Very', r:'Очень', rev:true},
+        {t:'Just', r:'Просто', rev:true},
+        {t:'Must', r:'Должен', rev:true},
+        {t:'Fly', r:'Летать', rev:true},
+        {t:'Mile', r:'Миля', rev:true},
+        {t:'Period', r:'Период', rev:true},
+        {t:'Third', r:'Третий', rev:true}
       ]},
       { type:'build', title:'Собери: Прошлое', scene:'cafe', cefr:'A1: Can talk about the past simply.', tasks:[
         {ru:'Я был здесь два года назад.', parts:['I','was','here','two','years','ago.'], answer:'I was here two years ago.'},
         {ru:'Вчера мы ходили в кино.', parts:['Yesterday','we','went','to','the','cinema.'], answer:'Yesterday we went to the cinema.'},
         {ru:'Я забыл её имя.', parts:['I','forgot','her','name.'], answer:'I forgot her name.'},
-        {ru:'Что случилось на прошлой неделе?', parts:['What','happened','last','week?'], answer:'What happened last week?'}
+        {ru:'Что случилось на прошлой неделе?', parts:['What','happened','last','week?'], answer:'What happened last week?'},
+        {ru:'Это очень полезная книга.', parts:['It','is','a','very','useful','book.'], answer:'It is a very useful book.'},
+        {ru:'Здесь местные продукты.', parts:['The','products','here','are','local.'], answer:'The products here are local.'}
       ]},
       { type:'dialog', title:'Вспомнить прошлое', scene:'cafe', cefr:'A1: Can talk about the past simply.',
         intro:'Друг вспоминает старую поездку.',
@@ -2400,9 +4320,18 @@ const COURSE = {
             options:['Yes, and the weather was perfect.','Weather good was yes.','Sun much have then good.']},
           {who:'them', text:'We should go again.', ru:'Надо съездить снова.'},
           {who:'you', ru:'Согласись.', best:1,
-            options:['Ok go again we.','Definitely! Let us plan it.','Again yes want me go.']}
+            options:['Ok go again we.','Definitely! Let us plan it.','Again yes want me go.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
         ]},
-      { type:'words', title:'Дела и задачи', scene:'office', cefr:'A1: Can describe simple tasks and activities.', words:[
+      { type:'words', title:'Дела и задачи · 1', scene:'office', cefr:'A1: Can describe simple tasks and activities.', newCount:10, words:[
         {t:'Action', r:'Действие'},
         {t:'Activity', r:'Занятие'},
         {t:'Work', r:'Работа'},
@@ -2413,6 +4342,16 @@ const COURSE = {
         {t:'Success', r:'Успех'},
         {t:'Problem', r:'Проблема'},
         {t:'Answer', r:'Решение'},
+        {t:'Routine', r:'Распорядок', rev:true},
+        {t:'Usually', r:'Обычно', rev:true},
+        {t:'Down', r:'Вниз', rev:true},
+        {t:'Around', r:'Вокруг', rev:true},
+        {t:'Interested', r:'Заинтересованный', rev:true},
+        {t:'Interest', r:'Интерес', rev:true},
+        {t:'Ago', r:'Назад', rev:true},
+        {t:'Last', r:'Прошлый', rev:true}
+      ]},
+      { type:'words', title:'Дела и задачи · 2', scene:'office', cefr:'A1: Can describe simple tasks and activities.', newCount:10, words:[
         {t:'Check', r:'Проверить'},
         {t:'Complete', r:'Завершить'},
         {t:'Finish', r:'Закончить'},
@@ -2422,13 +4361,23 @@ const COURSE = {
         {t:'Improve', r:'Улучшить'},
         {t:'Add', r:'Добавить'},
         {t:'Include', r:'Включить'},
-        {t:'Prepare', r:'Подготовить'}
+        {t:'Prepare', r:'Подготовить'},
+        {t:'Past', r:'Прошлое', rev:true},
+        {t:'Positive', r:'Положительный', rev:true},
+        {t:'Perfect', r:'Идеальный', rev:true},
+        {t:'Popular', r:'Популярный', rev:true},
+        {t:'Thing', r:'Вещь', rev:true},
+        {t:'Lie', r:'Лежать', rev:true},
+        {t:'His', r:'Его (чей)', rev:true},
+        {t:'Their', r:'Их (чей)', rev:true}
       ]},
       { type:'build', title:'Собери: Дела и задачи', scene:'office', cefr:'A1: Can describe simple tasks and activities.', tasks:[
         {ru:'Мне нужно закончить отчёт.', parts:['I','need','to','finish','the','report.'], answer:'I need to finish the report.'},
         {ru:'Проверь, пожалуйста, результаты.', parts:['Please','check','the','results.'], answer:'Please check the results.'},
         {ru:'Мы добавим ещё одну страницу.', parts:['We','will','add','one','more','page.'], answer:'We will add one more page.'},
-        {ru:'Проект был успешным.', parts:['The','project','was','a','success.'], answer:'The project was a success.'}
+        {ru:'Проект был успешным.', parts:['The','project','was','a','success.'], answer:'The project was a success.'},
+        {ru:'Я был здесь два года назад.', parts:['I','was','here','two','years','ago.'], answer:'I was here two years ago.'},
+        {ru:'Вчера мы ходили в кино.', parts:['Yesterday','we','went','to','the','cinema.'], answer:'Yesterday we went to the cinema.'}
       ]},
       { type:'dialog', title:'Отчитаться о задаче', scene:'office', cefr:'A1: Can describe simple tasks and activities.',
         intro:'Начальник спрашивает про статус.',
@@ -2441,9 +4390,18 @@ const COURSE = {
             options:['Tomorrow morning.','Morning next day give.','Time tomorrow early yes.']},
           {who:'them', text:'Perfect, thank you.', ru:'Отлично, спасибо.'},
           {who:'you', ru:'Скажи, что пришлёшь по почте.', best:2,
-            options:['Email send me you.','Mail give tomorrow yes.','I will send it to you by email.']}
+            options:['Email send me you.','Mail give tomorrow yes.','I will send it to you by email.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
         ]},
-      { type:'words', title:'Мелкие слова', scene:'street', cefr:'A1: Can use common small words naturally.', words:[
+      { type:'words', title:'Мелкие слова · 1', scene:'street', cefr:'A1: Can use common small words naturally.', newCount:10, words:[
         {t:'Yeah', r:'Ага'},
         {t:'Oh', r:'О'},
         {t:'Ok', r:'Хорошо'},
@@ -2454,6 +4412,16 @@ const COURSE = {
         {t:'Again', r:'Опять'},
         {t:'Away', r:'Прочь'},
         {t:'Off', r:'Прочь / выключен'},
+        {t:'After', r:'После', rev:true},
+        {t:'Until', r:'До тех пор', rev:true},
+        {t:'Nobody', r:'Никто', rev:true},
+        {t:'Something', r:'Что-то', rev:true},
+        {t:'Slow', r:'Медленный', rev:true},
+        {t:'Mean', r:'Значить', rev:true},
+        {t:'Action', r:'Действие', rev:true},
+        {t:'Activity', r:'Занятие', rev:true}
+      ]},
+      { type:'words', title:'Мелкие слова · 2', scene:'street', cefr:'A1: Can use common small words naturally.', newCount:10, words:[
         {t:'Back', r:'Назад'},
         {t:'Down', r:'Вниз'},
         {t:'Up', r:'Вверх'},
@@ -2463,13 +4431,23 @@ const COURSE = {
         {t:'Quite', r:'Довольно'},
         {t:'Too', r:'Слишком'},
         {t:'Very', r:'Очень'},
-        {t:'Only', r:'Только'}
+        {t:'Only', r:'Только'},
+        {t:'Detail', r:'Деталь', rev:true},
+        {t:'This', r:'Этот', rev:true},
+        {t:'That', r:'Тот', rev:true},
+        {t:'For', r:'Для / в течение', rev:true},
+        {t:'Main', r:'Главный', rev:true},
+        {t:'Real', r:'Настоящий', rev:true},
+        {t:'Section', r:'Раздел', rev:true},
+        {t:'Paragraph', r:'Абзац', rev:true}
       ]},
       { type:'build', title:'Собери: Мелкие слова', scene:'street', cefr:'A1: Can use common small words naturally.', tasks:[
         {ru:'Ну, я не уверен.', parts:['Well,','I','am','not','sure.'], answer:'Well, I am not sure.'},
         {ru:'Это просто немного дорого.', parts:['It','is','just','a','little','expensive.'], answer:'It is just a little expensive.'},
         {ru:'Я всё ещё здесь.', parts:['I','am','still','here.'], answer:'I am still here.'},
-        {ru:'Свет выключен.', parts:['The','light','is','off.'], answer:'The light is off.'}
+        {ru:'Свет выключен.', parts:['The','light','is','off.'], answer:'The light is off.'},
+        {ru:'Мне нужно закончить отчёт.', parts:['I','need','to','finish','the','report.'], answer:'I need to finish the report.'},
+        {ru:'Проверь, пожалуйста, результаты.', parts:['Please','check','the','results.'], answer:'Please check the results.'}
       ]},
       { type:'dialog', title:'Мягко отказать', scene:'street', cefr:'A1: Can use common small words naturally.',
         intro:'Тебе предлагают то, что не подходит.',
@@ -2482,35 +4460,67 @@ const COURSE = {
             options:['How much then?','Price new what is?','And how much would that be?']},
           {who:'them', text:'Forty instead of fifty.', ru:'Сорок вместо пятидесяти.'},
           {who:'you', ru:'Согласись.', best:1,
-            options:['Ok forty take me.','Alright, I will take it.','Forty yes good buy.']}
+            options:['Ok forty take me.','Alright, I will take it.','Forty yes good buy.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
         ]},
-      { type:'words', title:'Проверка A1', scene:'airport', cefr:'A1: Can handle a short everyday exchange from start to end.', words:[
+      { type:'words', title:'Проверка A1 · 1', scene:'airport', cefr:'A1: Can handle a short everyday exchange from start to end.', newCount:10, words:[
         {t:'Advice', r:'Совет'},
         {t:'Air', r:'Воздух'},
-        {t:'Century', r:'Век'},
-        {t:'Dear', r:'Дорогой'},
         {t:'Die', r:'Умирать'},
-        {t:'Fact', r:'Факт'},
         {t:'Fly', r:'Летать'},
         {t:'Imagine', r:'Представить'},
-        {t:'Mile', r:'Миля'},
-        {t:'Period', r:'Период'},
-        {t:'Personal', r:'Личный'},
         {t:'Point', r:'Пункт'},
-        {t:'Product', r:'Продукт'},
         {t:'Situation', r:'Ситуация'},
         {t:'Sound', r:'Звук'},
         {t:'Text', r:'Текст'},
-        {t:'Tonight', r:'Сегодня вечером'},
         {t:'Topic', r:'Тема'},
+        {t:'Could', r:'Мог бы', rev:true},
+        {t:'Vacation', r:'Отпуск', rev:true},
+        {t:'Tourist', r:'Турист', rev:true},
+        {t:'Even', r:'Даже', rev:true},
+        {t:'Away', r:'Прочь', rev:true},
+        {t:'Off', r:'Прочь / выключен', rev:true},
+        {t:'Yeah', r:'Ага', rev:true},
+        {t:'Oh', r:'О', rev:true},
+        {t:'Ok', r:'Хорошо', rev:true}
+      ]},
+      { type:'words', title:'Проверка A1 · 2', scene:'airport', cefr:'A1: Can handle a short everyday exchange from start to end.', newCount:10, words:[
         {t:'Watch', r:'Смотреть'},
-        {t:'Dancer', r:'Танцор'}
+        {t:'Hello', r:'Здравствуйте'},
+        {t:'Thanks', r:'Спасибо'},
+        {t:'Sorry', r:'Извините'},
+        {t:'Please', r:'Пожалуйста'},
+        {t:'Help', r:'Помощь'},
+        {t:'Understand', r:'Понимать'},
+        {t:'Repeat', r:'Повторить'},
+        {t:'Ticket', r:'Билет'},
+        {t:'Passport', r:'Паспорт'},
+        {t:'Action', r:'Действие', rev:true},
+        {t:'Activity', r:'Занятие', rev:true},
+        {t:'Report', r:'Отчёт', rev:true},
+        {t:'From', r:'Из / от', rev:true},
+        {t:'By', r:'К / посредством', rev:true},
+        {t:'Make', r:'Делать', rev:true},
+        {t:'Do', r:'Делать', rev:true},
+        {t:'What', r:'Что', rev:true},
+        {t:'Who', r:'Кто', rev:true},
+        {t:'Cannot', r:'Не мочь', rev:true}
       ]},
       { type:'build', title:'Собери: Проверка A1', scene:'airport', cefr:'A1: Can handle a short everyday exchange from start to end.', tasks:[
         {ru:'Спасибо за совет.', parts:['Thank','you','for','the','advice.'], answer:'Thank you for the advice.'},
         {ru:'Мы летим сегодня вечером.', parts:['We','fly','tonight.'], answer:'We fly tonight.'},
         {ru:'Это личный вопрос.', parts:['It','is','a','personal','question.'], answer:'It is a personal question.'},
-        {ru:'Представь эту ситуацию.', parts:['Imagine','this','situation.'], answer:'Imagine this situation.'}
+        {ru:'Представь эту ситуацию.', parts:['Imagine','this','situation.'], answer:'Imagine this situation.'},
+        {ru:'Ну, я не уверен.', parts:['Well,','I','am','not','sure.'], answer:'Well, I am not sure.'},
+        {ru:'Это просто немного дорого.', parts:['It','is','just','a','little','expensive.'], answer:'It is just a little expensive.'}
       ]},
       { type:'dialog', title:'Последняя проверка', scene:'airport', cefr:'A1: Can handle a short everyday exchange from start to end.',
         intro:'Ты в аэропорту, у стойки регистрации, летишь домой.',
@@ -2523,8 +4533,39 @@ const COURSE = {
             options:['Just one bag, thank you.','One bag have me yes.','Bag one give you now.']},
           {who:'them', text:'Your flight leaves at nine. Gate twelve.', ru:'Ваш рейс в девять. Выход двенадцать.'},
           {who:'you', ru:'Переспроси номер выхода и поблагодари.', best:1,
-            options:['Gate what say again?','Gate twelve, right? Thank you very much.','Twelve yes ok go me.']}
-        ]}
+            options:['Gate what say again?','Gate twelve, right? Thank you very much.','Twelve yes ok go me.']},
+          {who:'them', text:'Do you have any hand luggage?', ru:'Ручная кладь есть?'},
+          {who:'you', ru:'Скажи: только маленькая сумка.', best:0,
+            options:['Just a small bag.','Bag small one have.','One small bag me yes.']},
+          {who:'them', text:'That is fine. Here is your ticket.', ru:'Хорошо. Вот ваш билет.'},
+          {who:'you', ru:'Спроси, где выход на посадку.', best:2,
+            options:['Gate where is?','Where go me now?','Where is the gate, please?']},
+          {who:'them', text:'Straight ahead, then left.', ru:'Прямо, потом налево.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok go there.','Thank you very much.','Left yes see me go.']}
+        ]},
+      { type:'words', title:'Контроль: темы 57–60', scene:'airport', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Ago', r:'Назад', rev:true},
+        {t:'Last', r:'Прошлый', rev:true},
+        {t:'Past', r:'Прошлое', rev:true},
+        {t:'This', r:'Этот', rev:true},
+        {t:'That', r:'Тот', rev:true},
+        {t:'For', r:'Для / в течение', rev:true},
+        {t:'From', r:'Из / от', rev:true},
+        {t:'By', r:'К / посредством', rev:true},
+        {t:'Yeah', r:'Ага', rev:true},
+        {t:'Oh', r:'О', rev:true},
+        {t:'Ok', r:'Хорошо', rev:true},
+        {t:'Even', r:'Даже', rev:true},
+        {t:'Away', r:'Прочь', rev:true},
+        {t:'Off', r:'Прочь / выключен', rev:true},
+        {t:'Yesterday', r:'Вчера', rev:true},
+        {t:'Before', r:'Раньше', rev:true},
+        {t:'Remember', r:'Помнить', rev:true},
+        {t:'Born', r:'Родился', rev:true},
+        {t:'Leave', r:'Уехал', rev:true},
+        {t:'Action', r:'Действие', rev:true}
+      ]}
     ],
     2:[
       { type:'words', title:'Город и дорога', scene:'street', words:[

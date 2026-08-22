@@ -155,10 +155,10 @@ TOPICS = [
    ('you','Согласись.',1,['Ok forty take me.','Alright, I will take it.','Forty yes good buy.'])])},
 
 {'t':'Проверка A1','sc':'airport','cd':'A1: Can handle a short everyday exchange from start to end.','w':[
- ('advice','совет'),('air','воздух'),('century','век'),('dear','дорогой'),('die','умирать'),
- ('fact','факт'),('fly','летать'),('imagine','представить'),('mile','миля'),('period','период'),
- ('personal','личный'),('point','пункт'),('product','продукт'),('situation','ситуация'),('sound','звук'),
- ('text','текст'),('tonight','сегодня вечером'),('topic','тема'),('watch','смотреть'),('dancer','танцор')],
+ ('advice','совет'),('air','воздух'),('die','умирать'),('fly','летать'),('imagine','представить'),
+ ('point','пункт'),('situation','ситуация'),('sound','звук'),('text','текст'),('topic','тема'),
+ ('watch','смотреть'),('hello','здравствуйте'),('thanks','спасибо'),('sorry','извините'),('please','пожалуйста'),
+ ('help','помощь'),('understand','понимать'),('repeat','повторить'),('ticket','билет'),('passport','паспорт')],
  'b':[('Спасибо за совет.','Thank you for the advice.'),
       ('Мы летим сегодня вечером.','We fly tonight.'),
       ('Это личный вопрос.','It is a personal question.'),

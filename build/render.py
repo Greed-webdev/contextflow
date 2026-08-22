@@ -5,39 +5,74 @@ from topics_1 import TOPICS as T1
 from topics_2 import TOPICS as T2
 from topics_3 import TOPICS as T3
 from topics_4 import TOPICS as T4
+from extend_dialogs import EXT, GENERIC
 ALL = T1+T2+T3+T4
+REVIEW = json.load(open('/tmp/a1/review.json'))
 
 def esc(x): return str(x).replace('\\','\\\\').replace("'","\\'")
+def cap(x): return x[0].upper()+x[1:] if x and x[0].isalpha() else x
+def wrow(a,b,rev=False):
+    return "        {t:'%s', r:'%s'%s}" % (esc(cap(a)), esc(cap(b)), ", rev:true" if rev else "")
 
 out=[]
-for t in ALL:
+BLOCK=4                      # каждые 4 темы — уровень-повторение
+shown_total = {}
+
+for idx, t in enumerate(ALL):
     title, sc, cd = t['t'], t['sc'], t['cd']
-    # 1) слова
-    def cap(x):
-        return x[0].upper()+x[1:] if x and x[0].isalpha() else x
-    w = ',\n'.join("        {t:'%s', r:'%s'}" % (esc(cap(a)), esc(cap(b))) for a,b in t['w'])
-    out.append("      { type:'words', title:'%s', scene:'%s', cefr:'%s', words:[\n%s\n      ]}"
-               % (esc(title), sc, esc(cd), w))
-    # 2) сборка фразы
-    tk=[]
-    for ru, ans in t['b']:
-        parts = ans.split(' ')
-        tk.append("        {ru:'%s', parts:[%s], answer:'%s'}"
-                  % (esc(ru), ','.join("'%s'"%esc(p) for p in parts), esc(ans)))
+    for w,_ in t['w']: shown_total[w]=shown_total.get(w,0)+1
+
+    # 1) СЛОВА: новые + короткий повтор
+    for a,b in REVIEW[idx]: shown_total[a]=shown_total.get(a,0)+1
+    own = list(t['w']); rev = list(REVIEW[idx])
+    MAX = 22
+    if len(own)+len(rev) <= MAX:
+        chunks = [(own, rev, title)]
+    else:                                   # делим большую тему на две части
+        h = (len(own)+1)//2
+        chunks = [(own[:h], rev[:len(rev)//2], title+' · 1'),
+                  (own[h:], rev[len(rev)//2:], title+' · 2')]
+    for own_p, rev_p, ttl in chunks:
+        rows  = [wrow(a,b) for a,b in own_p]
+        rows += [wrow(a,b,True) for a,b in rev_p]
+        out.append("      { type:'words', title:'%s', scene:'%s', cefr:'%s', newCount:%d, words:[\n%s\n      ]}"
+                   % (esc(ttl), sc, esc(cd), len(own_p), ',\n'.join(rows)))
+
+    # 2) СБОРКА: 4 свои + 2 из прошлой темы
+    pairs = list(t['b']) + (list(ALL[idx-1]['b'])[:2] if idx else [])
+    tk=["        {ru:'%s', parts:[%s], answer:'%s'}"
+        % (esc(ru), ','.join("'%s'"%esc(p) for p in ans.split(' ')), esc(ans)) for ru,ans in pairs]
     out.append("      { type:'build', title:'Собери: %s', scene:'%s', cefr:'%s', tasks:[\n%s\n      ]}"
                % (esc(title), sc, esc(cd), ',\n'.join(tk)))
-    # 3) диалог
+
+    # 3) ДИАЛОГ: 6 твоих реплик
     dtitle, intro, turns = t['d']
+    turns = list(turns) + list(EXT.get(dtitle) or GENERIC[sc])
     tl=[]
     for x in turns:
         if x[0]=='them':
             tl.append("          {who:'them', text:'%s', ru:'%s'}" % (esc(x[1]), esc(x[2])))
         else:
-            opts=','.join("'%s'"%esc(o) for o in x[3])
-            tl.append("          {who:'you', ru:'%s', best:%d,\n            options:[%s]}" % (esc(x[1]), x[2], opts))
+            tl.append("          {who:'you', ru:'%s', best:%d,\n            options:[%s]}"
+                      % (esc(x[1]), x[2], ','.join("'%s'"%esc(o) for o in x[3])))
     out.append("      { type:'dialog', title:'%s', scene:'%s', cefr:'%s',\n        intro:'%s',\n        turns:[\n%s\n        ]}"
                % (esc(dtitle), sc, esc(cd), esc(intro), ',\n'.join(tl)))
 
+    # 4) КОНТРОЛЬ каждые 4 темы — слова блока, которые показывались реже всего
+    if (idx+1) % BLOCK == 0:
+        lo, hi = idx-BLOCK+1, idx
+        pool=[]
+        for k in range(lo, hi+1):
+            pool += [(w,r) for w,r in ALL[k]['w']]
+        pool.sort(key=lambda x: shown_total.get(x[0],0))
+        pick = pool[:20]
+        for w,_ in pick: shown_total[w]=shown_total.get(w,0)+1
+        rows=[wrow(a,b,True) for a,b in pick]
+        out.append("      { type:'words', title:'Контроль: темы %d–%d', scene:'%s', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[\n%s\n      ]}"
+                   % (lo+1, hi+1, ALL[hi]['sc'], ',\n'.join(rows)))
+
 block = '    1:[\n' + ',\n'.join(out) + '\n    ]'
-open('/tmp/a1/block2.txt','w',encoding='utf-8').write(block)
-print('уровней:', len(out), '| символов:', len(block))
+open('/tmp/a1/block3.txt','w',encoding='utf-8').write(block)
+print('уровней:', len(out))
+once=sum(1 for v in shown_total.values() if v==1)
+print('слов:',len(shown_total),'| показываются 1 раз:',once,'| средне показов:',round(sum(shown_total.values())/len(shown_total),2))
