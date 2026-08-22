@@ -62,19 +62,22 @@ const COURSE = {
   en:{
     1:[
       { type:'words', title:'Первый контакт', scene:'airport', words:[
-        {t:'Hello',           r:'Здравствуйте'},
-        {t:'Excuse me',       r:'Простите / извините'},
-        {t:'Thank you',       r:'Спасибо'},
-        {t:'Sorry',           r:'Извините (сожалею)'},
-        {t:'Yes / No',        r:'Да / Нет'},
-        {t:'Please',          r:'Пожалуйста (просьба)'},
-        {t:'My name is…',     r:'Меня зовут…'},
-        {t:'I don’t understand', r:'Я не понимаю'}
+        {t:'Hello', r:'Здравствуйте'},
+        {t:'Good morning', r:'Доброе утро'},
+        {t:'Excuse me', r:'Простите / извините'},
+        {t:'Thank you', r:'Спасибо'},
+        {t:'Sorry', r:'Извините (сожалею)'},
+        {t:'Yes / No', r:'Да / Нет'},
+        {t:'Please', r:'Пожалуйста (просьба)'},
+        {t:'My name is…', r:'Меня зовут…'},
+        {t:'I don’t understand', r:'Я не понимаю'},
+        {t:'Goodbye', r:'До свидания'}
       ]},
-      { type:'build', title:'Собери просьбу', scene:'airport', tasks:[
+      { type:'build', title:'Собери: Первый контакт', scene:'airport', tasks:[
         {ru:'Извините, вы говорите по-английски?', parts:['Excuse','me,','do','you','speak','English?'], answer:'Excuse me, do you speak English?'},
         {ru:'Меня зовут Анна.', parts:['My','name','is','Anna.'], answer:'My name is Anna.'},
-        {ru:'Я не понимаю, извините.', parts:['I','don’t','understand,','sorry.'], answer:'I don’t understand, sorry.'}
+        {ru:'Я не понимаю, извините.', parts:['I','don’t','understand,','sorry.'], answer:'I don’t understand, sorry.'},
+        {ru:'Доброе утро! Как дела?', parts:['Good','morning!','How','are','you?'], answer:'Good morning! How are you?'}
       ]},
       { type:'dialog', title:'Паспортный контроль', scene:'airport',
         intro:'Очередь почти прошла. Офицер смотрит на тебя и берёт паспорт.',
@@ -83,26 +86,29 @@ const COURSE = {
           {who:'you', ru:'Поздоровайся и отдай паспорт.', best:1,
             options:['Passport no.','Good morning. Here you are.','I am passport.']},
           {who:'them', text:'What is the purpose of your visit?', ru:'Какая цель вашего визита?'},
-          {who:'you', ru:'Скажи, что ты турист / приехал ненадолго.', best:0,
+          {who:'you', ru:'Скажи, что ты турист.', best:0,
             options:['I’m here as a tourist, for two weeks.','Tourist yes two.','I visit purpose holiday me.']},
           {who:'them', text:'Enjoy your stay.', ru:'Хорошего пребывания.'},
           {who:'you', ru:'Поблагодари.', best:2,
             options:['Okay bye.','Yes, stay.','Thank you. Have a good day.']}
         ]},
-      { type:'words', title:'Числа и мелочи', scene:'cafe', words:[
+      { type:'words', title:'Числа и деньги', scene:'cafe', words:[
         {t:'one, two, three', r:'один, два, три'},
+        {t:'four, five, six', r:'четыре, пять, шесть'},
+        {t:'seven, eight, nine, ten', r:'семь, восемь, девять, десять'},
         {t:'How much is it?', r:'Сколько это стоит?'},
-        {t:'Water',           r:'Вода'},
-        {t:'Coffee / Tea',    r:'Кофе / Чай'},
-        {t:'Card / Cash',     r:'Карта / Наличные'},
-        {t:'Where is…?',      r:'Где находится…?'},
-        {t:'Can I have…?',    r:'Можно мне…?'},
-        {t:'The bill, please',r:'Счёт, пожалуйста'}
+        {t:'Card / Cash', r:'Карта / Наличные'},
+        {t:'The bill, please', r:'Счёт, пожалуйста'},
+        {t:'It’s too expensive', r:'Это слишком дорого'},
+        {t:'Cheap', r:'Дёшево'},
+        {t:'Change', r:'Сдача'},
+        {t:'Receipt', r:'Чек'}
       ]},
-      { type:'build', title:'Заказ у стойки', scene:'cafe', tasks:[
-        {ru:'Можно мне кофе, пожалуйста?', parts:['Can','I','have','a','coffee,','please?'], answer:'Can I have a coffee, please?'},
+      { type:'build', title:'Собери: Числа и деньги', scene:'cafe', tasks:[
         {ru:'Сколько это стоит?', parts:['How','much','is','it?'], answer:'How much is it?'},
-        {ru:'Я заплачу картой.', parts:['I’ll','pay','by','card.'], answer:'I’ll pay by card.'}
+        {ru:'Я заплачу картой.', parts:['I’ll','pay','by','card.'], answer:'I’ll pay by card.'},
+        {ru:'Счёт, пожалуйста.', parts:['The','bill,','please.'], answer:'The bill, please.'},
+        {ru:'Это слишком дорого для меня.', parts:['It’s','too','expensive','for','me.'], answer:'It’s too expensive for me.'}
       ]},
       { type:'dialog', title:'Кофе навынос', scene:'cafe',
         intro:'Утро, небольшая очередь. Бариста поднимает взгляд на тебя.',
@@ -116,6 +122,254 @@ const COURSE = {
           {who:'them', text:'That’s three pounds forty.', ru:'С вас три сорок.'},
           {who:'you', ru:'Спроси, можно ли картой.', best:1,
             options:['Money card no cash?','Can I pay by card?','Card. Take it.']}
+        ]},
+      { type:'words', title:'Город и дорога', scene:'street', words:[
+        {t:'Where is…?', r:'Где находится…?'},
+        {t:'Left / Right', r:'Налево / Направо'},
+        {t:'Straight ahead', r:'Прямо'},
+        {t:'Near / Far', r:'Близко / Далеко'},
+        {t:'Station', r:'Вокзал / станция'},
+        {t:'Bus stop', r:'Автобусная остановка'},
+        {t:'Ticket', r:'Билет'},
+        {t:'Map', r:'Карта'},
+        {t:'How do I get to…?', r:'Как мне добраться до…?'},
+        {t:'Is it far?', r:'Это далеко?'}
+      ]},
+      { type:'build', title:'Собери: Город и дорога', scene:'street', tasks:[
+        {ru:'Где находится вокзал?', parts:['Where','is','the','station?'], answer:'Where is the station?'},
+        {ru:'Как мне добраться до центра?', parts:['How','do','I','get','to','the','centre?'], answer:'How do I get to the centre?'},
+        {ru:'Идите прямо, потом налево.', parts:['Go','straight','ahead,','then','left.'], answer:'Go straight ahead, then left.'},
+        {ru:'Один билет, пожалуйста.', parts:['One','ticket,','please.'], answer:'One ticket, please.'}
+      ]},
+      { type:'dialog', title:'Спросить дорогу', scene:'street',
+        intro:'Ты вышел из метро и не понимаешь, куда идти. Рядом стоит женщина с собакой.',
+        turns:[
+          {who:'them', text:'You look lost. Can I help?', ru:'Вы, кажется, заблудились. Помочь?'},
+          {who:'you', ru:'Спроси, где вокзал.', best:1,
+            options:['Station where me?','Yes, please. Where is the station?','I no know station go.']},
+          {who:'them', text:'It’s five minutes that way. Straight ahead, then right.', ru:'Пять минут в ту сторону. Прямо, потом направо.'},
+          {who:'you', ru:'Уточни, далеко ли идти пешком.', best:0,
+            options:['Is it far on foot?','Foot far is?','Walking many?']},
+          {who:'them', text:'No, it’s quite close. You’ll see it.', ru:'Нет, довольно близко. Вы увидите.'},
+          {who:'you', ru:'Поблагодари её.', best:2,
+            options:['Ok good.','Thanks bye now.','Thank you very much. Have a nice day.']}
+        ]},
+      { type:'words', title:'В магазине', scene:'market', words:[
+        {t:'I’m looking for…', r:'Я ищу…'},
+        {t:'Do you have…?', r:'У вас есть…?'},
+        {t:'Size', r:'Размер'},
+        {t:'Colour', r:'Цвет'},
+        {t:'Can I try it on?', r:'Можно примерить?'},
+        {t:'Too big / Too small', r:'Слишком большой / маленький'},
+        {t:'I’ll take it', r:'Я возьму это'},
+        {t:'Just looking', r:'Просто смотрю'},
+        {t:'Open / Closed', r:'Открыто / Закрыто'},
+        {t:'Bag', r:'Пакет / сумка'}
+      ]},
+      { type:'build', title:'Собери: В магазине', scene:'market', tasks:[
+        {ru:'У вас есть это в другом размере?', parts:['Do','you','have','this','in','another','size?'], answer:'Do you have this in another size?'},
+        {ru:'Можно примерить?', parts:['Can','I','try','it','on?'], answer:'Can I try it on?'},
+        {ru:'Я возьму это, спасибо.', parts:['I’ll','take','it,','thank','you.'], answer:'I’ll take it, thank you.'},
+        {ru:'Спасибо, я просто смотрю.', parts:['Thanks,','I’m','just','looking.'], answer:'Thanks, I’m just looking.'}
+      ]},
+      { type:'dialog', title:'Купить футболку', scene:'market',
+        intro:'Небольшой магазин. Продавец подходит к тебе.',
+        turns:[
+          {who:'them', text:'Hello! Are you looking for anything special?', ru:'Здравствуйте! Ищете что-то конкретное?'},
+          {who:'you', ru:'Скажи, что ищешь футболку.', best:0,
+            options:['I’m looking for a T-shirt.','T-shirt want me.','Shirt where is have?']},
+          {who:'them', text:'Of course. What size are you?', ru:'Конечно. Какой у вас размер?'},
+          {who:'you', ru:'Скажи «средний» и спроси про примерку.', best:2,
+            options:['Medium try.','Size medium can on try me?','Medium, please. Can I try it on?']},
+          {who:'them', text:'Sure, the fitting room is over there.', ru:'Конечно, примерочная вон там.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok good yes.','Great, thank you.','Thank you very good room.']}
+        ]},
+      { type:'words', title:'Дом и комната', scene:'flat', words:[
+        {t:'House / Flat', r:'Дом / Квартира'},
+        {t:'Room', r:'Комната'},
+        {t:'Kitchen', r:'Кухня'},
+        {t:'Bathroom', r:'Ванная'},
+        {t:'Bed', r:'Кровать'},
+        {t:'Door / Window', r:'Дверь / Окно'},
+        {t:'Key', r:'Ключ'},
+        {t:'It doesn’t work', r:'Это не работает'},
+        {t:'Hot water', r:'Горячая вода'},
+        {t:'Wi-Fi password', r:'Пароль от Wi-Fi'}
+      ]},
+      { type:'build', title:'Собери: Дом и комната', scene:'flat', tasks:[
+        {ru:'Какой пароль от Wi-Fi?', parts:['What’s','the','Wi-Fi','password?'], answer:'What’s the Wi-Fi password?'},
+        {ru:'Горячей воды нет.', parts:['There','is','no','hot','water.'], answer:'There is no hot water.'},
+        {ru:'Ключ не работает.', parts:['The','key','doesn’t','work.'], answer:'The key doesn’t work.'},
+        {ru:'Ванная вон там.', parts:['The','bathroom','is','over','there.'], answer:'The bathroom is over there.'}
+      ]},
+      { type:'dialog', title:'Заселение', scene:'flat',
+        intro:'Ты приехал в квартиру. Хозяин показывает комнаты.',
+        turns:[
+          {who:'them', text:'Welcome! This is the kitchen, and your room is here.', ru:'Добро пожаловать! Это кухня, а ваша комната здесь.'},
+          {who:'you', ru:'Спроси про пароль от Wi-Fi.', best:1,
+            options:['Wi-Fi number what?','Thank you. What’s the Wi-Fi password?','Internet me give now.']},
+          {who:'them', text:'It’s on the fridge. Anything else?', ru:'Он на холодильнике. Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет горячей воды.', best:0,
+            options:['Sorry, there is no hot water.','Water hot no have.','No water hot is bad.']},
+          {who:'them', text:'Oh, sorry! I’ll fix it today.', ru:'Ой, извините! Починю сегодня.'},
+          {who:'you', ru:'Скажи, что это не срочно.', best:2,
+            options:['Ok fix fast.','Today yes good fix.','No problem, it’s not urgent.']}
+        ]},
+      { type:'words', title:'Время и дни', scene:'office', words:[
+        {t:'What time is it?', r:'Сколько времени?'},
+        {t:'Today / Tomorrow', r:'Сегодня / Завтра'},
+        {t:'Yesterday', r:'Вчера'},
+        {t:'Monday, Tuesday', r:'Понедельник, вторник'},
+        {t:'Morning / Evening', r:'Утро / Вечер'},
+        {t:'Now / Later', r:'Сейчас / Позже'},
+        {t:'Early / Late', r:'Рано / Поздно'},
+        {t:'At nine o’clock', r:'В девять часов'},
+        {t:'Half an hour', r:'Полчаса'},
+        {t:'See you tomorrow', r:'До завтра'}
+      ]},
+      { type:'build', title:'Собери: Время и дни', scene:'office', tasks:[
+        {ru:'Сколько сейчас времени?', parts:['What','time','is','it','now?'], answer:'What time is it now?'},
+        {ru:'Встреча в девять часов.', parts:['The','meeting','is','at','nine','o’clock.'], answer:'The meeting is at nine o’clock.'},
+        {ru:'Я буду там завтра утром.', parts:['I’ll','be','there','tomorrow','morning.'], answer:'I’ll be there tomorrow morning.'},
+        {ru:'Извините, я опоздал.', parts:['Sorry,','I’m','late.'], answer:'Sorry, I’m late.'}
+      ]},
+      { type:'dialog', title:'Договориться о встрече', scene:'office',
+        intro:'Коллега ловит тебя в коридоре.',
+        turns:[
+          {who:'them', text:'Do you have a minute tomorrow?', ru:'Найдётся минутка завтра?'},
+          {who:'you', ru:'Спроси, во сколько.', best:2,
+            options:['Time what tomorrow?','Tomorrow when is meet me?','Sure. What time?']},
+          {who:'them', text:'How about nine in the morning?', ru:'Как насчёт девяти утра?'},
+          {who:'you', ru:'Скажи, что девять — рано, предложи десять.', best:0,
+            options:['Nine is a bit early for me. Can we say ten?','Nine no. Ten yes ok.','Early nine bad, ten good me.']},
+          {who:'them', text:'Ten works. See you then.', ru:'Десять подходит. Тогда до встречи.'},
+          {who:'you', ru:'Попрощайся.', best:1,
+            options:['Ok bye go.','Great, see you tomorrow.','Tomorrow see yes bye.']}
+        ]},
+      { type:'words', title:'Еда и вкусы', scene:'cafe', words:[
+        {t:'Breakfast', r:'Завтрак'},
+        {t:'Lunch / Dinner', r:'Обед / Ужин'},
+        {t:'Bread', r:'Хлеб'},
+        {t:'Meat / Fish', r:'Мясо / Рыба'},
+        {t:'Vegetables', r:'Овощи'},
+        {t:'I’m hungry', r:'Я голоден'},
+        {t:'Delicious', r:'Очень вкусно'},
+        {t:'I’m allergic to…', r:'У меня аллергия на…'},
+        {t:'Without sugar', r:'Без сахара'},
+        {t:'A table for two', r:'Столик на двоих'}
+      ]},
+      { type:'build', title:'Собери: Еда и вкусы', scene:'cafe', tasks:[
+        {ru:'Столик на двоих, пожалуйста.', parts:['A','table','for','two,','please.'], answer:'A table for two, please.'},
+        {ru:'У меня аллергия на орехи.', parts:['I’m','allergic','to','nuts.'], answer:'I’m allergic to nuts.'},
+        {ru:'Чай без сахара, пожалуйста.', parts:['Tea','without','sugar,','please.'], answer:'Tea without sugar, please.'},
+        {ru:'Это было очень вкусно.', parts:['That','was','delicious.'], answer:'That was delicious.'}
+      ]},
+      { type:'dialog', title:'Ужин в кафе', scene:'cafe',
+        intro:'Вечер. Официант подходит с меню.',
+        turns:[
+          {who:'them', text:'Good evening. A table for how many?', ru:'Добрый вечер. Столик на скольких?'},
+          {who:'you', ru:'Скажи: на двоих.', best:1,
+            options:['Two people me.','A table for two, please.','Two is we sit.']},
+          {who:'them', text:'Here you are. Are you ready to order?', ru:'Прошу. Готовы заказать?'},
+          {who:'you', ru:'Предупреди про аллергию на орехи.', best:0,
+            options:['Yes, but I’m allergic to nuts.','Nuts no me bad.','Allergy have nuts no give.']},
+          {who:'them', text:'Thank you for telling me. I’ll check with the kitchen.', ru:'Спасибо, что сказали. Уточню на кухне.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok fine good.','Kitchen yes thanks you.','Thanks, I appreciate it.']}
+        ]},
+      { type:'words', title:'Семья и люди', scene:'flat', words:[
+        {t:'Mother / Father', r:'Мама / Папа'},
+        {t:'Brother / Sister', r:'Брат / Сестра'},
+        {t:'Wife / Husband', r:'Жена / Муж'},
+        {t:'Son / Daughter', r:'Сын / Дочь'},
+        {t:'Friend', r:'Друг'},
+        {t:'Where are you from?', r:'Откуда вы?'},
+        {t:'I’m from Russia', r:'Я из России'},
+        {t:'How old are you?', r:'Сколько тебе лет?'},
+        {t:'I live in…', r:'Я живу в…'},
+        {t:'Nice to meet you', r:'Приятно познакомиться'}
+      ]},
+      { type:'build', title:'Собери: Семья и люди', scene:'flat', tasks:[
+        {ru:'Приятно познакомиться.', parts:['Nice','to','meet','you.'], answer:'Nice to meet you.'},
+        {ru:'Я из России, живу в Москве.', parts:['I’m','from','Russia,','I','live','in','Moscow.'], answer:'I’m from Russia, I live in Moscow.'},
+        {ru:'У меня есть брат и сестра.', parts:['I','have','a','brother','and','a','sister.'], answer:'I have a brother and a sister.'},
+        {ru:'Откуда вы?', parts:['Where','are','you','from?'], answer:'Where are you from?'}
+      ]},
+      { type:'dialog', title:'Знакомство у соседей', scene:'flat',
+        intro:'Сосед по площадке заговорил с тобой у лифта.',
+        turns:[
+          {who:'them', text:'Hi! Are you new here?', ru:'Привет! Вы тут новенький?'},
+          {who:'you', ru:'Поздоровайся и представься.', best:2,
+            options:['New yes me here.','Hello me name is.','Hi! Yes, I just moved in. My name is Anna.']},
+          {who:'them', text:'Nice to meet you, Anna. Where are you from?', ru:'Приятно познакомиться, Анна. Откуда вы?'},
+          {who:'you', ru:'Скажи, что из России.', best:0,
+            options:['I’m from Russia.','Russia me come.','From Russia is me yes.']},
+          {who:'them', text:'Great. Let me know if you need anything.', ru:'Отлично. Обращайтесь, если что-то понадобится.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok need yes.','Thank you, that’s very kind.','Kind you thanks need me.']}
+        ]},
+      { type:'words', title:'Самочувствие', scene:'clinic', words:[
+        {t:'I feel bad', r:'Мне плохо'},
+        {t:'Headache', r:'Головная боль'},
+        {t:'It hurts here', r:'Здесь болит'},
+        {t:'Doctor', r:'Врач'},
+        {t:'Pharmacy', r:'Аптека'},
+        {t:'Medicine', r:'Лекарство'},
+        {t:'Help!', r:'Помогите!'},
+        {t:'I need a doctor', r:'Мне нужен врач'},
+        {t:'Temperature', r:'Температура'},
+        {t:'I’m fine now', r:'Сейчас мне лучше'}
+      ]},
+      { type:'build', title:'Собери: Самочувствие', scene:'clinic', tasks:[
+        {ru:'Мне нужен врач, пожалуйста.', parts:['I','need','a','doctor,','please.'], answer:'I need a doctor, please.'},
+        {ru:'У меня болит голова со вчера.', parts:['I’ve','had','a','headache','since','yesterday.'], answer:'I’ve had a headache since yesterday.'},
+        {ru:'Где ближайшая аптека?', parts:['Where','is','the','nearest','pharmacy?'], answer:'Where is the nearest pharmacy?'},
+        {ru:'Здесь болит.', parts:['It','hurts','here.'], answer:'It hurts here.'}
+      ]},
+      { type:'dialog', title:'На приёме', scene:'clinic',
+        intro:'Кабинет врача. Он приглашает тебя сесть.',
+        turns:[
+          {who:'them', text:'Hello, take a seat. What’s the problem?', ru:'Здравствуйте, садитесь. Что случилось?'},
+          {who:'you', ru:'Скажи, что болит голова.', best:1,
+            options:['Head bad me have.','I have a headache.','Pain head is me.']},
+          {who:'them', text:'Since when?', ru:'С какого времени?'},
+          {who:'you', ru:'Скажи: со вчера.', best:0,
+            options:['Since yesterday.','Yesterday from now.','Day before have.']},
+          {who:'them', text:'Alright. Take this and rest today.', ru:'Хорошо. Возьмите это и отдохните сегодня.'},
+          {who:'you', ru:'Поблагодари врача.', best:2,
+            options:['Ok rest go.','Medicine take yes.','Thank you, doctor.']}
+        ]},
+      { type:'words', title:'Простой разговор', scene:'street', words:[
+        {t:'How are you?', r:'Как дела?'},
+        {t:'I’m fine, thanks', r:'Хорошо, спасибо'},
+        {t:'Nice weather', r:'Хорошая погода'},
+        {t:'It’s cold / hot', r:'Холодно / жарко'},
+        {t:'Really?', r:'Правда?'},
+        {t:'I think so', r:'Я так думаю'},
+        {t:'Maybe', r:'Может быть'},
+        {t:'Of course', r:'Конечно'},
+        {t:'No problem', r:'Без проблем'},
+        {t:'See you soon', r:'До скорого'}
+      ]},
+      { type:'build', title:'Собери: Простой разговор', scene:'street', tasks:[
+        {ru:'Хорошо, спасибо. А вы?', parts:['I’m','fine,','thanks.','And','you?'], answer:'I’m fine, thanks. And you?'},
+        {ru:'Сегодня очень холодно.', parts:['It’s','very','cold','today.'], answer:'It’s very cold today.'},
+        {ru:'Конечно, без проблем.', parts:['Of','course,','no','problem.'], answer:'Of course, no problem.'},
+        {ru:'Увидимся на следующей неделе.', parts:['See','you','next','week.'], answer:'See you next week.'}
+      ]},
+      { type:'dialog', title:'Разговор в очереди', scene:'street',
+        intro:'Ты стоишь в очереди. Человек впереди оборачивается.',
+        turns:[
+          {who:'them', text:'Long queue today, isn’t it?', ru:'Длинная очередь сегодня, правда?'},
+          {who:'you', ru:'Согласись.', best:0,
+            options:['Yes, really long. And it’s cold.','Queue big yes cold have.','Long is, cold is, bad.']},
+          {who:'them', text:'At least the weather is better than yesterday.', ru:'Зато погода лучше, чем вчера.'},
+          {who:'you', ru:'Согласись и скажи, что вчера был дождь.', best:2,
+            options:['Yesterday rain much bad.','Rain was yes better now.','True. It rained all day yesterday.']},
+          {who:'them', text:'Anyway, good luck. Have a nice day.', ru:'Ладно, удачи. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:1,
+            options:['Ok you day.','Thanks, you too!','Same you have day nice.']}
         ]}
     ],
     2:[
