@@ -149,6 +149,32 @@ const Onb = {
 };
 
 /* ---------------- хаб ---------------- */
+/* ---------------- копилка ошибок ----------------
+   Каждый промах записывается. Слово возвращается в «Разбор ошибок»,
+   пока человек не ответит верно два раза подряд — тогда уходит.       */
+const Miss = {
+  all(){ S.miss = S.miss || {}; return S.miss; },
+  key(en){ return (S.lang||'en') + ':' + en.toLowerCase(); },
+  add(en, ru, kind){
+    if (!en) return;
+    const m = this.all(), k = this.key(en);
+    m[k] = m[k] || { en, ru: ru||'', kind: kind||'word', bad:0, good:0, at:0 };
+    m[k].bad++; m[k].good = 0; m[k].at = Date.now();
+    save();
+  },
+  ok(en){
+    const m = this.all(), k = this.key(en);
+    if (!m[k]) return;
+    m[k].good++;
+    if (m[k].good >= 2) delete m[k];   // исправлено — уходит из копилки
+    save();
+  },
+  list(){
+    return Object.values(this.all()).sort((a,b)=> b.bad - a.bad || b.at - a.at);
+  },
+  count(){ return this.list().length; }
+};
+
 const Hub = {
   render(){
     const now = new Date(), h = now.getHours();
@@ -196,6 +222,93 @@ const Hub = {
       </div>`;
     tile.onclick = ()=>{ Sound.fx('whoosh'); Trail.open(); };
     slot.appendChild(tile);
+
+    // карточка «Разбор ошибок» — только если есть что разбирать
+    const n = Miss.count();
+    if (n){
+      const card = el('div','miss-card');
+      card.innerHTML = `
+        <div class="miss-n">${n}</div>
+        <div class="miss-txt">
+          <h3 class="sm">Разбор ошибок</h3>
+          <p class="small">${n === 1 ? 'Одна фраза ждёт' : n < 5 ? n + ' фразы ждут' : n + ' фраз ждут'} второго захода</p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#767f85" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>`;
+      card.onclick = ()=>{ Sound.fx('tap'); Review.open(); };
+      slot.appendChild(card);
+    }
+  }
+};
+
+/* ---------------- разбор ошибок ----------------
+   Отдельный проход по тому, что не получилось. Без жизней и без счёта:
+   задача не наказать, а закрепить.                                    */
+const Review = {
+  open(){
+    const list = Miss.list();
+    if (!list.length){ Sheet.open('<h3 class="sm">Ошибок нет</h3><p class="small" style="margin-top:6px">Разбирать пока нечего.</p>'); return; }
+    this.list = list.slice(0, 10);
+    this.i = 0; this.right = 0;
+    go('sc-lesson');
+    const L0 = lang(), sc0 = SCENES['office'];
+    if (L0 && sc0) $('scene-img').src = `assets/scenes/${L0.scenes}/${sc0.img}`;
+    $('l-scene').textContent = 'Разбор ошибок';
+    $('l-kind').textContent  = 'Без жизней и без счёта — просто закрепить';
+    $('hearts').innerHTML = '';
+    $('l-prog').style.width = '0';
+    $('l-action').style.display = 'none';   // свои кнопки внутри
+    this.step();
+  },
+  step(){
+    if (this.i >= this.list.length) return this.done();
+    const it = this.list[this.i];
+    $('l-prog').style.width = Math.round(this.i / this.list.length * 100) + '%';
+    const body = $('l-body'); body.innerHTML = '';
+    $('l-feedback').textContent = '';
+    const wrap = el('div','pad');
+    wrap.innerHTML = `
+      <span class="kicker">Было с ошибкой · ${this.i+1} из ${this.list.length}</span>
+      <h2 class="mid" style="margin-top:8px">${it.ru || 'Скажи это по-английски'}</h2>
+      <p class="small" style="margin-top:6px">Промахов: ${it.bad}. Ответь верно дважды — уйдёт из списка.</p>`;
+    body.appendChild(wrap);
+    const ta = el('textarea','free-input'); ta.rows = 2; ta.placeholder = 'Напиши ответ…';
+    wrap.appendChild(ta);
+    const row = el('div','ans-row');
+    const go1 = el('button','btn moss','Ответить');
+    const skip = el('button','btn ghost','Показать');
+    row.appendChild(go1); row.appendChild(skip); wrap.appendChild(row);
+
+    const show = (ok)=>{
+      const v = el('div','verdict');
+      v.innerHTML = (ok ? '<b class="g">Верно.</b>' : '<b class="r">Ещё не то.</b>')
+        + `<div style="margin-top:8px">Правильно: <b>${it.en}</b></div>`;
+      wrap.appendChild(v);
+      this.say ? this.say(it.en) : Lesson.say(it.en, {now:true});
+      if (ok){ this.right++; Miss.ok(it.en); Sound.fx('right'); }
+      else Miss.add(it.en, it.ru, it.kind);
+      go1.remove(); skip.remove();
+      const nx = el('button','btn moss wide','Дальше');
+      nx.onclick = ()=>{ Lesson.sayStop(); this.i++; this.step(); };
+      wrap.appendChild(nx);
+    };
+    go1.onclick = ()=>{
+      const said = ta.value.trim().toLowerCase().replace(/[^a-z' ]/g,' ').replace(/\s+/g,' ').trim();
+      const want = it.en.toLowerCase().replace(/[^a-z' ]/g,' ').replace(/\s+/g,' ').trim();
+      show(said === want);
+    };
+    skip.onclick = ()=> show(false);
+  },
+  done(){
+    const body = $('l-body'); body.innerHTML = '';
+    const wrap = el('div','pad');
+    wrap.innerHTML = `
+      <span class="kicker">Разбор окончен</span>
+      <h2 class="mid" style="margin-top:8px">${this.right} из ${this.list.length} верно</h2>
+      <p class="small" style="margin-top:8px">Осталось в копилке: ${Miss.count()}.</p>`;
+    body.appendChild(wrap);
+    const b = el('button','btn moss wide','На главную');
+    b.onclick = ()=>{ Lesson.sayStop(); $('l-action').style.display=''; go('sc-hub'); Hub.render(); };
+    wrap.appendChild(b);
   }
 };
 
@@ -972,9 +1085,11 @@ const Lesson = {
       let dead = false;
       if (ok){
         S.stats.right++; this.right++;
+        Miss.ok(t.answer);
         Sound.fx('right'); this.fb(Voice.ok()?'Верно. Теперь произнеси.':'Верно. Скажи вслух ещё раз.', true);
         this.say(t.full || t.answer);
       } else {
+        Miss.add(t.answer, t.ru, 'build');
         dead = this.loseLife();
         this.fb(dead ? 'Сердца кончились. Начнём уровень заново.' : ('Правильно: ' + (t.full || t.answer)), false);
         this.say(t.full || t.answer);
@@ -1136,6 +1251,7 @@ const Lesson = {
       const ok = verdict(v, best);
       if (ok){ this.right++; S.stats.right++; Sound.fx('right'); }
       else { const dead = this.loseLife(); if (dead) return; }
+      if (ok) Miss.ok(best); else Miss.add(best, turn.ru, 'dialog');
       this.say(best, {now:true});
       this.step++; this.prog();
       const go = el('button','btn moss wide', 'Дальше');
