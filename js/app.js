@@ -841,9 +841,9 @@ window.addEventListener('pagehide', ()=>{ Voice.stop(); STT.stop(); Lesson.saySt
 /* ---------------- урок ---------------- */
 const Lesson = {
   st:1, idx:0, lv:null, step:0, lives:5, right:0, total:0, mode:'', picked:null, built:[],
-  start(st, idx){
+  start(st, idx, from){
     this.st=st; this.idx=idx; this.lv = getCourse(S.lang, st)[idx];
-    this.step=0; this.lives=5; this.right=0; this.picked=null;
+    this.step=from|0; this.lives=5; this.right=0; this.picked=null; this.failStep=0;
     const sc = SCENES[this.lv.scene], L = lang();
     $('scene-img').src = `assets/scenes/${L.scenes}/${sc.img}`;
     $('l-scene').textContent = sc.label;
@@ -874,7 +874,8 @@ const Lesson = {
     this.hearts(true);
     Sound.fx('wrong');
     if (this.lives <= 0){
-      // сердца кончились — уровень начинается заново
+      // сердца кончились — запоминаем место, чтобы не терять пройденное
+      this.failStep = this.step;
       setTimeout(()=>this.finish(true), 900);
       return true;
     }
@@ -1209,6 +1210,7 @@ const Lesson = {
         (r.notes.length ? '<ul>' + r.notes.map(n=>`<li>${n}</li>`).join('') + '</ul>' : '') +
         `<ul><li>Носитель сказал бы: <b>${best}</b></li></ul>`;
       box.appendChild(v);
+      setTimeout(()=>v.scrollIntoView({behavior:'smooth', block:'center'}), 60);
       return r.ok;
     };
 
@@ -1242,21 +1244,60 @@ const Lesson = {
     const dunno = el('button','btn quiet wide','Не знаю — покажи варианты');
     box.appendChild(dunno);
 
+    let tries = 0;                     // сколько раз уже отвечал на этот ход
     send.onclick = ()=>{
       const v = ta.value.trim(); if (!v) return;
-      ta.disabled = true; send.disabled = true; dunno.remove();
       const best = turn.options[turn.best];
-      this.bubble('you', v);
+      const myBub = this.bubble('you', v);
       S.stats.total++;
       const ok = verdict(v, best);
-      if (ok){ this.right++; S.stats.right++; Sound.fx('right'); }
-      else { const dead = this.loseLife(); if (dead) return; }
-      if (ok) Miss.ok(best); else Miss.add(best, turn.ru, 'dialog');
+      tries++;
+
+      if (ok){
+        ta.disabled = true; send.disabled = true; dunno.remove();
+        this.right++; S.stats.right++; Sound.fx('right');
+        Miss.ok(best);
+        this.say(best, {now:true});
+        this.step++; this.prog();
+        const go = el('button','btn moss wide', 'Дальше');
+        go.onclick = ()=>{ this.sayStop(); Sound.fx('step'); goNext(0); };
+        box.appendChild(go);
+        return;
+      }
+
+      // ОШИБКА. Первый промах — даём переписать, жизнь не снимаем.
+      Sound.fx('wrong');
+      if (tries === 1){
+        const fix = el('button','btn moss wide', 'Исправить ответ');
+        fix.onclick = ()=>{
+          this.sayStop();
+          if (myBub) myBub.remove();                    // убираем неудачную реплику
+          box.querySelectorAll('.verdict').forEach(x=>x.remove());
+          fix.remove();
+          ta.disabled = false; send.disabled = false;
+          ta.scrollIntoView({behavior:'smooth', block:'center'});
+          ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+        };
+        box.appendChild(fix);
+        ta.disabled = true; send.disabled = true;
+        const tip = el('div','small'); tip.style.marginTop='6px';
+        tip.textContent = 'Можно поправить свой ответ — это ещё не ошибка.';
+        box.appendChild(tip);
+        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+        return;
+      }
+
+      // Второй промах подряд — вот теперь считается.
+      ta.disabled = true; send.disabled = true; dunno.remove();
+      Miss.add(best, turn.ru, 'dialog');
+      const dead = this.loseLife();
+      if (dead) return;
       this.say(best, {now:true});
       this.step++; this.prog();
       const go = el('button','btn moss wide', 'Дальше');
       go.onclick = ()=>{ this.sayStop(); Sound.fx('step'); goNext(0); };
       box.appendChild(go);
+      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
     };
 
     /* ---- страховка: варианты по запросу ---- */
@@ -1312,8 +1353,11 @@ const Lesson = {
     $('done-bg').style.backgroundImage = `url('${STAGES[this.st].art}')`;
     $('done-kicker').textContent = failed ? 'Срыв' : `${STAGES[this.st].cefr} · уровень пройден`;
     $('done-title').textContent = failed ? 'Сердца кончились' : ['Хорошо','Чисто сделано','Ты выше, чем был'][Math.floor(Math.random()*3)];
+    const backTo = failed ? Math.max(0, (this.failStep|0) - 1) : 0;   // на шаг назад
     $('done-text').textContent = failed
-      ? 'Пять ошибок — соскользнул. Этот уровень нужно пройти заново, с самого начала.'
+      ? (backTo > 0
+          ? `Пять ошибок — сердца кончились. Пройденное осталось при тебе: продолжишь с задания ${backTo+1}, а не с начала.`
+          : 'Пять ошибок — сердца кончились. Отдышись и пройди уровень ещё раз.')
       : `${levelKind(this.lv.type)}: ${this.lv.title}. Следующий кусок тропы открыт.`;
     $('done-acc').textContent = acc + '%';
     $('done-stage').textContent = `${this.st} · ${STAGES[this.st].name}`;
@@ -1322,8 +1366,8 @@ const Lesson = {
     const nextIdx = this.idx + 1;
     const btn = $('done-next');
     if (failed){
-      btn.textContent = 'Начать уровень заново';
-      btn.onclick = ()=>{ Sound.fx('step'); Lesson.start(this.st, this.idx); };
+      btn.textContent = backTo > 0 ? 'Продолжить с этого места' : 'Начать уровень заново';
+      btn.onclick = ()=>{ Sound.fx('step'); Lesson.start(this.st, this.idx, backTo); };
     } else if (nextIdx < arr.length){
       btn.textContent = `Дальше: ${levelKind(arr[nextIdx].type)}`;
       btn.onclick = ()=>{ Sound.fx('step'); Lesson.start(this.st, nextIdx); };
