@@ -39,7 +39,7 @@ def collect():
       const set=new Set();
       for(const st of Object.keys(C[L])) for(const lv of C[L][st]){
         (lv.words||[]).forEach(w=>{ if(w.t) set.add(w.t); });
-        (lv.tasks||[]).forEach(t=>{ if(t.answer) set.add(t.answer); });
+        (lv.tasks||[]).forEach(t=>{ if(t.answer) set.add(t.answer); if(t.full) set.add(t.full); });
         (lv.turns||[]).forEach(t=>{
           if(t.text) set.add(t.text);
           (t.options||[]).forEach(o=>set.add(o));

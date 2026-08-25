@@ -10,6 +10,7 @@ const DEFAULT = {
   stage:1,             // последний открытый этап
   progress:{},         // "en:1:0" -> {done:true, acc:0.83}
   stats:{levels:0, words:0, right:0, total:0},
+  allOpen:true,        // режим проверки: все уровни открыты (выключается в профиле)
   sound:{amb:true, fx:true, tts:true}
 };
 let S = load();
@@ -356,6 +357,7 @@ const Progress = {
     return {done,total};
   },
   unlocked(st, idx){
+    if (S.allOpen) return true;          // режим проверки: открыто всё
     if (idx === 0) return true;
     return this.levelDone(st, idx-1);
   },
@@ -1164,40 +1166,175 @@ const Lesson = {
       setTimeout(()=>{ this.turnIdx++; box.innerHTML=''; this.dialogAdvance(); }, delay);
     };
 
-    /* ---- разбор свободного ответа ---- */
+    /* ---- разбор свободного ответа ----
+       Задача: понять СМЫСЛ, а не сверить буквы. Разные верные способы
+       сказать одно и то же обязаны засчитываться.                        */
     const judge = (said, best)=>{
-      const norm = t => (t||'').toLowerCase().replace(/[’']/g,"'").replace(/[^a-z' ]/g,' ')
+      const norm = t => (t||'').toLowerCase().replace(/[\u2019']/g,"'").replace(/[^a-z' ]/g,' ')
                         .split(/\s+/).filter(Boolean);
-      const w = norm(said), b = norm(best);
-      const stop = new Set(['a','an','the','is','am','are','do','does','to','of','and','my','i','you','it']);
-      // имена в образце — пример, а не требование: человек называет своё
-      const NAMES = new Set(['anna','petrova','maria','john','tom','peter','ivan','lev']);
-      const key  = b.filter(x=>!stop.has(x) && !NAMES.has(x) && x.length>2);
-      const saidName = w.some(x=>!b.includes(x) && /^[a-z]{2,}$/.test(x) && !stop.has(x));
-      const hit  = key.filter(x=> w.includes(x) ||
-                     w.some(y=> y.startsWith(x.slice(0, Math.max(3, x.length-2)))));
+      // "i'm" -> "i am", "it's" -> "it is" и т.п.
+      const expand = arr => {
+        const out=[];
+        arr.forEach(x=>{
+          const M={"i'm":['i','am'],"it's":['it','is'],"that's":['that','is'],"don't":['do','not'],
+                   "doesn't":['does','not'],"can't":['can','not'],"i've":['i','have'],
+                   "isn't":['is','not'],"what's":['what','is'],"let's":['let','us'],
+                   "i'll":['i','will'],"we're":['we','are'],"you're":['you','are'],"he's":['he','is'],
+                   "she's":['she','is'],"there's":['there','is'],"haven't":['have','not'],"won't":['will','not']};
+          if (M[x]) out.push(...M[x]); else out.push(x.replace(/'/g,''));
+        });
+        return out;
+      };
+      // числа: "25" и "twenty five" — одно и то же
+      const NUM = {zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,
+                   ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,
+                   seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,
+                   sixty:60,seventy:70,eighty:80,ninety:90,hundred:100};
+      const numOf = arr => {                 // сумма чисел во фразе: twenty five -> 25
+        let tot=0, cur=0, any=false;
+        arr.forEach(x=>{
+          if (/^\d+$/.test(x)){ tot+=parseInt(x,10); any=true; return; }
+          if (x in NUM){ any=true; cur += NUM[x]; }
+        });
+        return any ? tot+cur : null;
+      };
+      const rawSaid = (said||'').toLowerCase();
+      const digits = (rawSaid.match(/\d+/g)||[]).map(Number);
+      const w = expand(norm(said)), b = expand(norm(best));
+
+      // группы взаимозаменяемых слов: сказал любое из группы — засчитано
+      const SAME = [
+        ['name','call','called'],                         // «my name is» / «call me»
+        ['hi','hello','hey','morning','afternoon','evening'],
+        ['bye','goodbye','see','later'],
+        ['thanks','thank','cheers'],
+        ['sorry','excuse','apologies'],
+        ['want','like','need','would'],
+        ['big','large'], ['small','little'],
+        ['bag','suitcase','luggage','case'],
+        ['lost','lose','missing','gone'],
+        ['buy','get','take','purchase'],
+        ['speak','talk','say','tell'],
+        ['help','assist'],
+        ['toilet','bathroom','restroom','wc'],
+        ['shop','store'], ['flat','apartment'],
+        ['ill','sick','unwell'],
+        ['begin','start'], ['finish','end'],
+        ['cheap','inexpensive'], ['expensive','dear','costly'],
+        ['fast','quick','quickly'], ['slow','slowly'],
+        ['near','close','nearby'], ['far','away'],
+        ['money','cash'], ['bill','check'],
+        ['doctor','gp'], ['medicine','medication','pills'],
+        ['job','work'], ['home','house'],
+        ['car','vehicle'], ['bus','coach'],
+        ['food','meal'], ['drink','beverage'],
+        ['happy','glad','pleased'], ['tired','sleepy'],
+        ['nice','good','great','lovely','fine'],
+        ['much','many','lot'],
+        ['very','really','so'],
+        ['maybe','perhaps'],
+        ['yes','yeah','sure','ok','okay','course'],
+        ['no','not','nope']
+      ];
+      const groupOf = x => { for (const g of SAME) if (g.includes(x)) return g; return null; };
+      const saidRaw = ' ' + w.join(' ') + ' ';
+      const covers = (x, arr)=>{
+        if (arr.includes(x)) return true;
+        // представиться можно двумя способами: «my name is X» и «I am X»
+        if (x === 'name' && /\b(i am|my name|name is|call me)\b/.test(saidRaw)) return true;
+        // однокоренное: work/works/working
+        if (arr.some(y=> y.length>3 && x.length>3 &&
+            (y.startsWith(x.slice(0,Math.max(4,x.length-2))) || x.startsWith(y.slice(0,Math.max(4,y.length-2)))))) return true;
+        const g = groupOf(x);
+        return !!(g && arr.some(y=>g.includes(y)));
+      };
+
+      // служебное и имена собственные из требований исключаем
+      const stop = new Set(['a','an','the','is','am','are','was','were','be','do','does','did',
+                            'to','of','and','my','i','you','it','in','on','at','for','with',
+                            'this','that','have','has','can','will','would','please','me','we','they']);
+      const NAMES = new Set(['anna','petrova','maria','john','tom','peter','ivan','lev','park','street','russia']);
+      const key = b.filter(x=>!stop.has(x) && !NAMES.has(x) && x.length>2);
+      const bNum = numOf(b), sNum = numOf(w.concat(digits.map(String)));
+      const numOk = bNum !== null && sNum !== null && bNum === sNum;
+      const hit = key.filter(x=> covers(x, w) || (numOk && (x in NUM)));
+
       const notes = [];
-      let ok = key.length ? hit.length / key.length >= .5 : w.length >= 2;
+      let ok;
+      // Вежливые формулы («Thank you, I will.», «No, that is all, thank you.»)
+      // несут не предмет, а этикет — их сверяем целиком, иначе подойдёт любая.
+      const POLITE = new Set(['thank','thanks','please','sorry','yes','yeah','no','not','all',
+                              'right','sure','okay','ok','too','also','goodbye','bye','welcome',
+                              'good','fine','great','nice','course','will','would','here','there']);
+      const etiquette = key.length > 0 && key.every(x=>POLITE.has(x));
+      if (etiquette){
+        // Образец из одних служебных слов («Yes, please.», «Thank you, I will.»).
+        // Сверяем по самим словам образца, иначе подойдёт любая вежливая фраза.
+        const core2 = b.filter(x=>!['a','an','the','to','of'].includes(x));
+        const hit2  = core2.filter(x=> covers(x, w));
+        ok = core2.length ? hit2.length / core2.length >= .5 : w.length >= 1;
+        // сказано что-то сверх этикета — значит про другое
+        const extra = w.filter(x=>!stop.has(x) && !POLITE.has(x) && x.length>3 && !covers(x, b));
+        if (extra.length >= 1) ok = false;
+      }
+      else if (!key.length){
+        const core2 = b.filter(x=>!['a','an','the','to','of'].includes(x));
+        const hit2  = core2.filter(x=> covers(x, w));
+        ok = core2.length ? hit2.length / core2.length >= .6 : w.length >= 1;
+        const extra = w.filter(x=>!stop.has(x) && x.length>3 && !covers(x, b));
+        if (extra.length >= 2) ok = false;
+      }
+      else ok = hit.length / key.length >= .5;
+      if (w.length < 1){ ok = false; }
+      // ответ обязан быть фразой, если образец — фраза
+      if (b.length >= 4 && w.length < 3){
+        ok = false;
+        notes.push('Слишком коротко — ответь целой фразой, а не одним словом.');
+      }
 
-      if (w.length < 2){ ok = false; notes.push('Слишком коротко — ответь целой фразой.'); }
-      const missed = key.filter(x=>!hit.includes(x)).slice(0,3);
-      if (missed.length) notes.push('Не хватает по смыслу: ' + missed.join(', ') + '.');
-      if (b.some(x=>NAMES.has(x)) && saidName)
-        notes.push('Своё имя — правильно. В образце просто пример.');
-      if (hit.length) notes.push('Есть главное: ' + hit.slice(0,4).join(', ') + '.');
-      if (!w.includes('i') && !w.includes('my') && !w.includes('we') &&
-          (b.includes('i') || b.includes('my')))
-        notes.push('Добавь I или my — иначе непонятно, о ком речь.');
+      // ГЛАВНОЕ СЛОВО. Последнее значимое слово образца — это предмет речи
+      // (coffee, water, bag, toilet). Заменил его другим — смысл другой.
+      const VERBS = new Set(['want','like','need','have','get','take','buy','go','come','say',
+                             'tell','see','know','think','make','give','pay','speak','help',
+                             'lost','lose','live','work','look','meet','prefer','would','will',
+                             // не предмет речи: усилители, вежливость, связки
+                             'too','also','very','really','well','good','nice','great','fine',
+                             'please','thanks','thank','sorry','yes','yeah','sure','okay','ok',
+                             'now','then','here','there','much','many','lot','more','some','any',
+                             'about','just','only','still','again','soon','later','all','right']);
+      const core = key.filter(x=>!VERBS.has(x));
+      const coreWord = core.length ? core[core.length-1] : null;
+      if (coreWord && !covers(coreWord, w) && !(numOk && (coreWord in NUM))){
+        ok = false;
+        notes.push('Речь про другое: нужно сказать про ' + coreWord + '.');
+      }
 
-      // форма глагола: сказал начальную там, где нужна прошедшая
+      // грубая ошибка формы: сказал начальную форму там, где нужна прошедшая
       const FORM = {lose:'lost', go:'went', buy:'bought', leave:'left', see:'saw',
                     take:'took', get:'got', tell:'told', find:'found', pay:'paid',
-                    forget:'forgot', come:'came', give:'gave', make:'made', say:'said'};
+                    forget:'forgot', come:'came', give:'gave', make:'made', say:'said',
+                    eat:'ate', drink:'drank', write:'wrote', speak:'spoke', break:'broke'};
+      let formErr = null;
       for (const base in FORM){
         if (w.includes(base) && b.includes(FORM[base])){
-          ok = false;
-          notes.push(`Форма глагола: прошедшее от ${base} — ${FORM[base]}, не ${base}.`);
+          ok = false; formErr = `Форма глагола: прошедшее от ${base} — ${FORM[base]}, не ${base}.`;
+          break;
         }
+      }
+
+      /* --- замечания. При «поняли» — только полезное, без придирок --- */
+      if (ok){
+        const other = w.filter(x=>!stop.has(x) && !b.includes(x) && x.length>2);
+        if (other.length && b.some(x=>NAMES.has(x)))
+          notes.push('Своё имя — так и надо. В образце просто пример.');
+        const said_s = w.join(' '), best_s = b.join(' ');
+        if (said_s !== best_s) notes.push('Можно и так, и так — смысл донесён.');
+      } else {
+        if (w.length < 2) notes.push('Слишком коротко — ответь целой фразой.');
+        if (formErr) notes.push(formErr);
+        const missed = key.filter(x=>!hit.includes(x)).slice(0,3);
+        if (missed.length) notes.push('Не хватает по смыслу: ' + missed.join(', ') + '.');
+        if (hit.length) notes.push('Есть главное: ' + hit.slice(0,4).join(', ') + '.');
       }
       return { ok, notes };
     };
@@ -1208,7 +1345,7 @@ const Lesson = {
       v.innerHTML =
         (r.ok ? '<b class="g">Тебя поняли.</b>' : '<b class="r">Так не поймут.</b>') +
         (r.notes.length ? '<ul>' + r.notes.map(n=>`<li>${n}</li>`).join('') + '</ul>' : '') +
-        `<ul><li>Носитель сказал бы: <b>${best}</b></li></ul>`;
+        `<ul><li>${r.ok ? 'Ещё вариант' : 'Носитель сказал бы'}: <b>${best}</b></li></ul>`;
       box.appendChild(v);
       setTimeout(()=>v.scrollIntoView({behavior:'smooth', block:'center'}), 60);
       return r.ok;
@@ -1404,6 +1541,7 @@ const Profile = {
     $('sw-amb').classList.toggle('on', S.sound.amb);
     $('sw-fx').classList.toggle('on', S.sound.fx);
     $('sw-tts').classList.toggle('on', S.sound.tts);
+    if ($('sw-all')) $('sw-all').classList.toggle('on', !!S.allOpen);
   }
 };
 
@@ -1411,6 +1549,7 @@ const Settings = {
   toggleAmb(){ S.sound.amb=!S.sound.amb; save(); if(!S.sound.amb) Sound.stopAmbience(); else Ambience.forScreen(current); Profile.render(); Sound.fx('tap'); },
   toggleFx(){ S.sound.fx=!S.sound.fx; save(); Sound.set(S.sound.fx||S.sound.amb); Profile.render(); },
   toggleTts(){ S.sound.tts=!S.sound.tts; save(); Profile.render(); Sound.fx('tap'); },
+  toggleAll(){ S.allOpen=!S.allOpen; save(); Profile.render(); Sound.fx(S.allOpen?'unlock':'tap'); },
   reset(){
     Sheet.open(`
       <h3 class="sm">Сбросить прогресс?</h3>
