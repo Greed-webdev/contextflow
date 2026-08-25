@@ -6,13 +6,34 @@ from topics_2 import TOPICS as T2
 from topics_3 import TOPICS as T3
 from topics_4 import TOPICS as T4
 from extend_dialogs import EXT, GENERIC
+from longer import LONGER
+from usage import USAGE
+from why import why
 ALL = T1+T2+T3+T4
 REVIEW = json.load(open('/tmp/a1/review.json'))
 
 def esc(x): return str(x).replace('\\','\\\\').replace("'","\\'")
 def cap(x): return x[0].upper()+x[1:] if x and x[0].isalpha() else x
 def wrow(a,b,rev=False):
-    return "        {t:'%s', r:'%s'%s}" % (esc(cap(a)), esc(cap(b)), ", rev:true" if rev else "")
+    u = USAGE.get(a.lower())
+    return "        {t:'%s', r:'%s'%s%s}" % (
+        esc(cap(a)), esc(cap(b)),
+        ", u:'%s'" % esc(u) if u else "",
+        ", rev:true" if rev else "")
+
+
+import re as _re
+def task_row(ru, ans):
+    """Фишки без знаков препинания: думать надо над порядком, а не над точкой."""
+    full  = ans
+    clean = _re.sub(r"[^\w'’\- ]", '', ans).strip()
+    clean = _re.sub(r'\s+', ' ', clean)
+    parts = clean.split(' ')
+    t, x  = why(full)
+    return ("        {ru:'%s', parts:[%s], answer:'%s', full:'%s',\n"
+            "         whyT:'%s', why:'%s'}") % (
+        esc(ru), ','.join("'%s'" % esc(p) for p in parts), esc(clean), esc(full),
+        esc(t), esc(x))
 
 out=[]
 BLOCK=4                      # каждые 4 темы — уровень-повторение
@@ -38,10 +59,9 @@ for idx, t in enumerate(ALL):
         out.append("      { type:'words', title:'%s', scene:'%s', cefr:'%s', newCount:%d, words:[\n%s\n      ]}"
                    % (esc(ttl), sc, esc(cd), len(own_p), ',\n'.join(rows)))
 
-    # 2) СБОРКА: 4 свои + 2 из прошлой темы
-    pairs = list(t['b']) + (list(ALL[idx-1]['b'])[:2] if idx else [])
-    tk=["        {ru:'%s', parts:[%s], answer:'%s'}"
-        % (esc(ru), ','.join("'%s'"%esc(p) for p in ans.split(' ')), esc(ans)) for ru,ans in pairs]
+    # 2) СБОРКА: только свои задания. Повторение живёт в уровнях «Повтори фразы».
+    pairs = [LONGER.get(ans, (ru, ans)) for ru, ans in t['b']]
+    tk=[task_row(ru, ans) for ru, ans in pairs]
     out.append("      { type:'build', title:'Собери: %s', scene:'%s', cefr:'%s', tasks:[\n%s\n      ]}"
                % (esc(title), sc, esc(cd), ',\n'.join(tk)))
 
@@ -70,6 +90,14 @@ for idx, t in enumerate(ALL):
         rows=[wrow(a,b,True) for a,b in pick]
         out.append("      { type:'words', title:'Контроль: темы %d–%d', scene:'%s', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[\n%s\n      ]}"
                    % (lo+1, hi+1, ALL[hi]['sc'], ',\n'.join(rows)))
+
+        bp=[]
+        for k in range(lo, hi+1):
+            bp += [LONGER.get(a, (r, a)) for r, a in ALL[k]['b']]
+        bp = bp[:6]
+        btk=[task_row(ru, ans) for ru, ans in bp]
+        out.append("      { type:'build', title:'Повтори фразы: темы %d–%d', scene:'%s', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[\n%s\n      ]}"
+                   % (lo+1, hi+1, ALL[hi]['sc'], ',\n'.join(btk)))
 
 block = '    1:[\n' + ',\n'.join(out) + '\n    ]'
 open('/tmp/a1/block3.txt','w',encoding='utf-8').write(block)

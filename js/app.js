@@ -721,9 +721,9 @@ const Voice = {
 // следующем захвате он спрашивает заново. Поэтому и при сворачивании,
 // и при выходе из урока поток остаётся живым — просто перестаём слушать.
 document.addEventListener('visibilitychange', ()=>{
-  if (document.hidden){ Voice.stop(); STT.stop(); }
+  if (document.hidden){ Voice.stop(); STT.stop(); Lesson.sayStop(); }
 });
-window.addEventListener('pagehide', ()=>{ Voice.stop(); STT.stop(); });
+window.addEventListener('pagehide', ()=>{ Voice.stop(); STT.stop(); Lesson.sayStop(); });
 
 /* ---------------- урок ---------------- */
 const Lesson = {
@@ -794,30 +794,53 @@ const Lesson = {
       .then(j=>{ this.vmap = j || null; })
       .catch(()=>{ this.vmap = null; });
   },
+  /* Очередь озвучки: реплики звучат по очереди, а не хором.
+     say()  — встать в очередь (несколько реплик подряд не наложатся)
+     say(t,{now:true}) — оборвать текущее и сказать немедленно */
   say(text, opts){
-    const force = opts && opts.force;
-    if (!force && !S.sound.tts) return;
+    const o = opts || {};
+    if (!o.force && !S.sound.tts) return;
     if (!text) return;
+    if (o.now) this.sayStop();
+    this.q = this.q || [];
+    this.q.push({ text, force: o.force });
+    if (!this.qBusy) this.sayNext();
+  },
+  sayStop(){
+    this.q = [];
+    this.qBusy = false;
+    if (this.audio){ try{ this.audio.pause(); }catch(e){} this.audio = null; }
+    if ('speechSynthesis' in window){ try{ speechSynthesis.cancel(); }catch(e){} }
+  },
+  sayNext(){
+    if (!this.q || !this.q.length){ this.qBusy = false; return; }
+    this.qBusy = true;
+    const item = this.q.shift();
+    const text = item.text;
     const code = (S.lang || 'en');
+    const done = ()=>{ this.qBusy = false; setTimeout(()=>this.sayNext(), 260); };
 
     // 1) заранее начитанный файл — работает везде, в том числе в Telegram
     const m = this.vmap && this.vmap[code] && this.vmap[code][text];
     if (m){
       try{
-        if (this.audio){ this.audio.pause(); this.audio = null; }
+        if (this.audio){ try{ this.audio.pause(); }catch(e){} this.audio = null; }
         const a = new Audio('assets/voice/' + code + '/' + m + '.m4a');
         a.volume = 1;
         this.audio = a;
+        a.onended = done;
+        a.onerror = ()=>{ this.sayNative(text, done); };
         const pr = a.play();
-        if (pr && pr.catch) pr.catch(()=>this.sayNative(text));
+        if (pr && pr.catch) pr.catch(()=>this.sayNative(text, done));
         return;
       }catch(e){ /* ниже запасной путь */ }
     }
-    this.sayNative(text);
+    this.sayNative(text, done);
   },
   /* запасной путь: системный синтез (обычные браузеры) */
-  sayNative(text){
-    if (!('speechSynthesis' in window)) return;
+  sayNative(text, done){
+    const fin = done || function(){};
+    if (!('speechSynthesis' in window)){ fin(); return; }
     const code = lang().tts;
     try{
       speechSynthesis.cancel();
@@ -837,8 +860,10 @@ const Lesson = {
           speechSynthesis.onvoiceschanged = null;
         };
       }
+      u.onend = fin; u.onerror = fin;
       speechSynthesis.speak(u);
-    }catch(e){}
+      setTimeout(fin, Math.min(9000, 1200 + text.length * 75));   // страховка
+    }catch(e){ fin(); }
   },
   fb(txt, ok){
     const f=$('l-feedback');
@@ -862,6 +887,7 @@ const Lesson = {
       <span class="kicker">${this.step+1} / ${this.total}</span>
       <div class="word-main" style="margin-top:10px">${w.t}</div>
       <div class="word-ru reveal" id="w-ru">${w.r}</div>
+      ${w.u ? `<div class="word-use">${w.u}</div>` : ''}
       <button class="pill" style="margin:16px auto 0" id="w-say">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 010 7"/></svg>
         Послушать
@@ -947,16 +973,30 @@ const Lesson = {
       if (ok){
         S.stats.right++; this.right++;
         Sound.fx('right'); this.fb(Voice.ok()?'Верно. Теперь произнеси.':'Верно. Скажи вслух ещё раз.', true);
-        this.say(t.answer);
+        this.say(t.full || t.answer);
       } else {
         dead = this.loseLife();
-        this.fb(dead ? 'Сердца кончились. Начнём уровень заново.' : ('Правильно: ' + t.answer), false);
-        this.say(t.answer);
+        this.fb(dead ? 'Сердца кончились. Начнём уровень заново.' : ('Правильно: ' + (t.full || t.answer)), false);
+        this.say(t.full || t.answer);
+        // кнопка «Почему?» — правило именно для этой фразы
+        if (!dead && t.why && !$('why-box')){
+          const box = el('div',''); box.id = 'why-box'; box.style.marginTop = '10px';
+          const b = el('button','pill','Почему?');
+          b.style.margin = '0 auto';
+          b.onclick = ()=>{
+            Sound.fx('tap');
+            if (box.querySelector('.why-text')) { box.querySelector('.why-text').remove(); return; }
+            const w = el('div','why-text');
+            w.innerHTML = `<b>${t.whyT || 'Правило'}</b><span>${t.why}</span>`;
+            box.appendChild(w);
+          };
+          box.appendChild(b); wrap.appendChild(box);
+        }
       }
       if (!dead && !$('say-here')){
         const slot = el('div',''); slot.id='say-here'; slot.style.marginTop='4px';
         wrap.appendChild(slot);
-        Voice.mount(slot, t.answer, (score)=>{ if (score>=.72) S.stats.spoken=(S.stats.spoken||0)+1; });
+        Voice.mount(slot, t.full || t.answer, (score)=>{ if (score>=.72) S.stats.spoken=(S.stats.spoken||0)+1; });
       }
       btn.textContent = this.step < this.total-1 ? 'Дальше' : 'Завершить';
       btn.onclick = ()=>{ Voice.stop(); Sound.fx('step'); this.next(); };
@@ -999,68 +1039,143 @@ const Lesson = {
   },
   askTurn(turn){
     const box = $('answers'); box.innerHTML='';
+    this.fb('');                      // стираем отклик прошлого хода
     const hint = el('div','small', `Твой ход: ${turn.ru}`);
-    hint.style.marginBottom='2px';
+    hint.style.marginBottom='8px';
     box.appendChild(hint);
 
-    const opts = turn.options.map((o,i)=>({o,i})).sort(()=>Math.random()-.5);
-    opts.forEach(({o,i})=>{
-      const b = el('button','opt', o);
-      b.onclick = ()=>{
-        [...box.querySelectorAll('.opt')].forEach(x=>x.style.pointerEvents='none');
-        const ok = i === turn.best;
-        b.classList.add(ok?'ok':'no');
-        S.stats.total++;
-        if (ok){ S.stats.right++; this.right++; Sound.fx('right'); }
-        else { const dead = this.loseLife();
-               const good=[...box.querySelectorAll('.opt')].find(x=>x.textContent===turn.options[turn.best]);
-               if (good) good.classList.add('ok');
-               if (dead) return; }
-        this.bubble('you', ok?o:turn.options[turn.best]);
-        this.say(ok?o:turn.options[turn.best]);
-        this.step++; this.prog();
-        setTimeout(()=>{ this.turnIdx++; box.innerHTML=''; this.dialogAdvance(); }, ok?750:1500);
-      };
-      box.appendChild(b);
-    });
-
-    const own = el('button','btn quiet','Ответить своими словами');
-    own.onclick = ()=>{
-      box.innerHTML='';
-      const ta = el('textarea','free-input'); ta.rows=2;
-        ta.placeholder = Voice.ok() ? 'Напиши или надиктуй свой ответ…' : 'Напиши свой ответ…';
-        const send = el('button','btn moss','Отправить');
-      send.style.marginTop='9px';
-      send.onclick = ()=>{
-        const v = ta.value.trim(); if(!v) return;
-        this.bubble('you', v);
-        this.say(v);
-        this.bubble('them', `Вариант носителя: ${turn.options[turn.best]}`, 'сравни со своим');
-        this.right += .5; S.stats.total++; S.stats.right += .5;
-        this.step++; this.prog();
-        setTimeout(()=>{ this.turnIdx++; box.innerHTML=''; this.dialogAdvance(); }, 1400);
-      };
-      box.appendChild(ta);
-      if (Voice.ok()){
-        const dict = el('button','btn quiet','Надиктовать');
-        dict.style.marginTop='9px';
-        dict.onclick = ()=>{
-          if (Voice.busy){ Voice.stop(); dict.textContent='Надиктовать'; return; }
-          dict.textContent='Слушаю…'; dict.classList.add('rec');
-          Voice.listen(turn.options[turn.best], {
-            onresult:(res)=>{
-              dict.classList.remove('rec'); dict.textContent='Надиктовать';
-              if (res.heard) ta.value = res.heard;
-              else if (res.err==='denied'){ this.fb('Микрофон не разрешён.', false); Voice.help(); }
-              else this.fb('Не расслышал.', false);
-            }
-          });
-        };
-        box.appendChild(dict);
-      }
-      box.appendChild(send); ta.focus();
+    const goNext = (delay)=>{
+      setTimeout(()=>{ this.turnIdx++; box.innerHTML=''; this.dialogAdvance(); }, delay);
     };
-    box.appendChild(own);
+
+    /* ---- разбор свободного ответа ---- */
+    const judge = (said, best)=>{
+      const norm = t => (t||'').toLowerCase().replace(/[’']/g,"'").replace(/[^a-z' ]/g,' ')
+                        .split(/\s+/).filter(Boolean);
+      const w = norm(said), b = norm(best);
+      const stop = new Set(['a','an','the','is','am','are','do','does','to','of','and','my','i','you','it']);
+      // имена в образце — пример, а не требование: человек называет своё
+      const NAMES = new Set(['anna','petrova','maria','john','tom','peter','ivan','lev']);
+      const key  = b.filter(x=>!stop.has(x) && !NAMES.has(x) && x.length>2);
+      const saidName = w.some(x=>!b.includes(x) && /^[a-z]{2,}$/.test(x) && !stop.has(x));
+      const hit  = key.filter(x=> w.includes(x) ||
+                     w.some(y=> y.startsWith(x.slice(0, Math.max(3, x.length-2)))));
+      const notes = [];
+      let ok = key.length ? hit.length / key.length >= .5 : w.length >= 2;
+
+      if (w.length < 2){ ok = false; notes.push('Слишком коротко — ответь целой фразой.'); }
+      const missed = key.filter(x=>!hit.includes(x)).slice(0,3);
+      if (missed.length) notes.push('Не хватает по смыслу: ' + missed.join(', ') + '.');
+      if (b.some(x=>NAMES.has(x)) && saidName)
+        notes.push('Своё имя — правильно. В образце просто пример.');
+      if (hit.length) notes.push('Есть главное: ' + hit.slice(0,4).join(', ') + '.');
+      if (!w.includes('i') && !w.includes('my') && !w.includes('we') &&
+          (b.includes('i') || b.includes('my')))
+        notes.push('Добавь I или my — иначе непонятно, о ком речь.');
+
+      // форма глагола: сказал начальную там, где нужна прошедшая
+      const FORM = {lose:'lost', go:'went', buy:'bought', leave:'left', see:'saw',
+                    take:'took', get:'got', tell:'told', find:'found', pay:'paid',
+                    forget:'forgot', come:'came', give:'gave', make:'made', say:'said'};
+      for (const base in FORM){
+        if (w.includes(base) && b.includes(FORM[base])){
+          ok = false;
+          notes.push(`Форма глагола: прошедшее от ${base} — ${FORM[base]}, не ${base}.`);
+        }
+      }
+      return { ok, notes };
+    };
+
+    const verdict = (said, best)=>{
+      const r = judge(said, best);
+      const v = el('div','verdict');
+      v.innerHTML =
+        (r.ok ? '<b class="g">Тебя поняли.</b>' : '<b class="r">Так не поймут.</b>') +
+        (r.notes.length ? '<ul>' + r.notes.map(n=>`<li>${n}</li>`).join('') + '</ul>' : '') +
+        `<ul><li>Носитель сказал бы: <b>${best}</b></li></ul>`;
+      box.appendChild(v);
+      return r.ok;
+    };
+
+    /* ---- главный путь: сказать своими словами ---- */
+    const ta = el('textarea','free-input'); ta.rows = 2;
+    ta.placeholder = Voice.ok() ? 'Напиши или надиктуй свой ответ…' : 'Напиши свой ответ…';
+    box.appendChild(ta);
+
+    const rowA = el('div','ans-row');
+    const send = el('button','btn moss','Ответить');
+    rowA.appendChild(send);
+
+    if (Voice.ok()){
+      const dict = el('button','btn quiet','Надиктовать');
+      dict.onclick = ()=>{
+        if (Voice.busy){ Voice.stop(); dict.textContent='Надиктовать'; return; }
+        dict.textContent='Слушаю…'; dict.classList.add('rec');
+        Voice.listen(turn.options[turn.best], {
+          onresult:(res)=>{
+            dict.classList.remove('rec'); dict.textContent='Надиктовать';
+            if (res.heard) ta.value = res.heard;
+            else if (res.err==='denied'){ this.fb('Микрофон не разрешён.', false); Voice.help(); }
+            else this.fb('Не расслышал.', false);
+          }
+        });
+      };
+      rowA.appendChild(dict);
+    }
+    box.appendChild(rowA);
+
+    const dunno = el('button','btn quiet wide','Не знаю — покажи варианты');
+    box.appendChild(dunno);
+
+    send.onclick = ()=>{
+      const v = ta.value.trim(); if (!v) return;
+      ta.disabled = true; send.disabled = true; dunno.remove();
+      const best = turn.options[turn.best];
+      this.bubble('you', v);
+      S.stats.total++;
+      const ok = verdict(v, best);
+      if (ok){ this.right++; S.stats.right++; Sound.fx('right'); }
+      else { const dead = this.loseLife(); if (dead) return; }
+      this.say(best, {now:true});
+      this.step++; this.prog();
+      const go = el('button','btn moss wide', 'Дальше');
+      go.onclick = ()=>{ this.sayStop(); Sound.fx('step'); goNext(0); };
+      box.appendChild(go);
+    };
+
+    /* ---- страховка: варианты по запросу ---- */
+    dunno.onclick = ()=>{
+      dunno.remove(); ta.remove(); rowA.remove();
+      const opts = turn.options.map((o,i)=>({o,i})).sort(()=>Math.random()-.5);
+      opts.forEach(({o,i})=>{
+        const b = el('button','opt', o);
+        b.onclick = ()=>{
+          [...box.querySelectorAll('.opt')].forEach(x=>x.style.pointerEvents='none');
+          const ok = i === turn.best;
+          b.classList.add(ok?'ok':'no');
+          S.stats.total++;
+          if (ok){ S.stats.right += .5; this.right += .5; Sound.fx('right'); }
+          else {
+            const dead = this.loseLife();
+            const good = [...box.querySelectorAll('.opt')].find(x=>x.textContent===turn.options[turn.best]);
+            if (good) good.classList.add('ok');
+            const bad = el('div','why-text');
+            bad.innerHTML = '<b>Так не говорят</b><span>' +
+              (turn.whyBad || 'Слова стоят не в том порядке. По-английски порядок жёсткий: сначала кто, потом что делает.') +
+              '</span>';
+            box.appendChild(bad);
+            if (dead) return;
+          }
+          this.bubble('you', ok?o:turn.options[turn.best]);
+          this.say(ok?o:turn.options[turn.best], {now:true});
+          this.step++; this.prog();
+          const go = el('button','btn moss wide', 'Дальше');
+          go.onclick = ()=>{ this.sayStop(); Sound.fx('step'); goNext(0); };
+          box.appendChild(go);
+        };
+        box.appendChild(b);
+      });
+    };
   },
 
   next(){
@@ -1071,7 +1186,7 @@ const Lesson = {
   },
 
   finish(failed){
-    Voice.stop(); STT.stop(); Sound.duck(false);
+    Voice.stop(); STT.stop(); Sound.duck(false); this.sayStop();
     const acc = this.total ? Math.round(this.right/this.total*100) : 100;
     if (!failed) Progress.mark(this.st, this.idx, acc/100);
     save();

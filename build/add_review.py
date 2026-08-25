@@ -19,10 +19,14 @@ shown = {}
 for t in ALL:
     for w,_ in t['w']: shown.setdefault(w, 0)
 
+NO_REVIEW_BEFORE = 3   # в первых темах повторять нечего — не засоряем их чужими словами
+
 review = []          # review[i] = список (слово, перевод) для темы i
 for i, t in enumerate(ALL):
     for w,_ in t['w']: shown[w] = shown.get(w,0)+1
     picks, seen_here = [], {w for w,_ in t['w']}
+    if i < NO_REVIEW_BEFORE:
+        review.append([]); continue
     for gap, n in GAPS:
         j = i - gap
         if j < 0: continue
@@ -69,7 +73,7 @@ for _ in range(6):
         while len(review[i])>CAP:
             w,r = review[i].pop()
             cands=[k for k in range(len(review))
-                   if k!=i and len(review[k])<CAP
+                   if k!=i and k>=NO_REVIEW_BEFORE and len(review[k])<CAP
                    and w not in ({x for x,_ in ALL[k]['w']}|{x for x,_ in review[k]})]
             if not cands:
                 review[i].insert(0,(w,r)); break
