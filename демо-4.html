@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Демо 4 · разговор не диктует, что тебе говорить</title>
+<style>
+:root{--bg:#101416;--card:#181e21;--line:#2a3237;--text:#e8edef;--text2:#9aa5ab;--text3:#6b757b;
+--moss:#6f9c78;--clay:#b26856;--amber:#c8933f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:14px}
+.wrap{max-width:520px;margin:0 auto}
+h1{font-size:18px;margin-bottom:4px}
+.sub{color:var(--text2);font-size:13px;margin-bottom:14px}
+.col{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.tag{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);font-weight:600}
+h2{font-size:15px;margin:6px 0 8px}
+.note{font-size:12.5px;color:var(--text3);margin-bottom:12px;line-height:1.5}
+.note b{color:var(--text2)}
+.chat{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;max-height:320px;overflow-y:auto}
+.bub{max-width:86%;padding:9px 12px;border-radius:16px;font-size:13.5px;background:rgba(255,255,255,.06)}
+.bub.you{align-self:flex-end;background:rgba(111,156,120,.22)}
+.bub .tr{display:block;font-size:11.5px;color:var(--text3);margin-top:2px}
+.old{opacity:.5}
+.task{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:9px}
+.task b{color:var(--amber);font-size:10px;letter-spacing:.1em;text-transform:uppercase}
+.task p{margin-top:4px;font-size:14px}
+textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;
+padding:11px 13px;color:var(--text);font:14px/1.45 inherit;resize:vertical;min-height:50px}
+textarea:focus{outline:none;border-color:var(--moss)}
+.row{display:flex;gap:8px;margin-top:8px}
+button{flex:1;border:none;border-radius:12px;padding:11px;font:600 14px inherit;cursor:pointer;
+background:var(--moss);color:#fff}
+button.g{background:rgba(255,255,255,.06);color:var(--text)}
+button:active{transform:scale(.99)}
+.v{margin-top:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:13px}
+.v b.g{color:var(--moss)} .v b.a{color:var(--amber)} .v b.r{color:var(--clay)}
+.v ul{margin:7px 0 0 16px} .v li{margin-bottom:3px;color:var(--text2)}
+.try{font-size:12px;color:var(--text3);margin-top:8px;line-height:1.6}
+.try code{background:rgba(255,255,255,.06);padding:1px 6px;border-radius:5px;color:var(--text2);font-size:11.5px}
+</style></head><body><div class="wrap">
+
+<h1>Демо 4 · разговор не диктует, что тебе говорить</h1>
+<p class="sub">Две правки по твоим словам. В рабочий код ещё не внедрено.</p>
+
+<div class="col">
+  <span class="tag">Правка 1</span>
+  <h2>Ты сам решаешь, что потерял</h2>
+  <p class="note">Было: «Скажи, что потерял <b>сумку</b>». Почему сумку? Может, телефон.<br>
+  Стало: «Скажи, что случилось». Говоришь <b>phone</b> — дальше весь разговор про телефон. Скажешь <b>wallet</b> — про кошелёк.</p>
+
+  <span class="tag" style="color:var(--moss)">Правка 2</span>
+  <h2>Одно слово не блокирует</h2>
+  <p class="note">Было: написал <code>bag</code> — стена «не хватает», дальше не пускает.<br>
+  Стало: тебя поняли, разговор идёт дальше. Рядом показано, как сказать целиком — но <b>никто не держит</b>.</p>
+</div>
+
+<div class="col">
+  <div class="chat" id="chat"></div>
+  <div class="task"><b>Твой ход</b><p id="ru">—</p></div>
+  <textarea id="in" placeholder="Ответь своими словами…"></textarea>
+  <div class="row">
+    <button onclick="D.go()">Ответить</button>
+    <button class="g" onclick="D.reset()">Сначала</button>
+  </div>
+  <div id="out"></div>
+  <p class="try">Попробуй: <code>phone</code> · <code>I lost my wallet</code> · <code>bag</code> · <code>my passport is gone</code><br>
+  Потом «Сначала» и другой предмет — увидишь, что разговор идёт за тобой.</p>
+</div>
+
+</div>
+<script>
+const norm = t => (t||'').toLowerCase().replace(/[\u2019']/g,"'").replace(/[^a-z' ]/g,' ').split(/\s+/).filter(Boolean);
+const EXP = {"i'm":['i','am'],"it's":['it','is'],"don't":['do','not'],"can't":['can','not'],
+ "i've":['i','have'],"what's":['what','is'],"i'll":['i','will'],"there's":['there','is'],"thanks":['thank','you']};
+const expand = a => { const o=[]; a.forEach(x=>{ if(EXP[x]) o.push(...EXP[x]); else o.push(x.replace(/'/g,'')); }); return o; };
+
+/* предметы, которые можно потерять — выбирает игрок, не сценарий */
+/* [именительный, родительный, винительный] — чтобы фразы звучали по-русски */
+const THINGS = {
+  phone:['телефон','телефона','телефон'], bag:['сумка','сумки','сумку'],
+  wallet:['кошелёк','кошелька','кошелёк'], passport:['паспорт','паспорта','паспорт'],
+  keys:['ключи','ключей','ключи'], laptop:['ноутбук','ноутбука','ноутбук'],
+  suitcase:['чемодан','чемодана','чемодан'], luggage:['багаж','багажа','багаж'],
+  ticket:['билет','билета','билет'], card:['карта','карты','карту'],
+  money:['деньги','денег','деньги'], documents:['документы','документов','документы'],
+  camera:['камера','камеры','камеру'], jacket:['куртка','куртки','куртку'],
+  umbrella:['зонт','зонта','зонт'], charger:['зарядка','зарядки','зарядку'],
+  glasses:['очки','очков','очки'], watch:['часы','часов','часы']
+};
+/* как ещё называют ту же вещь — иначе «telephone» не опознается */
+const ALIAS = {
+  telephone:'phone', mobile:'phone', cellphone:'phone', cell:'phone', smartphone:'phone', iphone:'phone',
+  purse:'wallet', billfold:'wallet',
+  case:'suitcase', baggage:'luggage', bags:'luggage', backpack:'bag', rucksack:'bag', handbag:'bag',
+  key:'keys', notebook:'laptop', computer:'laptop', pc:'laptop', macbook:'laptop',
+  papers:'documents', document:'documents', id:'documents', licence:'documents', license:'documents',
+  tickets:'ticket', cards:'card', creditcard:'card', banknote:'money', cash:'money', wallets:'wallet',
+  spectacles:'glasses', sunglasses:'glasses', coat:'jacket', raincoat:'jacket',
+  brolly:'umbrella', charging:'charger', cable:'charger', watches:'watch', clock:'watch',
+  camara:'camera', phones:'phone'
+};
+/* находит предмет: сам или через синоним */
+function findThing(w){
+  for (const x of w){
+    if (THINGS[x]) return x;
+    if (ALIAS[x] && THINGS[ALIAS[x]]) return ALIAS[x];
+  }
+  return null;
+}
+const LOSE = ['lost','lose','losing','missing','gone','stolen','left','forgot','disappeared'];
+const PLACE = ['train','bus','taxi','car','cafe','coffee','restaurant','shop','store','station',
+ 'airport','hotel','room','building','street','park','bank','toilet','bathroom','platform',
+ 'bar','market','office','home','house','here','there','outside','inside','upstairs','downstairs','school','work'];
+const COLOR = ['black','white','red','blue','green','brown','grey','gray','yellow','dark','light','orange','pink','purple'];
+const SIZE  = ['small','big','large','little','medium','tiny','huge','heavy','light'];
+
+const GOALS = {
+  thank:{name:'поблагодарить', any:[['thank','you'],['thanks'],['cheers'],['appreciate']]},
+  bye:  {name:'попрощаться',   any:[['goodbye'],['bye'],['see','you'],['later'],['day'],['night'],['evening']]},
+  greet:{name:'поздороваться', any:[['hi'],['hello'],['hey'],['morning'],['afternoon'],['evening']]},
+  name: {name:'назвать себя',  any:[['my','name'],['i','am'],['name','is'],['call','me']]}
+};
+const met = (w,k)=> GOALS[k].any.some(c=>c.every(x=>w.includes(x)));
+
+/* ---- разбор: три исхода. поняли / поняли, но коротко / не про то ---- */
+function judge(said, node, mem){
+  const w = expand(norm(said));
+  if (!w.length) return {lvl:'no', notes:['Пусто — напиши хоть слово.'], best:node.best(mem)};
+  return node.judge(w, mem, said);
+}
+function show(r){
+  const cls = r.lvl==='ok' ? 'g' : r.lvl==='short' ? 'a' : 'r';
+  const head = r.lvl==='ok' ? 'Тебя поняли.' : r.lvl==='short' ? 'Поняли. Идём дальше.' : 'Это не про то.';
+  document.getElementById('out').innerHTML =
+    `<div class="v"><b class="${cls}">${head}</b><ul>${r.notes.map(n=>`<li>${n}</li>`).join('')}
+     <li>Целиком это звучит так: <b>${r.best}</b></li></ul></div>`;
+}
+
+const SCENE = {
+  start:'greet',
+  nodes:{
+    greet:{
+      them:()=>({en:'Hello! Can I help you?', ru:'Здравствуйте! Могу помочь?'}),
+      ru:()=>'Поздоровайся и назови себя.',
+      best:()=>'Hi, my name is Lev.',
+      judge(w,mem){
+        const skip=new Set(['hi','hello','hey','my','name','is','i','am','the','a','good','morning','nice','to','meet','you']);
+        const c=w.find(x=>!skip.has(x)&&x.length>1);
+        if(c) mem.name=c.charAt(0).toUpperCase()+c.slice(1);
+        const g=met(w,'greet'), n=met(w,'name')||!!c;
+        if(g&&n) return {lvl:'ok', notes:['Поздоровался и назвал себя.'], best:this.best(mem)};
+        if(n)    return {lvl:'short', notes:['Имя есть. С «Hi» звучит теплее.'], best:this.best(mem)};
+        return {lvl:'short', notes:['Имя не расслышал — но идём дальше.'], best:this.best(mem)};
+      },
+      next:()=>'what'
+    },
+    what:{
+      them:(m)=>({en:`Nice to meet you${m.name?', '+m.name:''}. What brings you here?`,
+                  ru:`Приятно познакомиться${m.name?', '+m.name:''}. Что вас привело?`}),
+      ru:()=>'Скажи, что случилось.',            // ← предмет НЕ навязан
+      best:(m)=>`I have lost my ${m.thing||'phone'}.`,
+      judge(w,mem){
+        const thing = findThing(w);
+        const verb  = LOSE.some(v=>w.includes(v));
+        if(thing) mem.thing = thing;
+        if(thing&&verb) return {lvl:'ok', notes:[`Понятно: пропал ${THINGS[thing][0]}.`], best:this.best(mem)};
+        if(thing)       return {lvl:'short', notes:[`Понял: ${THINGS[thing][0]}. Целой фразой яснее — что именно случилось.`], best:this.best(mem)};
+        if(verb){ mem.thing=null; return {lvl:'short', notes:['Понял, что-то пропало. Сейчас уточню что.'], best:this.best(mem)}; }
+        return {lvl:'no', notes:['Скажи, что случилось: потерял, украли, забыл.'], best:this.best(mem)};
+      },
+      next:(m)=> m.thing ? 'where' : 'whatthing'
+    },
+    whatthing:{
+      them:()=>({en:'What exactly did you lose?', ru:'Что именно пропало?'}),
+      ru:()=>'Назови предмет.',
+      best:()=>'My phone.',
+      judge(w,mem){
+        const t=findThing(w);
+        if(t){ mem.thing=t; return {lvl:'ok', notes:[`Записал: ${THINGS[t][0]}.`], best:'My '+t+'.'}; }
+        return {lvl:'no', notes:['Такого слова не знаю. Скажи проще: phone, bag, wallet, keys, passport.'], best:'My phone.'};
+      },
+      next:()=>'where'
+    },
+    where:{
+      them:(m)=>({en:`Where did you last see your ${m.thing}?`,
+                  ru:`Где вы в последний раз видели ${THINGS[m.thing]?THINGS[m.thing][2]:'эту вещь'}?`}),
+      ru:()=>'Ответь, где это было.',
+      best:()=>'On the train.',
+      judge(w,mem){
+        const p=PLACE.find(x=>w.includes(x));
+        mem.place = p || 'here';
+        if(p&&w.length>=2) return {lvl:'ok', notes:['Место понятно.'], best:'On the '+p+'.'};
+        if(p)              return {lvl:'ok', notes:['Одного слова тут хватает.'], best:'On the '+p+'.'};
+        return {lvl:'short', notes:['Место не разобрал — будем искать здесь.'], best:this.best(mem)};
+      },
+      next:(m)=> m.place==='here' ? 'search' : 'callplace'
+    },
+    callplace:{
+      them:(m)=>({en:`I will call the ${m.place} now. Can you describe it?`,
+                  ru:'Сейчас позвоню туда. Опишете вещь?'}),
+      ru:()=>'Опиши: цвет или размер.',
+      best:(m)=>`It is a small black ${m.thing}.`,
+      judge(w,mem){
+        const c=COLOR.find(x=>w.includes(x)), s=SIZE.find(x=>w.includes(x));
+        if(c&&s) return {lvl:'ok', notes:['Цвет и размер — этого достаточно.'], best:this.best(mem)};
+        if(c||s) return {lvl:'ok', notes:[`Понятно: ${c||s}.`], best:this.best(mem)};
+        return {lvl:'short', notes:['Цвет не разобрал — запишу как есть.'], best:this.best(mem)};
+      },
+      next:()=>'end'
+    },
+    search:{
+      them:()=>({en:'Then it may still be in this building. Shall we look together?',
+                 ru:'Тогда она может быть в здании. Поищем вместе?'}),
+      ru:()=>'Согласись.',
+      best:()=>'Yes, please.',
+      judge(w){ return {lvl:'ok', notes:['Идём искать.'], best:'Yes, please.'}; },
+      next:()=>'end'
+    },
+    end:{
+      them:(m)=>({en:`Alright${m.name?', '+m.name:''}. I will call you. Have a good day!`,
+                  ru:`Хорошо${m.name?', '+m.name:''}. Я позвоню. Хорошего дня!`}),
+      ru:()=>'Попрощайся.',                       // ← не требуем «поблагодари»
+      best:()=>'Thank you, goodbye!',
+      judge(w){
+        const t=met(w,'thank'), b=met(w,'bye');
+        if(t&&b) return {lvl:'ok', notes:['Поблагодарил и попрощался — как надо.'], best:'Thank you, goodbye!'};
+        if(b)    return {lvl:'ok', notes:['Прощание принято. С «thanks» было бы теплее.'], best:'Thanks, bye!'};
+        if(t)    return {lvl:'ok', notes:['Благодарность принята.'], best:'Thank you, goodbye!'};
+        return {lvl:'short', notes:['Похоже на прощание — засчитано.'], best:'Thank you, goodbye!'};
+      },
+      next:()=>null
+    }
+  }
+};
+
+const D = {
+  mem:{}, at:null,
+  reset(){ this.mem={}; this.at=SCENE.start;
+    document.getElementById('chat').innerHTML='';
+    document.getElementById('out').innerHTML='';
+    document.getElementById('in').value=''; this.step(); },
+  step(){ const n=SCENE.nodes[this.at]; const t=n.them(this.mem);
+    this.bub('them',t.en,t.ru);
+    document.getElementById('ru').textContent = n.ru(this.mem);
+    console.log('[память диалога]', JSON.stringify(this.mem)); },
+  bub(who,en,ru){ const c=document.getElementById('chat');
+    [...c.children].forEach(x=>x.classList.add('old'));
+    const b=document.createElement('div'); b.className='bub '+who;
+    b.innerHTML=en+(ru?`<span class="tr">${ru}</span>`:''); c.appendChild(b); c.scrollTop=c.scrollHeight; },
+  go(){
+    const n=SCENE.nodes[this.at], said=document.getElementById('in').value.trim();
+    const r=judge(said,n,this.mem);
+    show(r);
+    if(r.lvl==='no') return;                 // не про то — остаёмся
+    this.bub('you',said,'');
+    document.getElementById('in').value='';
+    const nx=n.next(this.mem);
+    if(!nx){ document.getElementById('ru').textContent='Разговор окончен.';
+      document.getElementById('out').innerHTML +=
+        '<div class="v"><b class="g">Дошёл до конца.</b><ul><li>Нажми «Сначала» и потеряй другую вещь — разговор пойдёт иначе.</li></ul></div>';
+      return; }
+    this.at=nx;
+    setTimeout(()=>{ document.getElementById('out').innerHTML=''; this.step(); }, 500);
+  }
+};
+D.reset();
+</script></body></html>

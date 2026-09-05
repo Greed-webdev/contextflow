@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Демо: разбор по смыслу + живой диалог</title>
+<style>
+:root{--bg:#101416;--card:#181e21;--line:#2a3237;--text:#e8edef;--text2:#9aa5ab;--text3:#6b757b;
+--moss:#6f9c78;--clay:#b26856;--amber:#c8933f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:16px}
+.wrap{max-width:1100px;margin:0 auto}
+h1{font-size:19px;margin-bottom:4px}
+.sub{color:var(--text2);font-size:13px;margin-bottom:18px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+.col{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.tag{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);font-weight:600}
+h2{font-size:16px;margin:6px 0 10px}
+.note{font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.45}
+.task{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.task b{color:var(--amber);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.task p{margin-top:4px;font-size:14px}
+textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;
+padding:11px 13px;color:var(--text);font:14px/1.45 inherit;resize:vertical;min-height:52px}
+textarea:focus{outline:none;border-color:var(--moss)}
+.row{display:flex;gap:8px;margin-top:8px}
+button{flex:1;border:none;border-radius:12px;padding:11px;font:600 14px inherit;cursor:pointer;
+background:var(--moss);color:#fff;transition:.15s}
+button.g{background:rgba(255,255,255,.06);color:var(--text)}
+button:active{transform:scale(.99)}
+button:disabled{opacity:.45;cursor:default}
+.v{margin-top:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:13px}
+.v b.g{color:var(--moss)} .v b.r{color:var(--clay)}
+.v ul{margin:7px 0 0 16px} .v li{margin-bottom:3px;color:var(--text2)}
+.chat{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;max-height:290px;overflow-y:auto}
+.bub{max-width:84%;padding:9px 12px;border-radius:16px;font-size:13.5px;background:rgba(255,255,255,.06)}
+.bub.you{align-self:flex-end;background:rgba(111,156,120,.22)}
+.bub .tr{display:block;font-size:11.5px;color:var(--text3);margin-top:2px}
+.state{font-size:11px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.state b{color:var(--amber)}
+.old{opacity:.55}
+.hint{font-size:12px;color:var(--text3);margin-top:6px}
+</style></head><body><div class="wrap">
+
+<h1>Две правки · версия 3</h1>
+<p class="sub">Проверь: на вопрос «где» ответь одним словом — <b>cafe</b>. Должно приняться.</p>
+
+<div class="cols">
+
+<!-- ЛЕВО -->
+<div class="col">
+  <span class="tag">Правка 1 · разбор по смыслу задания</span>
+  <h2>Короткая фраза — это нормально</h2>
+  <p class="note">Было: проверка сверяла твой ответ с образцом слово в слово. Сказал «Thank you. Goodbye.» вместо «Thanks, goodbye!» — уже недобор.<br><br>
+  Стало: сначала смотрю, <b>что просили сделать</b> — поблагодарить и попрощаться. Есть благодарность и прощание — задание выполнено. Образец лишь один из вариантов.</p>
+
+  <div class="task"><b>Твой ход</b><p id="l-ru">Поблагодари и попрощайся.</p></div>
+  <textarea id="l-in" placeholder="Напиши ответ…">Thank you. Goodbye.</textarea>
+  <div class="row">
+    <button onclick="L.go()">Ответить</button>
+    <button class="g" onclick="L.next()">Другое задание</button>
+  </div>
+  <div id="l-out"></div>
+  <p class="hint">Попробуй: «Thanks, bye», «Thank you very much, see you», «The same to you» на «Ответь тем же».</p>
+</div>
+
+<!-- ПРАВО -->
+<div class="col">
+  <span class="tag">Правка 2 · диалог идёт от твоих слов</span>
+  <h2>Собеседник отвечает на то, что сказал ты</h2>
+  <p class="note">Было: реплики шли по списку. Что ни скажи — следующая та же.<br><br>
+  Стало: у разговора есть <b>память</b>. Назвал имя — к тебе обращаются по имени. Сказал, что торопишься — вопросов меньше. Пожаловался — предложат помощь. Ветка выбирается по смыслу твоих слов.</p>
+
+  <div class="chat" id="d-chat"></div>
+  <div class="task"><b>Твой ход</b><p id="d-ru">—</p></div>
+  <textarea id="d-in" placeholder="Ответь своими словами…"></textarea>
+  <div class="row">
+    <button onclick="D.go()">Ответить</button>
+    <button class="g" onclick="D.reset()">Сначала</button>
+  </div>
+  <div id="d-out"></div>
+  <div class="state" id="d-state"></div>
+</div>
+
+</div></div>
+
+<script>
+/* ---------- общий разбор ---------- */
+const norm = t => (t||'').toLowerCase().replace(/[\u2019']/g,"'").replace(/[^a-z' ]/g,' ').split(/\s+/).filter(Boolean);
+const EXP = {"i'm":['i','am'],"it's":['it','is'],"that's":['that','is'],"don't":['do','not'],
+ "can't":['can','not'],"i've":['i','have'],"what's":['what','is'],"let's":['let','us'],
+ "i'll":['i','will'],"you're":['you','are'],"there's":['there','is'],"thanks":['thank','you']};
+const expand = a => { const o=[]; a.forEach(x=>{ if(EXP[x]) o.push(...EXP[x]); else o.push(x.replace(/'/g,'')); }); return o; };
+
+/* ЦЕЛЬ задания = набор смыслов, каждый закрывается любым из способов */
+const GOALS = {
+  thank:   {name:'поблагодарить', any:[['thank','you'],['thanks'],['cheers'],['grateful'],['appreciate']]},
+  bye:     {name:'попрощаться',   any:[['goodbye'],['bye'],['see','you'],['later'],['night'],['farewell']]},
+  greet:   {name:'поздороваться', any:[['hi'],['hello'],['hey'],['morning'],['afternoon'],['evening']]},
+  name:    {name:'назвать себя',  any:[['my','name'],['i','am'],['name','is'],['call','me'],["i'm"]]},
+  same:    {name:'ответить тем же',any:[['too'],['same'],['likewise'],['as','well'],['also'],['you','too']]},
+  nice:    {name:'сказать, что приятно',any:[['nice'],['pleased'],['good'],['glad'],['pleasure']]}
+};
+function hasAll(words, combo){ return combo.every(w=>words.includes(w)); }
+function goalMet(words, key){ return GOALS[key].any.some(c=>hasAll(words,c)); }
+
+function judgeByGoal(said, goals, best){
+  const w = expand(norm(said));
+  if (w.length < 1) return {ok:false, notes:['Пусто — напиши ответ.']};
+  const met = goals.filter(g=>goalMet(w,g));
+  const miss = goals.filter(g=>!goalMet(w,g));
+  const ok = miss.length === 0;
+  const notes = [];
+  if (ok){
+    notes.push('Задание выполнено: ' + met.map(g=>GOALS[g].name).join(' + ') + '.');
+    if (w.length <= 4) notes.push('Коротко — и правильно. Так и говорят.');
+  } else {
+    notes.push('Не хватает: ' + miss.map(g=>GOALS[g].name).join(', ') + '.');
+    if (met.length) notes.push('Уже есть: ' + met.map(g=>GOALS[g].name).join(', ') + '.');
+  }
+  return {ok, notes, best};
+}
+function render(el, r){
+  el.innerHTML = `<div class="v">${r.ok?'<b class="g">Принято.</b>':'<b class="r">Ещё не всё.</b>'}
+    <ul>${r.notes.map(n=>`<li>${n}</li>`).join('')}
+    <li>${r.ok?'Ещё вариант':'Например'}: <b>${r.best}</b></li></ul></div>`;
+}
+
+/* ---------- ЛЕВО: задания с твоего 3-го уровня ---------- */
+const TASKS = [
+  {ru:'Поблагодари и попрощайся.',  goals:['thank','bye'],  best:'Thanks, goodbye!'},
+  {ru:'Ответь тем же.',             goals:['same'],         best:'Nice to meet you too.'},
+  {ru:'Поздоровайся и назови себя.',goals:['greet','name'], best:'Hi, my name is Anna.'}
+];
+const L = {
+  i:0,
+  next(){ this.i=(this.i+1)%TASKS.length; document.getElementById('l-ru').textContent=TASKS[this.i].ru;
+          document.getElementById('l-in').value=''; document.getElementById('l-out').innerHTML=''; },
+  go(){ const t=TASKS[this.i];
+        render(document.getElementById('l-out'), judgeByGoal(document.getElementById('l-in').value, t.goals, t.best)); }
+};
+
+/* ---------- ПРАВО: диалог с памятью ---------- */
+const SCENE = {
+  start:'greet',
+  nodes:{
+    greet:{
+      them:{en:'Hello! Can I help you?', ru:'Здравствуйте! Могу помочь?'},
+      ru:'Поздоровайся и назови себя.', goals:['greet','name'], best:'Hi, my name is Anna.',
+      // ветка выбирается по тому, ЧТО ты сказал
+      branch(w, mem){
+        mem.name = pickName(w);
+        if (w.includes('hurry')||w.includes('quick')||w.includes('fast')) return 'rush';
+        return 'ask';
+      }
+    },
+    ask:{
+      them(mem){ return {en:`Nice to meet you${mem.name?', '+mem.name:''}. What brings you here?`,
+                         ru:`Приятно познакомиться${mem.name?', '+mem.name:''}. Что вас привело?`}; },
+      ru:'Скажи, что потерял сумку.', goals:['lost'], best:'I have lost my bag.',
+      check(w){ return (w.includes('lost')||w.includes('lose')||w.includes('missing')) &&
+                       (w.includes('bag')||w.includes('suitcase')||w.includes('luggage')); },
+      miss:'Не хватает: что случилось и с чем.',
+      branch(w, mem){ mem.thing = w.includes('suitcase')?'suitcase':w.includes('luggage')?'luggage':'bag'; return 'where'; }
+    },
+    rush:{
+      them(mem){ return {en:`I see you are in a hurry${mem.name?', '+mem.name:''}. Tell me quickly — what happened?`,
+                         ru:`Вижу, вы торопитесь${mem.name?', '+mem.name:''}. Коротко — что случилось?`}; },
+      ru:'Скажи, что потерял сумку.', goals:['lost'], best:'I lost my bag.',
+      check(w){ return (w.includes('lost')||w.includes('lose')||w.includes('missing')) &&
+                       (w.includes('bag')||w.includes('suitcase')||w.includes('luggage')); },
+      miss:'Не хватает: что случилось и с чем.',
+      branch(w, mem){ mem.thing='bag'; mem.rush=true; return 'where'; }
+    },
+    where:{
+      them(mem){ return {en:`Where did you last see your ${mem.thing}?`,
+                         ru:`Где вы в последний раз видели ${mem.thing==='suitcase'?'чемодан':mem.thing==='luggage'?'багаж':'сумку'}?`}; },
+      ru:'Ответь, где это было.', goals:[], best:'On the train.',
+      // одного места достаточно: «cafe» — полный ответ на вопрос «где»
+      check(w){
+        const PLACE=['train','bus','taxi','car','cafe','coffee','restaurant','shop','store',
+                     'station','airport','hotel','room','building','street','park','bank',
+                     'toilet','bathroom','platform','bar','market','office','home','house',
+                     'here','there','outside','inside','upstairs','downstairs'];
+        return PLACE.some(x=>w.includes(x)) || w.length>=2;
+      },
+      miss:'Назови место: cafe, train, station.',
+      branch(w, mem){
+        if (w.includes('train')) mem.place='train';
+        else if (w.includes('bus')) mem.place='bus';
+        else if (w.includes('cafe')||w.includes('coffee')) mem.place='cafe';
+        else mem.place='here';
+        return mem.place==='here' ? 'search' : 'callplace';
+      }
+    },
+    callplace:{
+      them(mem){ const p={train:'the train company',bus:'the bus station',cafe:'the cafe'}[mem.place];
+        return {en:`I will call ${p} now. Can you describe it?`, ru:`Сейчас позвоню туда. Опишете её?`}; },
+      ru:'Опиши сумку: цвет и размер.', goals:[], best:'It is a small black bag.',
+      check(w){
+        const COLOR=['black','white','red','blue','green','brown','grey','gray','yellow','dark','light'];
+        const SIZE =['small','big','large','little','medium','tiny','huge'];
+        return COLOR.some(c=>w.includes(c)) || SIZE.some(x=>w.includes(x));
+      },
+      miss:'Скажи цвет или размер: black, small, big.',
+      branch(w, mem){ mem.desc=w.slice(0,6).join(' '); return 'end'; }
+    },
+    search:{
+      them(){ return {en:'Then it may still be in this building. Shall we look together?',
+                      ru:'Тогда она может быть в здании. Поищем вместе?'}; },
+      ru:'Согласись и поблагодари.', goals:['thank'], best:'Yes, thank you!',
+      branch(w, mem){ mem.desc='—'; return 'end'; }
+    },
+    end:{
+      them(mem){ return {en:`Alright${mem.name?', '+mem.name:''}. I will let you know. ${mem.rush?'You can go.':'Have a good day!'}`,
+                         ru:`Хорошо${mem.name?', '+mem.name:''}. Я сообщу. ${mem.rush?'Можете идти.':'Хорошего дня!'}`}; },
+      ru:'Поблагодари и попрощайся.', goals:['thank','bye'], best:'Thank you, goodbye!',
+      branch(){ return null; }
+    }
+  }
+};
+function pickName(w){
+  const skip=new Set(['hi','hello','hey','my','name','is','i','am','the','a','good','morning','nice','to','meet','you','im']);
+  const c=w.find(x=>!skip.has(x)&&x.length>1);
+  return c? c.charAt(0).toUpperCase()+c.slice(1) : null;
+}
+const D = {
+  mem:{}, at:null,
+  reset(){ this.mem={}; this.at=SCENE.start; document.getElementById('d-chat').innerHTML='';
+           document.getElementById('d-out').innerHTML=''; document.getElementById('d-in').value=''; this.show(); },
+  show(){
+    const n=SCENE.nodes[this.at];
+    const t=(typeof n.them==='function')?n.them(this.mem):n.them;
+    this.bub('them', t.en, t.ru);
+    document.getElementById('d-ru').textContent=n.ru;
+    this.state();
+  },
+  bub(who,en,ru){ const c=document.getElementById('d-chat');
+    [...c.children].forEach(x=>x.classList.add('old'));
+    const b=document.createElement('div'); b.className='bub '+who;
+    b.innerHTML=en+(ru?`<span class="tr">${ru}</span>`:''); c.appendChild(b); c.scrollTop=c.scrollHeight; },
+  state(){ /* память разговора — служебная, игроку не показываем */
+    console.log('[память диалога]', JSON.stringify(this.mem));
+    const el=document.getElementById('d-state'); if(el) el.style.display='none'; },
+  go(){
+    const n=SCENE.nodes[this.at], said=document.getElementById('d-in').value;
+    const w=expand(norm(said));
+    let r;
+    if (n.goals && n.goals.length && !n.check) r=judgeByGoal(said,n.goals,n.best);
+    else if (n.check) r = n.check(w)? {ok:true,notes:['Понятно.'],best:n.best} : {ok:false,notes:[n.miss],best:n.best};
+    else r=judgeByGoal(said,n.goals||[],n.best);
+    render(document.getElementById('d-out'), r);
+    if(!r.ok) return;
+    this.bub('you', said, '');
+    const nx=n.branch? n.branch(w,this.mem):null;
+    document.getElementById('d-in').value='';
+    if(!nx){ document.getElementById('d-ru').textContent='Разговор окончен.';
+             document.getElementById('d-out').innerHTML+='<div class="v"><b class="g">Дошёл до конца.</b><ul><li>Ветка сложилась из твоих слов — нажми «Сначала» и ответь иначе.</li></ul></div>';
+             this.state(); return; }
+    this.at=nx; setTimeout(()=>{document.getElementById('d-out').innerHTML=''; this.show();},450);
+  }
+};
+D.reset();
+</script></body></html>
