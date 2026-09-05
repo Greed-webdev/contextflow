@@ -25,7 +25,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v22';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v23';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -1263,55 +1263,69 @@ const Lesson = {
 
       const notes = [];
       let ok;
-      // Вежливые формулы («Thank you, I will.», «No, that is all, thank you.»)
-      // несут не предмет, а этикет — их сверяем целиком, иначе подойдёт любая.
+
+      // ЭТИКЕТ-ФОРМУЛЫ. Чистый этикет — это не предмет, а смысловые части:
+      // поблагодарить / попрощаться / извиниться / согласиться / отказаться.
+      // «bye have a good day» на «Поблагодари и попрощайся» — это прощание:
+      // принимаем, а про thanks мягко подсказываем, а не режем.
       const POLITE = new Set(['thank','thanks','please','sorry','yes','yeah','no','not','all',
                               'right','sure','okay','ok','too','also','goodbye','bye','welcome',
-                              'good','fine','great','nice','course','will','would','here','there']);
-      const etiquette = key.length > 0 && key.every(x=>POLITE.has(x));
-      if (etiquette){
-        // Образец из одних служебных слов («Yes, please.», «Thank you, I will.»).
-        // Сверяем по самим словам образца, иначе подойдёт любая вежливая фраза.
-        const core2 = b.filter(x=>!['a','an','the','to','of'].includes(x));
-        const hit2  = core2.filter(x=> covers(x, w));
-        ok = core2.length ? hit2.length / core2.length >= .5 : w.length >= 1;
-        // сказано что-то сверх этикета — значит про другое
-        const extra = w.filter(x=>!stop.has(x) && !POLITE.has(x) && x.length>3 && !covers(x, b));
-        if (extra.length >= 1) ok = false;
+                              'good','fine','great','nice','course','will','would','here','there',
+                              'you','me','have','got','same','see','later','day','night','back',
+                              'soon','take','care','very','much','really','many','lot','all']);
+      const CATS = [
+        {id:'thank', ru:'поблагодарить', w:['thank','thanks','cheers','appreciate','grateful']},
+        {id:'bye',   ru:'попрощаться',   w:['bye','goodbye','see','later','farewell','day','night','good']},
+        {id:'sorry', ru:'извиниться',    w:['sorry','apologise','apologize','excuse','forgive']},
+        {id:'yes',   ru:'согласиться',   w:['yes','yeah','sure','ok','okay','course','do','right']},
+        {id:'no',    ru:'отказаться',    w:['no','not','nope','never']}
+      ];
+      const inCat = (cat, arr) => cat.w.some(x => covers(x, arr));
+      const etcWords = b.filter(x => POLITE.has(x));
+      const pureEtiquette = etcWords.length >= 1 && key.length > 0 &&
+                            key.every(k => POLITE.has(k));
+      if (pureEtiquette){
+        const need = CATS.filter(c => inCat(c, b));
+        const got  = CATS.filter(c => inCat(c, w));
+        const extra = w.filter(x => !stop.has(x) && !POLITE.has(x) && x.length>3 && !covers(x, b));
+        if (need.length === 0){
+          // «Of course.», «That is right.» — просто вежливая мелочь: годится любой
+          // вежливый отклик без постороннего.
+          ok = extra.length === 0 && (got.length >= 1 || b.some(x => w.includes(x)));
+        } else {
+          ok = extra.length === 0 && got.length >= 1;
+          if (ok){
+            const miss = need.filter(c => got.indexOf(c) < 0);
+            if (miss.length) notes.push('Не хватает: ' + miss.map(c=>c.ru).join(', ') + '.');
+          } else {
+            notes.push(extra.length
+              ? 'Похоже, ты про другое — а нужно ' + need.map(c=>c.ru).join(' и ') + '.'
+              : 'Нужно: ' + need.map(c=>c.ru).join(' и ') + '.');
+          }
+        }
       }
       else if (!key.length){
-        const core2 = b.filter(x=>!['a','an','the','to','of'].includes(x));
-        const hit2  = core2.filter(x=> covers(x, w));
+        const core2 = b.filter(x => !['a','an','the','to','of'].includes(x));
+        const hit2  = core2.filter(x => covers(x, w));
         ok = core2.length ? hit2.length / core2.length >= .6 : w.length >= 1;
-        const extra = w.filter(x=>!stop.has(x) && x.length>3 && !covers(x, b));
+        const extra = w.filter(x => !stop.has(x) && x.length>3 && !covers(x, b));
         if (extra.length >= 2) ok = false;
       }
-      else ok = hit.length / key.length >= .5;
-      if (w.length < 1){ ok = false; }
-      // ответ обязан быть фразой, если образец — фраза
-      if (b.length >= 4 && w.length < 3){
-        ok = false;
-        notes.push('Слишком коротко — ответь целой фразой, а не одним словом.');
+      else {
+        ok = hit.length / key.length >= .5;
+        // много лишнего про другое — это не ответ
+        const extra = w.filter(x => !stop.has(x) && !POLITE.has(x) && x.length>3 &&
+                       !covers(x, b) && !NAMES.has(x));
+        if (extra.length >= 2) ok = false;
       }
 
-      // ГЛАВНОЕ СЛОВО. Последнее значимое слово образца — это предмет речи
-      // (coffee, water, bag, toilet). Заменил его другим — смысл другой.
-      const VERBS = new Set(['want','like','need','have','get','take','buy','go','come','say',
-                             'tell','see','know','think','make','give','pay','speak','help',
-                             'lost','lose','live','work','look','meet','prefer','would','will',
-                             // не предмет речи: усилители, вежливость, связки
-                             'too','also','very','really','well','good','nice','great','fine',
-                             'please','thanks','thank','sorry','yes','yeah','sure','okay','ok',
-                             'now','then','here','there','much','many','lot','more','some','any',
-                             'about','just','only','still','again','soon','later','all','right']);
-      const core = key.filter(x=>!VERBS.has(x));
-      const coreWord = core.length ? core[core.length-1] : null;
-      if (coreWord && !covers(coreWord, w) && !(numOk && (coreWord in NUM))){
-        ok = false;
-        notes.push('Речь про другое: нужно сказать про ' + coreWord + '.');
+      if (w.length < 1){
+        return { ok:false, notes:[ /[а-яё]/i.test(said||'')
+          ? 'Похоже на русский — попробуй по-английски.'
+          : 'Пусто — напиши хоть слово.'] };
       }
 
-      // грубая ошибка формы: сказал начальную форму там, где нужна прошедшая
+      // грубая ошибка формы: «lose» вместо «lost» и т.п. — режем всегда
       const FORM = {lose:'lost', go:'went', buy:'bought', leave:'left', see:'saw',
                     take:'took', get:'got', tell:'told', find:'found', pay:'paid',
                     forget:'forgot', come:'came', give:'gave', make:'made', say:'said',
@@ -1324,6 +1338,47 @@ const Lesson = {
         }
       }
 
+      // ПРЕДМЕТ РЕЧИ: длинный ответ, где заменено главное слово, — отклоняем.
+      // (Короткий «одно слово» с главным словом не режем — см. ниже.)
+      const VERBS = new Set(['want','like','need','have','get','take','buy','go','come','say',
+                             'tell','see','know','think','make','give','pay','speak','help',
+                             'lost','lose','live','work','look','meet','prefer','would','will',
+                             'too','also','very','really','well','good','nice','great','fine',
+                             'please','thanks','thank','sorry','yes','yeah','sure','okay','ok',
+                             'now','then','here','there','much','many','lot','more','some','any',
+                             'about','just','only','still','again','soon','later','all','right']);
+      const core = key.filter(x => !VERBS.has(x));
+      const coreWord = core.length ? core[core.length - 1] : null;
+      if (!pureEtiquette && coreWord && !covers(coreWord, w) && !(numOk && (coreWord in NUM))){
+        // «Where is it?» вместо «Where is the room?» — предмет заменён местоимением,
+        // вопрос тот же: не режем.
+        const proRef = b.includes('where') && w.includes('where') &&
+                       (w.includes('it') || w.includes('there') || w.includes('this') || w.includes('that'));
+        const otherSubject = !proRef && (w.length > 3 || !core.some(x => covers(x, w)));
+        if (otherSubject){
+          ok = false;
+          notes.push('Речь про другое: нужно сказать про ' + coreWord + '.');
+        }
+      }
+
+      // КОРОТКИЙ ОТВЕТ НЕ БЛОКИРУЕТ: сказал главное слово — принято,
+      // полная фраза показывается рядом как образец.
+      if (!ok && !formErr && !pureEtiquette && key.length > 0 && w.length <= 3){
+        const hitCore = core.filter(x => covers(x, w));
+        const extra2 = w.filter(x => !stop.has(x) && !POLITE.has(x) && x.length>3 &&
+                        !covers(x, b) && !NAMES.has(x));
+        if (hitCore.length >= 1 && extra2.length === 0){
+          ok = true;
+          if (w.length < 3) notes.push('Одного слова тут хватает.');
+        }
+      }
+
+      // «Ответь тем же»: The same to you / Me too == Nice to meet you too
+      if (!ok && !formErr && key.includes('meet') &&
+          (w.includes('same') || w.includes('likewise') || (w.includes('me') && w.includes('too')))){
+        ok = true;
+        notes.push('«The same to you» — обычный ответ на «Nice to meet you».');
+      }
       /* --- замечания. При «поняли» — только полезное, без придирок --- */
       if (ok){
         const other = w.filter(x=>!stop.has(x) && !b.includes(x) && x.length>2);
