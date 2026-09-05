@@ -25,7 +25,7 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v21';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v22';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -853,6 +853,7 @@ const Lesson = {
     if (S.sound.amb) Sound.ambience(sc.amb);
     this.total = this.lv.type==='words' ? this.lv.words.length
                : this.lv.type==='build' ? this.lv.tasks.length
+               : this.lv.variant==='lost' ? 6
                : this.lv.turns.filter(t=>t.who==='you').length;
     this.hearts();
     go('sc-lesson');
@@ -1123,6 +1124,7 @@ const Lesson = {
 
   /* ---- 3. ДИАЛОГ: готовые реплики или свой ответ ---- */
   dialogInit(){
+    if (this.lv.variant === 'lost'){ this.lostInit(); return; }
     this.turnIdx = 0;
     const body = $('l-body'); body.innerHTML = `
       <div class="pad" style="padding-bottom:2px">
@@ -1472,6 +1474,246 @@ const Lesson = {
     };
   },
 
+
+  /* ================================================================
+     ВЕТВЯЩИЙСЯ ДИАЛОГ (variant:'lost') — «разговор идёт за тобой».
+     Сценарий не навязывает предмет: что потерял — решает игрок.
+     Одно слово не блокирует, а рядом показывается полная фраза.
+     Незнакомое слово НЕ подменяется молча сумкой.
+     ================================================================ */
+  lostInit(){
+    this.lMem = {}; this.at = 'greet';
+    const body = $('l-body'); body.innerHTML = `
+      <div class="pad" style="padding-bottom:2px">
+        <div class="prompt-card" style="margin:0">
+          <span class="kicker amber">Обстановка</span>
+          <p class="small" style="margin-top:5px;color:var(--text-2)">${this.lv.intro}</p>
+        </div>
+      </div>
+      <div class="chat" id="chat"></div>
+      <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
+    $('l-action').className='btn ghost'; $('l-action').textContent='Слушать реплику';
+    $('l-action').onclick = ()=>{ if (this.lMem.lastThem) this.say(this.lMem.lastThem); };
+    this.lostNode();
+  },
+  lostFind(id){ return (this.lv.lost.nodes||[]).find(n=>n.id===id); },
+  lostNext(){
+    switch(this.at){
+      case 'greet':     return 'what';
+      case 'what':      return this.lMem.thing ? 'where' : 'whatthing';
+      case 'whatthing': return 'where';
+      case 'where':     return (this.lMem.place && this.lMem.place !== 'here') ? 'callplace' : 'search';
+      case 'callplace':
+      case 'search':    return 'end';
+      case 'end':       return null;
+    }
+    return null;
+  },
+  lostNode(){
+    const node = this.lostFind(this.at);
+    if (!node){ this.finish(); return; }
+    if (node.them){
+      this.bubble('them', node.them, node.ruThem);
+      this.lMem.lastThem = node.them;
+      this.say(node.them);
+    }
+    this.lostAsk(node);
+  },
+  lostAsk(node){
+    const cfg = this.lv.lost, box = $('answers');
+    box.innerHTML = ''; this.fb('');
+    const norm = t => (t||'').toLowerCase().replace(/[\u2019']/g,"'").replace(/[^a-z' ]/g,' ')
+                      .split(/\s+/).filter(Boolean);
+    const expand = arr => { const out=[]; arr.forEach(x=>{
+      if (x==="i'm") out.push('i','am'); else if (x==="it's") out.push('it','is');
+      else if (x==="i've") out.push('i','have'); else if (x==="don't") out.push('do','not');
+      else if (x==="what's") out.push('what','is'); else if (x==="can't") out.push('can','not');
+      else out.push(x.replace(/'/g,'')); }); return out; };
+    const has = (w, arr) => arr.some(x=>w.includes(x));
+    const findThing = w => { for (const x of w){ if (cfg.ruThings[x]) return x;
+      if (cfg.alias[x] && cfg.ruThings[cfg.alias[x]]) return cfg.alias[x]; } return null; };
+    const ruThing = id => (cfg.ruThings[id] ? cfg.ruThings[id] : id);
+
+    /* разбор свободного ответа: ok / short (принято) / no (блок) */
+    const judgeNode = said => {
+      const rawS = (said||'').toLowerCase();
+      const w = expand(norm(said));
+      if (!w.length) return {lvl:'no', notes:[
+        /[а-яё]/i.test(rawS) ? 'Похоже на русский — попробуй по-английски.' : 'Пусто — напиши хоть слово.'
+      ]};
+      if (node.kind==='greet'){
+        const g = has(w, cfg.greet);
+        const skip = cfg.greet.concat(['my','name','is','i','am','im','call','me','please',
+          'help','can','you','the','a','an','good','nice','to','meet','lost','need','sir']);
+        const nameWord = w.find(x=> x.length>1 && skip.indexOf(x) < 0);
+        if (nameWord) this.lMem.name = nameWord.charAt(0).toUpperCase() + nameWord.slice(1);
+        if (g && nameWord) return {lvl:'ok', notes:['Поздоровался и назвал себя.']};
+        if (nameWord)     return {lvl:'short', notes:['Имя есть. С «Hi» звучит теплее.']};
+        return {lvl:'short', notes:['Имя не расслышал — но идём дальше.']};
+      }
+      if (node.kind==='what'){
+        const thing = findThing(w), verb = has(w, cfg.lose);
+        if (thing) this.lMem.thing = thing;
+        if (thing && verb) return {lvl:'ok', notes:['Понятно: потерял '+ruThing(thing)+'.']};
+        if (thing)         return {lvl:'short', notes:['Понял: '+ruThing(thing)+'. Целой фразой яснее.']};
+        if (verb){ this.lMem.thing = null; return {lvl:'short', notes:['Понял, что-то пропало. Сейчас уточню что.']}; }
+        return {lvl:'no', notes:['Скажи, что случилось: потерял, украли, забыл.']};
+      }
+      if (node.kind==='whatthing'){
+        const thing = findThing(w);
+        if (thing){ this.lMem.thing = thing; return {lvl:'ok', notes:['Записал: '+ruThing(thing)+'.']}; }
+        return {lvl:'no', notes:['Такого слова не знаю. Скажи проще: phone, bag, wallet, keys, passport.']};
+      }
+      if (node.kind==='where'){
+        const p = cfg.places.find(x=>w.includes(x));
+        if (p){ this.lMem.place = p;
+          return {lvl:'ok', notes:[w.length < 3 ? 'Одного слова тут хватает.' : 'Место понятно.']}; }
+        this.lMem.place = null;
+        return {lvl:'short', notes:['Место не разобрал — будем искать рядом.']};
+      }
+      if (node.kind==='desc'){
+        const c = cfg.colors.find(x=>w.includes(x)), z = cfg.sizes.find(x=>w.includes(x));
+        if (c && z) return {lvl:'ok', notes:['Цвет и размер — этого достаточно.']};
+        if (c || z) return {lvl:'ok', notes:['Понятно: '+(c||z)+'.']};
+        return {lvl:'short', notes:['Цвет или размер не разобрал — запишу как есть.']};
+      }
+      if (node.kind==='agree') return {lvl:'ok', notes:['Идём искать.']};
+      /* end */
+      const t = has(w, cfg.thanks), b = has(w, cfg.bye);
+      if (t && b) return {lvl:'ok', notes:['Поблагодарил и попрощался — как надо.']};
+      if (b)       return {lvl:'ok', notes:['Прощание принято. С «thanks» было бы теплее.']};
+      if (t)       return {lvl:'ok', notes:['Благодарность принята. С прощанием было бы теплее.']};
+      return {lvl:'short', notes:['Похоже на прощание — засчитано.']};
+    };
+
+    const hint = el('div','small', 'Твой ход: '+node.task);
+    hint.style.marginBottom='8px';
+    box.appendChild(hint);
+
+    const ta = el('textarea','free-input'); ta.rows = 2;
+    ta.placeholder = Voice.ok() ? 'Напиши или надиктуй свой ответ…' : 'Напиши свой ответ…';
+    box.appendChild(ta);
+
+    const rowA = el('div','ans-row');
+    const send = el('button','btn moss','Ответить');
+    rowA.appendChild(send);
+    if (Voice.ok()){
+      const dict = el('button','btn quiet','Надиктовать');
+      dict.onclick = ()=>{
+        if (Voice.busy){ Voice.stop(); dict.textContent='Надиктовать'; return; }
+        dict.textContent='Слушаю…'; dict.classList.add('rec');
+        Voice.listen(node.best, {
+          onresult:(res)=>{
+            dict.classList.remove('rec'); dict.textContent='Надиктовать';
+            if (res.heard) ta.value = res.heard;
+            else if (res.err==='denied'){ this.fb('Микрофон не разрешён.', false); Voice.help(); }
+            else this.fb('Не расслышал.', false);
+          }
+        });
+      };
+      rowA.appendChild(dict);
+    }
+    box.appendChild(rowA);
+
+    const dunno = el('button','btn quiet wide','Не знаю — покажи, как сказать');
+    box.appendChild(dunno);
+    let tries = 0;
+
+    /* ход принят: показываем отклик и кнопку дальше */
+    const accept = (r, sample)=>{
+      const head = r.lvl==='ok' ? 'Тебя поняли.' : 'Поняли. Идём дальше.';
+      const v = el('div','verdict');
+      v.innerHTML = `<b class="${r.lvl==='ok'?'g':'a'}">${head}</b>` +
+        (r.notes.length ? '<ul>'+r.notes.map(n=>`<li>${n}</li>`).join('')+'</ul>' : '') +
+        (r.lvl==='ok' ? '' : `<ul><li>Целиком это звучит так: <b>${sample}</b></li></ul>`);
+      box.appendChild(v);
+      S.stats.total++; S.stats.right++;
+      this.right++; this.step++; this.prog();
+      Sound.fx('right'); Miss.ok(sample);
+      this.say(sample, {now:true});
+      const nextId = this.lostNext();
+      const go = el('button','btn moss wide', nextId ? 'Дальше' : 'Завершить');
+      go.onclick = ()=>{
+        this.sayStop(); Sound.fx('step');
+        if (!nextId){ this.total = Math.max(this.step, 1); this.finish(); return; }
+        this.at = nextId; box.innerHTML=''; this.lostNode();
+      };
+      box.appendChild(go);
+      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+    };
+
+    send.onclick = ()=>{
+      const v = ta.value.trim(); if (!v) return;
+      const myBub = this.bubble('you', v);
+      const r = judgeNode(v);
+      tries++;
+      if (r.lvl !== 'no'){
+        ta.disabled = true; send.disabled = true; dunno.remove();
+        this.sayStop();
+        accept(r, node.best);
+        return;
+      }
+      Sound.fx('wrong');
+      if (tries === 1){
+        const tip = el('div','small');
+        tip.textContent = 'Можно поправить свой ответ — это ещё не ошибка.';
+        tip.style.marginTop='6px';
+        const fix = el('button','btn moss wide','Исправить ответ');
+        fix.onclick = ()=>{
+          this.sayStop();
+          if (myBub) myBub.remove();
+          box.querySelectorAll('.verdict').forEach(x=>x.remove());
+          fix.remove(); tip.remove();
+          ta.disabled = false; send.disabled = false;
+          ta.scrollIntoView({behavior:'smooth', block:'center'});
+          ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+        };
+        ta.disabled = true; send.disabled = true;
+        box.appendChild(fix); box.appendChild(tip);
+        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+        return;
+      }
+      /* второй промах подряд — ошибка, показываем образец и идём дальше */
+      ta.disabled = true; send.disabled = true; dunno.remove();
+      Miss.add(node.best, node.task, 'dialog');
+      const dead = this.loseLife();
+      if (dead) return;
+      if (node.kind==='whatthing' && !this.lMem.thing) this.lMem.thing = 'phone';
+      const v2 = el('div','verdict');
+      v2.innerHTML = `<b class="r">Так не поймут.</b><ul>` +
+        (r.notes||[]).map(n=>`<li>${n}</li>`).join('') +
+        `<li>Например: <b>${node.best}</b></li></ul>`;
+      box.appendChild(v2);
+      this.say(node.best, {now:true});
+      this.step++; this.prog();
+      const nextId = this.lostNext();
+      const go = el('button','btn moss wide','Дальше');
+      go.onclick = ()=>{
+        this.sayStop(); Sound.fx('step');
+        if (!nextId){ this.total = Math.max(this.step, 1); this.finish(); return; }
+        this.at = nextId; box.innerHTML=''; this.lostNode();
+      };
+      box.appendChild(go);
+      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+    };
+
+    /* страховка: готовые фразы. Любая из них — правильный пример,
+       и она сама выбирает ветку (сказал wallet — дальше про кошелёк). */
+    dunno.onclick = ()=>{
+      dunno.remove(); ta.remove(); rowA.remove();
+      (node.opts && node.opts.length ? node.opts : [node.best]).forEach(o=>{
+        const b = el('button','opt', o);
+        b.onclick = ()=>{
+          [...box.querySelectorAll('.opt')].forEach(x=>x.style.pointerEvents='none');
+          const r = judgeNode(o);
+          this.bubble('you', o);
+          b.classList.add('ok');
+          accept(r, o);
+        };
+        box.appendChild(b);
+      });
+    };
+  },
   next(){
     this.step++;
     if (this.lives <= 0){ this.finish(true); return; }

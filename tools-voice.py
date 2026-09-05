@@ -11,6 +11,8 @@
 Итог:    assets/voice/en/<код>.m4a  +  assets/voice/index.json
 """
 import json, os, re, subprocess, sys, hashlib, unicodedata
+import imageio_ffmpeg
+FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
 
 ROOT   = os.path.dirname(os.path.abspath(__file__))
 OUTDIR = os.path.join(ROOT, 'assets', 'voice')
@@ -43,6 +45,11 @@ def collect():
         (lv.turns||[]).forEach(t=>{
           if(t.text) set.add(t.text);
           (t.options||[]).forEach(o=>set.add(o));
+        });
+        (lv.lost&&lv.lost.nodes||[]).forEach(n=>{
+          if(n.them) set.add(n.them);
+          if(n.best) set.add(n.best);
+          (n.opts||[]).forEach(o=>set.add(o));
         });
       }
       out[L]=[...set].filter(Boolean);
@@ -87,7 +94,7 @@ def main():
                            input=ph, text=True, capture_output=True)
             if not os.path.exists(wav):
                 print(f'   пропуск: {ph[:40]}'); continue
-            subprocess.run(['ffmpeg', '-y', '-i', wav, '-c:a', 'aac', '-b:a', '32k',
+            subprocess.run([FFMPEG, '-y', '-i', wav, '-c:a', 'aac', '-b:a', '32k',
                             '-ac', '1', '-ar', '22050', m4a], capture_output=True)
             os.remove(wav)
             if i % 25 == 0:
