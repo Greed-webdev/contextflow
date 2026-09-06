@@ -939,6 +939,7 @@ const Lesson = {
     this.total = this.lv.type==='words' ? this.lv.words.length
                : this.lv.type==='build' ? this.lv.tasks.length
                : this.lv.variant==='lost' ? 6
+               : this.lv.variant==='flow' ? Object.keys(this.lv.flow.nodes).length
                : this.lv.turns.filter(t=>t.who==='you').length;
     this.hearts();
     go('sc-lesson');
@@ -1974,9 +1975,11 @@ const Lesson = {
       Sound.fx('right');
       Miss.ok(sample);
     }
-    const txt = tr.them ? tr.them.replace(/\{name\}/g, this.lMem.name || '…') : '';
+    const nm = this.lMem.name || '…';
+    const txt = tr.them ? tr.them.replace(/\{name\}/g, nm) : '';
+    const rut = tr.ruThem ? tr.ruThem.replace(/\{name\}/g, nm) : '';
     if (txt){
-      this.bubble('them', txt, tr.ruThem || '');
+      this.bubble('them', txt, rut);
       this.lMem.lastThem = txt;
       this.say(txt, {now:true});
     } else {
