@@ -841,6 +841,91 @@ document.addEventListener('visibilitychange', ()=>{
 window.addEventListener('pagehide', ()=>{ Voice.stop(); STT.stop(); Lesson.sayStop(); });
 
 /* ---------------- урок ---------------- */
+/* ---------- помощники ветвящихся диалогов (variant:'flow') ----------
+   Перенесены из эталона демо-5: единый стоп-лист имён, белый список,
+   правдоподобие, числа. Судьи узлов в lessons.js зовут их по имени —
+   поэтому они объявлены глобально, как в демо. */
+const norm = t => (t||'').toLowerCase().replace(/[\u2019']/g,"'").replace(/[^a-z' ]/g,' ').split(/\s+/).filter(Boolean);
+const EXP={"i'm":['i','am'],"it's":['it','is'],"don't":['do','not'],"can't":['can','not'],"i've":['i','have'],
+"what's":['what','is'],"i'll":['i','will'],"there's":['there','is'],"we're":['we','are'],"you're":['you','are'],
+"that's":['that','is'],"doesn't":['does','not'],"isn't":['is','not'],"won't":['will','not']};
+const expand = a => { const o=[]; a.forEach(x=>{ if(EXP[x]) o.push(...EXP[x]); else o.push(x.replace(/'/g,'')); }); return o; };
+const NUM={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,
+thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,
+fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,hundred:100};
+const numOf = a => { let tot=0,cur=0,any=false; a.forEach(x=>{ if(/^\d+$/.test(x)){tot+=parseInt(x,10);any=true;return;}
+  if(x in NUM){any=true;cur+=NUM[x];} }); return any?tot+cur:null; };
+const has = (w,...xs)=> xs.some(x=>w.includes(x));
+const SVC=['a','an','the','to','of','and','my','i','you','it','in','on','at','for','with','this','that','have',
+'has','can','will','would','please','me','we','they','is','am','are','be','do','does','did','not','no','yes',
+'thanks','thank','goodbye','bye','see','very','much','really','sorry','right','ok','okay','sure','here',
+'there','now','then','good','fine','great','nice','just','about','all','too','also','up','down','left',
+'day','night','back','soon','later','again','more','some','any','lot','so','but','or','if','from','out'];
+const NAME_STOP=['hi','hello','hey','good','morning','afternoon','evening','late','sorry','excuse','waiting','wait',
+'leaving','looking','sir','madam','maam','mr','mrs','ms','miss','there','from','with','about','name','my','me','i',
+'am','im','please','nice','to','meet','meeting','appointment','help','need','friend','lost','person','someone','just','call',
+'no','not','thanks','thank','fine','nothing','bye','goodbye','see','later','today','sure','yes','yeah','have','has',
+'an','a','the','for','here','what','your','can','you','may','of','course','going','home','go','it','problem','worries',
+'worry','know','yet','hope','matter','room','floor','lift','ok','okay','come','coming','visit','back','now','then',
+'right','left','after','before','so','but','or','and','too','also','only','very','much','really','again','soon','day',
+'do','does','did','is','are','be','we','they','this','that','these','those','all','any','some','more','out','if','at',
+'on','in','up','down','an','a'];
+const NAME_OK=new Set(['anna','anne','ann','maria','marie','mary','kate','katie','john','jane','tom','tim','sam',
+'alex','max','nick','mike','peter','paul','david','daniel','james','robert','george','helen','laura','julia',
+'olivia','emma','sophie','sofia','clara','lucy','sarah','rachel','ruth','grace','faith','hope','may','june',
+'rose','lily','iris','ruby','pearl','olive','daisy','amber','joy','dawn','summer','wren','eve','ivy','ada',
+'mark','frank','miles','ray','will','jack','ben','matt','rob','bill','joe','leo','hugo','oscar','felix',
+'masha','maria','ekaterina','katya','sasha','dasha','nastya','olga','svetlana','sveta','natasha','natalia',
+'irina','ira','tatiana','tanya','lyudmila','oksana','yulia','julia','alyona','ksenia','vera','nadezhda',
+'nadya','lyubov','galina','zinaida','zhanna','elizaveta','liza','margarita','rita','polina','arina','sonya',
+'dmitry','dima','sergey','seryozha','andrey','alexey','lyosha','nikolay','kolya','vladimir','vova','mikhail',
+'misha','evgeny','zhenya','igor','oleg','boris','artyom','timur','ruslan','vadim','lev','ivan','vanya',
+'pavel','pasha','denis','egor','yaroslav','stanislav','vyacheslav','anatoly','gennady','valery','arkady',
+'roman','roma','kirill','nikita','anton','maxim','stepan','fyodor','grigory','konstantin','viktor','yuri',
+'petrova','ivanova','sokolova','smirnov','popov','kuznetsov','brown','smith','jones','wilson','taylor']);
+const NOT_NAME=new Set(['banana','pizza','apple','orange','potato','tomato','burger','coffee','water','bread',
+'cat','dog','fish','bird','horse','mouse','table','chair','door','window','book','phone','car','house','tree',
+'lorem','ipsum','dolor','test','testing','asdf','asdfgh','qwerty','xyz','abc','blah','hmm','uh','um','eh',
+'why','who','when','where','which','because','maybe','nothing','something','anything','everything','nobody',
+'fuck','fucking','shit','damn','bitch','ass','crap','hell','idiot','stupid']);
+const looksLikeName = x =>
+  x.length>=2 && x.length<=15 &&
+  /^[a-z']+$/.test(x) &&
+  /[aeiouy]/.test(x) &&
+  !/(.)\1\1/.test(x) &&
+  !/[bcdfghjklmnpqrstvwxz]{4}/.test(x) &&
+  !/(ing|ed|ly|tion|ness|ment)$/.test(x);
+const cap = x => x.charAt(0).toUpperCase()+x.slice(1);
+const pickName = (w, skip, strict)=>{
+  for(let i=0;i<w.length-1;i++){
+    const pair=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='i'&&w[i+1]==='am')||
+               (w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
+    if(pair){ const x=w[i+2];
+      if(x&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)&&
+         (NAME_OK.has(x)||(!SVC.includes(x)&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
+  }
+  const s=new Set([...SVC,...skip]);
+  const c=w.find(x=>{
+    if(s.has(x)||NUM.hasOwnProperty(x)||NOT_NAME.has(x)) return false;
+    if(NAME_OK.has(x)) return true;
+    return strict ? false : looksLikeName(x);
+  });
+  return c ? cap(c) : null;
+};
+const introduced = w => {
+  for(let i=0;i<w.length-1;i++){
+    if(w[i]==='name'&&w[i+1]==='is') return true;
+    if(w[i]==='i'&&w[i+1]==='am') return true;
+    if(w[i]==='call'&&w[i+1]==='me') return true;
+    if(w[i]==='this'&&w[i+1]==='is') return true;
+  }
+  return false;
+};
+const sigWords = (w, extra)=>{
+  const ex = extra || [];
+  return w.filter(x=> x.length>1 && !SVC.includes(x) && !ex.includes(x));
+};
+
 const Lesson = {
   st:1, idx:0, lv:null, step:0, lives:5, right:0, total:0, mode:'', picked:null, built:[],
   start(st, idx, from){
@@ -1125,6 +1210,7 @@ const Lesson = {
   /* ---- 3. ДИАЛОГ: готовые реплики или свой ответ ---- */
   dialogInit(){
     if (this.lv.variant === 'lost'){ this.lostInit(); return; }
+    if (this.lv.variant === 'flow'){ this.flowInit(); return; }
     this.turnIdx = 0;
     const body = $('l-body'); body.innerHTML = `
       <div class="pad" style="padding-bottom:2px">
@@ -1254,7 +1340,8 @@ const Lesson = {
       // служебное и имена собственные из требований исключаем
       const stop = new Set(['a','an','the','is','am','are','was','were','be','do','does','did',
                             'to','of','and','my','i','you','it','in','on','at','for','with',
-                            'this','that','have','has','can','will','would','please','me','we','they']);
+                            'this','that','have','has','can','will','would','please','me','we','they',
+                            'well','actually']);
       const NAMES = new Set(['anna','petrova','maria','john','tom','peter','ivan','lev','park','street','russia']);
       const key = b.filter(x=>!stop.has(x) && !NAMES.has(x) && x.length>2);
       const bNum = numOf(b), sNum = numOf(w.concat(digits.map(String)));
@@ -1378,6 +1465,15 @@ const Lesson = {
           (w.includes('same') || w.includes('likewise') || (w.includes('me') && w.includes('too')))){
         ok = true;
         notes.push('«The same to you» — обычный ответ на «Nice to meet you».');
+      }
+
+      // НАЗВАТЬ СЕБЯ ИМЕНЕМ: задание «my name is X» — одно-два слова и есть имя.
+      // («Anna», «Masha Petrova» — естественный ответ на «Назови имя», без «my name is».)
+      if (!ok && !formErr && key.includes('name') && b.some(x => x === 'name') &&
+          w.length >= 1 && w.length <= 2 &&
+          w.every(x => x.length > 1 && !stop.has(x) && !POLITE.has(x) && !VERBS.has(x))){
+        ok = true;
+        notes.push('Имя само по себе — ответ. В образце полная форма.');
       }
       /* --- замечания. При «поняли» — только полезное, без придирок --- */
       if (ok){
@@ -1813,6 +1909,207 @@ const Lesson = {
       btn.onclick = ()=>{ Sound.fx('step'); Lesson.start(this.st, this.idx); };
     }
     go('sc-done');
+  },
+
+  /* ---------- ветвящийся диалог (variant:'flow') — узлы с судьями из lessons.js ----------
+     Механика демо-5: ответ игрока судит judge узла; понятый ответ выбирает ветку tr,
+     «не понял» (huh) — переспрос; пусто/русский — подсказка. */
+  flowInit(){
+    this.lMem = {};
+    const flow = this.lv.flow;
+    this.at = (flow.start && flow.nodes[flow.start]) ? flow.start : Object.keys(flow.nodes)[0];
+    const body = $('l-body'); body.innerHTML = `
+      <div class="pad" style="padding-bottom:2px">
+        <div class="prompt-card" style="margin:0">
+          <span class="kicker amber">Обстановка</span>
+          <p class="small" style="margin-top:5px;color:var(--text-2)">${this.lv.intro}</p>
+        </div>
+      </div>
+      <div class="chat" id="chat"></div>
+      <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
+    $('l-action').className='btn ghost'; $('l-action').textContent='Слушать реплику';
+    $('l-action').onclick = ()=>{ if (this.lMem.lastThem) this.say(this.lMem.lastThem); };
+    if (flow.opener && flow.opener.them){
+      this.bubble('them', flow.opener.them, flow.opener.ru || '');
+      this.lMem.lastThem = flow.opener.them;
+      this.say(flow.opener.them);
+    }
+    this.flowNode();
+  },
+  flowNode(){
+    const node = this.lv.flow.nodes[this.at];
+    if (!node){ this.finish(); return; }
+    if (node.them){
+      this.bubble('them', node.them, node.ruThem || '');
+      this.lMem.lastThem = node.them;
+      this.say(node.them);
+    }
+    this.flowAsk(node);
+  },
+  flowJudge(node, said){
+    /* нормализация + числа + вызов судьи узла — как в демо-5 */
+    const raw = said || '';
+    this.lMem._digits = (raw.match(/\d+/g) || []);
+    this.lMem._raw = raw;
+    const w = expand(norm(raw));
+    if (!w.length && !this.lMem._digits.length){
+      return { huh:1, note: /[а-яё]/i.test(raw)
+        ? 'Похоже на русский — попробуй по-английски.'
+        : 'Пусто — напиши хоть слово.' };
+    }
+    try { return node.judge(w, this.lMem); }
+    catch(e){ return { huh:1, note:'Не разобрал. Скажи иначе.' }; }
+  },
+  flowTr(node, res){
+    /* ветка ответа; страховка: эталон или первая ветка, если судья вернул huh */
+    if (res && !res.huh && node.tr && node.tr[res.br]) return node.tr[res.br];
+    const keys = Object.keys(node.tr || {});
+    return keys.length ? node.tr[keys[0]] : null;
+  },
+  flowReact(node, tr, sample, count){
+    /* понятый ответ: реплика собеседника по ветке + статистика + «Дальше» */
+    if (count){
+      this.right++; this.step++; this.prog();
+      S.stats.total++; S.stats.right++;
+      Sound.fx('right');
+      Miss.ok(sample);
+    }
+    const txt = tr.them ? tr.them.replace(/\{name\}/g, this.lMem.name || '…') : '';
+    if (txt){
+      this.bubble('them', txt, tr.ruThem || '');
+      this.lMem.lastThem = txt;
+      this.say(txt, {now:true});
+    } else {
+      this.say(sample, {now:true});
+    }
+    const nextId = tr.next && this.lv.flow.nodes[tr.next] ? tr.next : null;
+    const go = el('button','btn moss wide', nextId ? 'Дальше' : 'Завершить');
+    go.onclick = ()=>{
+      this.sayStop(); Sound.fx('step');
+      if (!nextId){ this.total = Math.max(this.step, 1); this.finish(); return; }
+      this.at = nextId; $('answers').innerHTML=''; this.flowNode();
+    };
+    $('answers').appendChild(go);
+    setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+  },
+  flowAsk(node){
+    const box = $('answers');
+    box.innerHTML = ''; this.fb('');
+    const hint = el('div','small', 'Твой ход: '+node.task);
+    hint.style.marginBottom='8px';
+    box.appendChild(hint);
+
+    const ta = el('textarea','free-input'); ta.rows = 2;
+    ta.placeholder = Voice.ok() ? 'Напиши или надиктуй свой ответ…' : 'Напиши свой ответ…';
+    box.appendChild(ta);
+
+    const rowA = el('div','ans-row');
+    const send = el('button','btn moss','Ответить');
+    rowA.appendChild(send);
+    if (Voice.ok()){
+      const dict = el('button','btn quiet','Надиктовать');
+      dict.onclick = ()=>{
+        if (Voice.busy){ Voice.stop(); dict.textContent='Надиктовать'; return; }
+        dict.textContent='Слушаю…'; dict.classList.add('rec');
+        Voice.listen(node.best, {
+          onresult:(res)=>{
+            dict.classList.remove('rec'); dict.textContent='Надиктовать';
+            if (res.heard) ta.value = res.heard;
+            else if (res.err==='denied'){ this.fb('Микрофон не разрешён.', false); Voice.help(); }
+            else this.fb('Не расслышал.', false);
+          }
+        });
+      };
+      rowA.appendChild(dict);
+    }
+    box.appendChild(rowA);
+
+    const dunno = el('button','btn quiet wide','Не знаю — покажи, как сказать');
+    box.appendChild(dunno);
+    let tries = 0;
+
+    /* ответ принят: ветка, реплика собеседника, кнопка дальше */
+    const accept = (said, res)=>{
+      const tr = this.flowTr(node, res);
+      const w1 = expand(norm(said)), w2 = expand(norm(node.best));
+      if (w1.join(' ') !== w2.join(' ')){
+        const v = el('div','verdict');
+        v.innerHTML = '<b class="g">Тебя поняли.</b>' +
+          `<ul><li>Ещё вариант: <b>${node.best}</b></li></ul>`;
+        box.appendChild(v);
+      }
+      this.flowReact(node, tr, node.best, true);
+    };
+
+    send.onclick = ()=>{
+      const v = ta.value.trim(); if (!v) return;
+      const myBub = this.bubble('you', v);
+      const res = this.flowJudge(node, v);
+      tries++;
+      if (!res.huh){
+        ta.disabled = true; send.disabled = true; dunno.remove();
+        this.sayStop();
+        accept(v, res);
+        return;
+      }
+      Sound.fx('wrong');
+      if (tries === 1){
+        const tip = el('div','small');
+        tip.textContent = 'Можно поправить свой ответ — это ещё не ошибка.';
+        tip.style.marginTop='6px';
+        const fix = el('button','btn moss wide','Исправить ответ');
+        fix.onclick = ()=>{
+          this.sayStop();
+          if (myBub) myBub.remove();
+          box.querySelectorAll('.verdict').forEach(x=>x.remove());
+          fix.remove(); tip.remove();
+          ta.disabled = false; send.disabled = false;
+          ta.scrollIntoView({behavior:'smooth', block:'center'});
+          ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+        };
+        ta.disabled = true; send.disabled = true;
+        box.appendChild(fix); box.appendChild(tip);
+        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+        return;
+      }
+      /* второй промах подряд — ошибка: показываем образец, дальше по его ветке */
+      ta.disabled = true; send.disabled = true; dunno.remove();
+      Miss.add(node.best, node.task, 'dialog');
+      const dead = this.loseLife();
+      if (dead) return;
+      this.step++; this.prog();
+      const v2 = el('div','verdict');
+      v2.innerHTML = `<b class="r">Так не поймут.</b><ul>` +
+        (res.note ? `<li>${res.note}</li>` : '') +
+        `<li>Скажи, например: <b>${node.best}</b></li></ul>`;
+      box.appendChild(v2);
+      this.say(node.best, {now:true});
+      const wBest = expand(norm(node.best));
+      this.lMem._digits = (node.best.match(/\d+/g) || []);
+      const resB = node.judge(wBest, this.lMem);
+      const go = el('button','btn moss wide','Сказать, как в примере');
+      go.onclick = ()=>{
+        this.sayStop();
+        this.bubble('you', node.best);
+        this.flowReact(node, this.flowTr(node, resB), node.best, false);
+      };
+      box.appendChild(go);
+      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+    };
+
+    /* страховка: готовая фраза. Она сама выбирает свою ветку. */
+    dunno.onclick = ()=>{
+      dunno.remove(); ta.remove(); rowA.remove();
+      const b = el('button','opt', node.best);
+      b.onclick = ()=>{
+        [...box.querySelectorAll('.opt')].forEach(x=>x.style.pointerEvents='none');
+        const res = this.flowJudge(node, node.best);
+        this.bubble('you', node.best);
+        b.classList.add('ok');
+        accept(node.best, res);
+      };
+      box.appendChild(b);
+    };
   },
 
   quit(){
