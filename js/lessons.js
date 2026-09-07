@@ -58,6 +58,18 @@ const SCENES = {
         {who:'you',  options:['…','…','…'], best:0, ru:'подсказка о чём сказать'} ]}
    ---------------------------------------------------------- */
 
+/* --- помощники судей ветвящихся диалогов (партия 2+) --- */
+const DAY_IN = w => {
+  const D=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  for (const x of w) if (D.includes(x)) return x;
+  return null;
+};
+const FLOWNUM = (w, digits) => {
+  if (digits && digits.length) return digits[0];
+  for (const x of w) if (x in NUM) return NUM[x];
+  return null;
+};
+
 const COURSE = {
   en:{
     1:[
@@ -414,28 +426,61 @@ const COURSE = {
         {ru:'Мой номер — пятьдесят один.', parts:['My','number','is','fifty-one'], answer:'My number is fifty-one', full:'My number is fifty-one.',
          whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
       ]},
-      { type:'dialog', title:'Назвать количество', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.',
+      { type:'dialog', variant:'flow', title:'Назвать количество', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.',
         intro:'Продавец взвешивает и уточняет.',
-        turns:[
-          {who:'them', text:'How many do you need?', ru:'Сколько вам нужно?'},
-          {who:'you', ru:'Скажи: пять.', best:2,
-            options:['Five give me now.','Number five is want.','Five, please.']},
-          {who:'them', text:'That will be twelve euros.', ru:'С вас двенадцать евро.'},
-          {who:'you', ru:'Уточни: двенадцать?', best:0,
-            options:['Twelve? Not twenty?','Twelve twenty what is?','Money twelve you say?']},
-          {who:'them', text:'Yes, twelve. Not twenty.', ru:'Да, двенадцать. Не двадцать.'},
-          {who:'you', ru:'Согласись и поблагодари.', best:1,
-            options:['Ok money here take.','Right, here you are. Thank you.','Twelve yes good thanks.']},
-          {who:'them', text:'Anything else today?', ru:'Ещё что-нибудь?'},
-          {who:'you', ru:'Попроси два хлеба.', best:2,
-            options:['Bread two give.','Two bread want me.','Two loaves of bread, please.']},
-          {who:'them', text:'That is three more euros.', ru:'Ещё три евро.'},
-          {who:'you', ru:'Скажи, что платишь наличными.', best:0,
-            options:['I will pay in cash.','Money paper give you.','Cash me pay now yes.']},
-          {who:'them', text:'Here is your change.', ru:'Вот сдача.'},
-          {who:'you', ru:'Проверь сдачу и поблагодари.', best:1,
-            options:['Money look ok yes.','Thank you. That is right.','Change good have thanks.']}
-        ]},
+        flow:         {intro:'Продавец взвешивает и уточняет.',
+         start:'count',
+          opener:{them:'How many do you need?', ru:'Сколько вам нужно?'},
+          nodes:{
+           count:{ task:'Скажи, сколько нужно: пять.', best:'Five, please.',
+             judge(w,mem){ const n=FLOWNUM(w,(mem._digits||[]).map(Number));
+               if(n===5) return {br:'five'};
+               if(n!==null) return {br:'othernum'};
+               if(has(w,'much','cost','price','expensive')) return {br:'price'};
+               if(has(w,'bye','goodbye','leave','leaving')||(has(w,'no')&&has(w,'thanks','thank'))||(has(w,'just')&&has(w,'looking'))) return {br:'bye'};
+               return {huh:1}; },
+             tr:{ five:{them:'Five. That will be twelve euros.',ruThem:'Пять. С вас двенадцать евро.',next:'twelve'},
+                  othernum:{them:'We sell these in packs of five. Five, right?',ruThem:'Мы продаём их по пять штук. Пять, верно?',next:'count'},
+                  price:{them:'They are two euros each.',ruThem:'По два евро за штуку.',next:'count'},
+                  bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
+           twelve:{ task:'Уточни: двенадцать?', best:'Twelve? Not twenty?',
+             judge(w,mem){ const n=FLOWNUM(w,(mem._digits||[]).map(Number));
+               if(n===12) return {br:'ok'};
+               if(n===20) return {br:'twenty'};
+               if(has(w,'sorry','pardon','what','again','repeat')) return {br:'again'};
+               return {huh:1}; },
+             tr:{ ok:{them:'Yes, twelve. Not twenty.',ruThem:'Да, двенадцать. Не двадцать.',next:'agree'},
+                  twenty:{them:'No, twelve. One two.',ruThem:'Нет, двенадцать. Один-два.',next:'twelve'},
+                  again:{them:'Twelve euros. Not twenty.',ruThem:'Двенадцать евро. Не двадцать.',next:'twelve'} } },
+           agree:{ task:'Согласись и поблагодари.', best:'Right, here you are. Thank you.',
+             judge(w){ const th=has(w,'thanks','thank'), ok=has(w,'right','ok','okay','yes','sure','here','fine','take');
+               if(th||ok) return {br:'ok'}; return {huh:1}; },
+             tr:{ ok:{them:'Thank you. Anything else today?',ruThem:'Спасибо. Что-нибудь ещё?',next:'extra'} } },
+           extra:{ task:'Попроси два хлеба.', best:'Two loaves of bread, please.',
+             judge(w,mem){ const n=FLOWNUM(w,(mem._digits||[]).map(Number));
+               const bread=has(w,'bread','loaf','loaves');
+               if(bread&&n===2) return {br:'two'};
+               if(bread) return {br:'loaves'};
+               if(has(w,'no','nothing','all','that')) return {br:'done'};
+               return {huh:1}; },
+             tr:{ two:{them:'Two loaves of bread. That is three more euros.',ruThem:'Два хлеба. Ещё три евро.',next:'pay'},
+                  loaves:{them:'How many loaves?',ruThem:'Сколько буханок?',next:'extra'},
+                  done:{them:'Ok. That is twelve euros, please.',ruThem:'Хорошо. С вас двенадцать евро.',next:'pay'} } },
+           pay:{ task:'Скажи, что платишь наличными.', best:'I will pay in cash.',
+             judge(w){ if(has(w,'card')) return {br:'card'};
+               if(has(w,'cash','notes','money')) return {br:'cash'}; return {huh:1}; },
+             tr:{ cash:{them:'Here is your change.',ruThem:'Вот ваша сдача.',next:'change'},
+                  card:{them:'Sorry, we only take cash today.',ruThem:'Извините, сегодня только наличные.',next:'pay'} } },
+           change:{ task:'Проверь сдачу и поблагодари.', best:'Thank you. That is right.',
+             judge(w){ if(has(w,'wrong','short','mistake')||(has(w,'not','no')&&!has(w,'thanks','thank'))) return {br:'recheck'};
+               if(has(w,'thanks','thank')||has(w,'right','ok','okay','fine','correct')) return {br:'ok'}; return {huh:1}; },
+             tr:{ ok:{them:'You are welcome. Have a nice day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
+                  recheck:{them:'Sorry. Let me count again. Here you are.',ruThem:'Извините. Пересчитаю. Вот, пожалуйста.',next:'change'} } },
+           bye:{ task:'Попрощайся.', best:'Thank you. Goodbye!',
+             judge(w){ if(has(w,'bye','goodbye','thanks','thank','see','later','day')) return {br:'ok'}; return {huh:1}; },
+             tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
+          } }
+      },
       { type:'words', title:'Контроль: темы 1–4', scene:'market', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
         {t:'Sorry', r:'Извините', u:'Извинение за поступок: толкнул, опоздал, перебил. Чтобы обратиться к незнакомцу — «Excuse me».', rev:true},
         {t:'Go', r:'Идти / ехать', rev:true},
@@ -514,28 +559,56 @@ const COURSE = {
         {ru:'Дайте маленький, пожалуйста.', parts:['Give','me','a','small','one','please'], answer:'Give me a small one please', full:'Give me a small one, please.',
          whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
       ]},
-      { type:'dialog', title:'Выбрать цвет', scene:'market', cefr:'A1: Can describe objects simply.',
+      { type:'dialog', variant:'flow', title:'Выбрать цвет', scene:'market', cefr:'A1: Can describe objects simply.',
         intro:'Продавец показывает два варианта.',
-        turns:[
-          {who:'them', text:'We have it in red and in black.', ru:'Есть красный и чёрный.'},
-          {who:'you', ru:'Скажи, что предпочитаешь чёрный.', best:1,
-            options:['Black colour want me have.','I prefer the black one.','Red no. Black yes give.']},
-          {who:'them', text:'What size do you need?', ru:'Какой размер нужен?'},
-          {who:'you', ru:'Скажи: маленький.', best:0,
-            options:['A small one, please.','Small size is me.','Size small give now.']},
-          {who:'them', text:'Here you are.', ru:'Пожалуйста.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok take it.','Good this one.','Thank you very much.']},
-          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
-          {who:'you', ru:'Скажи, что это всё.', best:1,
-            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
-          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
-          {who:'you', ru:'Скажи: картой.', best:0,
-            options:['By card, please.','Card me pay yes.','Money card take you.']},
-          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
-          {who:'you', ru:'Пожелай того же.', best:2,
-            options:['You day good.','Ok bye go me.','Thanks, you too!']}
-        ]},
+        flow:         {intro:'Продавец показывает два варианта.',
+         start:'pick',
+          opener:{them:'We have it in red and in black.', ru:'Есть красный и чёрный.'},
+          nodes:{
+           pick:{ task:'Скажи, что предпочитаешь чёрный.', best:'I prefer the black one.',
+             judge(w){ const b=has(w,'black'), r=has(w,'red');
+               if(b&&r) return {br:'both'};
+               if(b) return {br:'black'};
+               if(r) return {br:'red'};
+               if(has(w,'much','cost','price','expensive')) return {br:'price'};
+               if(has(w,'blue','green','white','grey','gray','yellow','brown')) return {br:'colour'};
+               if(has(w,'bye','goodbye','leave','leaving')||(has(w,'no')&&has(w,'thanks','thank'))||(has(w,'just')&&has(w,'looking'))) return {br:'bye'};
+               return {huh:1}; },
+             tr:{ black:{them:'Black is a good choice. What size do you need?',ruThem:'Чёрный — хороший выбор. Какой размер нужен?',next:'size'},
+                  red:{them:'Ok, the red one. What size do you need?',ruThem:'Хорошо, красный. Какой размер?',next:'size'},
+                  both:{them:'Ok, one in each colour. What size do you need?',ruThem:'Хорошо, по одному каждого цвета. Какой размер?',next:'size'},
+                  price:{them:'They are the same price.',ruThem:'Они по одной цене.',next:'pick'},
+                  colour:{them:'Sorry, we only have red and black.',ruThem:'Извините, есть только красный и чёрный.',next:'pick'},
+                  bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
+           size:{ task:'Скажи: маленький.', best:'A small one, please.',
+             judge(w){ if(has(w,'small','little')) return {br:'s'};
+               if(has(w,'medium','large','big')) return {br:'l'};
+               return {huh:1}; },
+             tr:{ s:{them:'A small one. Here you are.',ruThem:'Маленький. Пожалуйста.',next:'thx'},
+                  l:{them:'Here you are.',ruThem:'Пожалуйста.',next:'thx'} } },
+           thx:{ task:'Поблагодари.', best:'Thank you very much.',
+             judge(w){ if(has(w,'thanks','thank','cheers')) return {br:'ok'}; return {huh:1}; },
+             tr:{ ok:{them:'You are welcome. Anything else?',ruThem:'Пожалуйста. Что-нибудь ещё?',next:'rest'} } },
+           rest:{ task:'Скажи, что это всё.', best:'No, that is all, thank you.',
+             judge(w){ const extra=has(w,'more','also','need','want','another');
+               if(!extra&&(has(w,'no','nothing')||has(w,'all','everything','that'))) return {br:'all'};
+               return {huh:1}; },
+             tr:{ all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'paym'} } },
+           paym:{ task:'Скажи: картой.', best:'By card, please.',
+             judge(w){ if(has(w,'card')) return {br:'card'};
+               if(has(w,'cash','money','notes')) return {br:'cash'}; return {huh:1}; },
+             tr:{ card:{them:'Thank you. Have a good day!',ruThem:'Спасибо. Хорошего дня!',next:'wish'},
+                  cash:{them:'Thank you. Here is your change. Have a good day!',ruThem:'Спасибо. Вот сдача. Хорошего дня!',next:'wish'} } },
+           wish:{ task:'Пожелай того же.', best:'Thanks, you too!',
+             judge(w){ if(has(w,'too','likewise','same')) return {br:'ok'};
+               if(has(w,'bye','goodbye','see','later','day')) return {br:'bye'}; return {huh:1}; },
+             tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+                  bye:{them:'Goodbye!',ruThem:'До свидания!',next:null} } },
+           bye:{ task:'Попрощайся.', best:'Thank you. Goodbye!',
+             judge(w){ if(has(w,'bye','goodbye','thanks','thank','see','later','day')) return {br:'ok'}; return {huh:1}; },
+             tr:{ ok:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null} } }
+          } }
+      },
       { type:'words', title:'Дни и месяцы · 1', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.', newCount:12, words:[
         {t:'Day', r:'День'},
         {t:'Week', r:'Неделя'},
@@ -589,28 +662,63 @@ const COURSE = {
         {ru:'В субботу я свободен.', parts:['On','Saturday','I','am','free'], answer:'On Saturday I am free', full:'On Saturday I am free.',
          whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
       ]},
-      { type:'dialog', title:'Назначить день', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.',
+      { type:'dialog', variant:'flow', title:'Назначить день', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.',
         intro:'Коллега подбирает день для встречи.',
-        turns:[
-          {who:'them', text:'Can we meet this week?', ru:'Можем встретиться на этой неделе?'},
-          {who:'you', ru:'Спроси, какой день.', best:0,
-            options:['Sure. Which day?','Day what you want?','Week yes day say me.']},
-          {who:'them', text:'How about Wednesday?', ru:'Как насчёт среды?'},
-          {who:'you', ru:'Скажи, что среда занята, предложи четверг.', best:2,
-            options:['Wednesday no. Thursday.','No good day after yes.','Wednesday is busy for me. Can we do Thursday?']},
-          {who:'them', text:'Thursday is fine.', ru:'Четверг подходит.'},
-          {who:'you', ru:'Подтверди.', best:1,
-            options:['Ok day good bye.','Great, see you on Thursday.','Thursday yes I come then.']},
-          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
-          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
-            options:['When will I know?','Answer when have me?','Time answer what is?']},
-          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
-          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
-            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
-          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
-          {who:'you', ru:'Попрощайся вежливо.', best:1,
-            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
-        ]},
+        flow:         {intro:'Коллега подбирает день для встречи.',
+         start:'askday',
+          opener:{them:'Can we meet this week?', ru:'Можем встретиться на этой неделе?'},
+          nodes:{
+           askday:{ task:'Спроси, какой день.', best:'Sure. Which day?',
+             judge(w,mem){ const d=DAY_IN(w);
+               if(d){ mem.day=d; return {br:'direct'}; }
+               if(has(w,'when','which')&&has(w,'day')) return {br:'ask'};
+               if(has(w,'yes','ok','okay','sure','fine','great')) return {br:'ok'};
+               if(has(w,'no','not','busy')) return {br:'busy'};
+               return {huh:1}; },
+             tr:{ ask:{them:'How about Wednesday?',ruThem:'Как насчёт среды?',next:'wed'},
+                  ok:{them:'Great. How about Wednesday?',ruThem:'Отлично. Как насчёт среды?',next:'wed'},
+                  busy:{them:'No problem. When is a good day for you?',ruThem:'Без проблем. Когда вам удобно?',next:'day'},
+                  direct:{them:'Ok, {day} then.',ruThem:'Хорошо, тогда {day}.',next:'conf'} } },
+           day:{ task:'Назови удобный день.', best:'Thursday, please.',
+             judge(w,mem){ const d=DAY_IN(w);
+               if(d){ mem.day=d; return {br:'ok'}; }
+               return {huh:1}; },
+             tr:{ ok:{them:'Ok, {day} works for me.',ruThem:'Хорошо, {day} мне подходит.',next:'conf'} } },
+           wed:{ task:'Скажи, что среда занята, и предложи четверг.', best:'Wednesday is busy for me. Can we do Thursday?',
+             judge(w,mem){ const d=DAY_IN(w);
+               if(has(w,'thursday')){ mem.day='thursday'; return {br:'thu'}; }
+               if(d==='wednesday'&&!has(w,'busy','no','not')){ mem.day='wednesday'; return {br:'wed'}; }
+               if(d){ mem.day=d; return {br:'oth'}; }
+               if(has(w,'busy','no','not')) return {br:'askd'};
+               return {huh:1}; },
+             tr:{ thu:{them:'Thursday is fine.',ruThem:'Четверг подходит.',next:'conf'},
+                  wed:{them:'Great. Wednesday it is.',ruThem:'Отлично, тогда среда.',next:'conf'},
+                  oth:{them:'Ok, {day} works for me.',ruThem:'Хорошо, {day} подходит.',next:'conf'},
+                  askd:{them:'I see. What day is good for you?',ruThem:'Ясно. Какой день вам удобен?',next:'day'} } },
+           conf:{ task:'Подтверди встречу и назови день.', best:'Great, see you on Thursday.',
+             judge(w,mem){ const d=DAY_IN(w);
+               if(d){ if(!mem.day||d===mem.day) return {br:'ok'};
+                 return {br:'fix'}; }
+               if(has(w,'sorry','pardon','repeat','again','what')) return {br:'again'};
+               return {huh:1}; },
+             tr:{ ok:{them:'Great. Is there anything else?',ruThem:'Отлично. Что-нибудь ещё?',next:'any'},
+                  fix:{them:'Wait, we agreed on {day}.',ruThem:'Стоп, мы договорились на {day}.',next:'conf'},
+                  again:{them:'So, we meet on {day}, right?',ruThem:'Значит, встречаемся в {day}?',next:'conf'} } },
+           any:{ task:'Спроси, когда будет ответ.', best:'When will I know?',
+             judge(w){ if(has(w,'no','nothing')) return {br:'done'};
+               if(has(w,'when','know','call','hear','answer','soon')) return {br:'ask'};
+               return {huh:1}; },
+             tr:{ ask:{them:'We will call you this week.',ruThem:'Мы позвоним вам на этой неделе.',next:'wait'},
+                  done:{them:'Ok. We will call you this week.',ruThem:'Хорошо. Мы позвоним вам на этой неделе.',next:'wait'} } },
+           wait:{ task:'Скажи, что будешь ждать звонка.', best:'Thank you, I will wait for your call.',
+             judge(w){ if(has(w,'wait','waiting','expect','expecting','forward','hear')) return {br:'wait'};
+               return {huh:1}; },
+             tr:{ wait:{them:'Thank you for coming.',ruThem:'Спасибо, что пришли.',next:'bye'} } },
+           bye:{ task:'Попрощайся вежливо.', best:'Thank you. Have a good day.',
+             judge(w){ if(has(w,'bye','goodbye','thanks','thank','day','see','later')) return {br:'ok'}; return {huh:1}; },
+             tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
+          } }
+      },
       { type:'words', title:'Время суток · 1', scene:'flat', cefr:'A1: Can tell the time of day.', newCount:10, words:[
         {t:'Time', r:'Время'},
         {t:'Hour', r:'Час'},

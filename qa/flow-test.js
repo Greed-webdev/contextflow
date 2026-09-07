@@ -25,12 +25,15 @@ const ctxApp = runBoth(helpers + '\n' + fs.readFileSync(LESS, 'utf8') +
   '\n;globalThis.__C = COURSE; globalThis.__H = { norm, expand };');
 const stage1 = ctxApp.__C.en[1];
 const flowBy = {};
-for (const t of ['Первое приветствие', 'Заполнить анкету', 'Разговор о семье']) {
+const FLOW_TITLES = ['Первое приветствие', 'Заполнить анкету', 'Разговор о семье',
+  'Назвать количество', 'Выбрать цвет', 'Назначить день'];
+for (const t of FLOW_TITLES) {
   const lv = stage1.find(x => x.type === 'dialog' && x.variant === 'flow' && x.title === t);
   if (!lv) { console.error('нет flow-записи «' + t + '» в курсе'); process.exit(1); }
   flowBy[t] = lv.flow;
 }
-const SCENES = { s1: flowBy['Первое приветствие'], s2: flowBy['Заполнить анкету'], s3: flowBy['Разговор о семье'] };
+const SCENES = { s1: flowBy['Первое приветствие'], s2: flowBy['Заполнить анкету'], s3: flowBy['Разговор о семье'],
+  s4: flowBy['Назвать количество'], s5: flowBy['Выбрать цвет'], s6: flowBy['Назначить день'] };
 const norm = ctxApp.__H.norm, expand = ctxApp.__H.expand;
 const SPEC = JSON.parse(fs.readFileSync('/home/user/сцена-1-живая-логика.json', 'utf8'));
 
@@ -66,7 +69,9 @@ function sig(f) {
 }
 
 // ---------- симулятор (та же механика, что в app.js flowJudge/flowTr) ----------
-const fmt = (s, mem) => (s || '').replace(/\{name\}/g, (mem && mem.name) || '…');
+const fmt = (s, mem) => (s || '')
+  .replace(/\{name\}/g, (mem && mem.name) || '…')
+  .replace(/\{day\}/g, (mem && mem.day) ? String(mem.day).charAt(0).toUpperCase() + String(mem.day).slice(1) : '…');
 function step(scene, at, said, mem) {
   const n = scene.nodes[at];
   if (!n) return { err: 'нет узла ' + at };
@@ -380,6 +385,101 @@ for (const ph of ['My name is Hope','My name is Will','call me May']) {
 // 4. возраст: два числа / дробное -> переспрос
 { const s = step(s2,'age','I am 25 and my friend is 30',{}); T('age: два числа -> again/huh', s.err!==undefined || s.br==='again', s.br||s.err||''); }
 { const s = step(s2,'age','I am 25.5',{}); T('age: 25.5 -> again/huh', s.err!==undefined || s.br==='again', s.br||s.err||''); }
+
+// ---------- ПАРТИЯ 2: «Назвать количество» (s4) ----------
+const s4 = SCENES.s4;
+// полный путь (эталон)
+r = run(s4, ['Five, please.', 'Twelve? Not twenty?', 'Right, here you are. Thank you.',
+  'Two loaves of bread, please.', 'I will pay in cash.', 'Thank you. That is right.']);
+T('S4 полный путь: до конца', r.ok, r.err);
+// цифра 5 вместо слова
+{ const m = {}; const s = step(s4, 'count', '5.', m);
+  T('S4 «5.» -> five', !s.err && s.br === 'five', s.err || s.br); }
+// другое число -> переспрос (петля на count)
+{ const s = step(s4, 'count', 'Three.', {});
+  T('S4 «Three.» -> othernum (переспрос)', !s.err && s.br === 'othernum', s.err || s.br); }
+// цена -> price, возврат на count
+{ const s = step(s4, 'count', 'How much is it?', {});
+  T('S4 «How much is it?» -> price', !s.err && s.br === 'price' && /two euros/.test(s.them), s.err || s.br); }
+// уход: No thanks -> bye-ветка, короткий путь до конца
+r = run(s4, ['No, thanks. I am just looking.', 'Thank you. Goodbye!']);
+T('S4 «No thanks» -> bye: путь до конца', r.ok, r.err);
+// twenty-переспрос на twelve
+{ const s = step(s4, 'twelve', 'Twenty?', {});
+  T('S4 «Twenty?» -> ветка twenty (не конец)', !s.err && s.br === 'twenty' && s.next === 'twelve', s.err || s.br); }
+// карта в pay -> отказ, потом наличные -> конец
+r = run(s4, ['Five, please.', 'Twelve?', 'Right, here you are. Thank you.',
+  'Two loaves of bread, please.', 'By card, please.', 'I will pay in cash.', 'Thank you. That is right.']);
+T('S4 карта->наличные: путь до конца', r.ok, r.err);
+// сдача неправильная -> пересчёт, потом ok
+r = run(s4, ['Five, please.', 'Twelve?', 'Right, here you are. Thank you.',
+  'Two loaves of bread, please.', 'I will pay in cash.', 'This is not right.', 'Thank you. That is right.']);
+T('S4 «не та сдача» -> пересчёт -> конец', r.ok, r.err);
+// мусор во всех узлах s4 -> честный huh
+for (const at of Object.keys(s4.nodes)) {
+  const s = step(s4, at, 'banana', {});
+  T('S4 мусор в узле ' + at + ' -> huh', /huh/.test(s.err || ''), s.err || s.br);
+}
+
+// ---------- «Выбрать цвет» (s5) ----------
+const s5 = SCENES.s5;
+r = run(s5, ['I prefer the black one.', 'A small one, please.', 'Thank you very much.',
+  'No, that is all, thank you.', 'By card, please.', 'Thanks, you too!']);
+T('S5 полный путь: до конца', r.ok, r.err);
+// красный вместо чёрного — тоже выбор, путь идёт дальше
+r = run(s5, ['I prefer the red one.', 'A small one, please.', 'Thank you very much.',
+  'No, that is all, thank you.', 'By card, please.', 'Thanks, you too!']);
+T('S5 красный: путь до конца', r.ok, r.err);
+{ const s = step(s5, 'pick', 'How much does it cost?', {});
+  T('S5 цена -> price (возврат)', !s.err && s.br === 'price', s.err || s.br); }
+r = run(s5, ['No, thanks. Just looking.', 'Thank you. Goodbye!']);
+T('S5 уход -> bye: путь до конца', r.ok, r.err);
+// наличные в paym -> cash-ветка
+r = run(s5, ['I prefer the black one.', 'A small one, please.', 'Thank you very much.',
+  'No, that is all, thank you.', 'In cash, please.', 'Thanks, you too!']);
+T('S5 наличные: путь до конца', r.ok, r.err);
+{ const s = step(s5, 'rest', 'No.', {});
+  T('S5 rest «No.» -> all', !s.err && s.br === 'all', s.err || s.br); }
+for (const at of Object.keys(s5.nodes)) {
+  const s = step(s5, at, 'qqqqq', {});
+  T('S5 мусор в узле ' + at + ' -> huh', /huh/.test(s.err || ''), s.err || s.br);
+}
+
+// ---------- «Назначить день» (s6) ----------
+const s6 = SCENES.s6;
+r = run(s6, ['Sure. Which day?', 'Wednesday is busy for me. Can we do Thursday?',
+  'Great, see you on Thursday.', 'When will I know?', 'Thank you, I will wait for your call.',
+  'Thank you. Have a good day.']);
+T('S6 полный путь (четверг): до конца', r.ok, r.err);
+// согласие на среду
+r = run(s6, ['Sure. Which day?', 'Wednesday is fine.', 'Great, see you on Wednesday.',
+  'When will I know?', 'I will wait for your call.', 'Bye!']);
+T('S6 согласие на среду: путь до конца', r.ok, r.err);
+// «No» на предложение -> вопрос «какой день» (не выпроваживание)
+r = run(s6, ['No.', 'Thursday, please.', 'Great, see you on Thursday.',
+  'When will I know?', 'Thank you, I will wait for your call.', 'Thank you. Have a good day.']);
+T('S6 «No» -> уточнение дня: путь до конца', r.ok, r.err);
+T('S6 «No»: спросил день, а не выпроводил', r.ok && /good day for you/i.test(r.log[0].them), r.log[0] && r.log[0].them);
+// сразу назвал день в ответ на «можем встретиться?»
+r = run(s6, ['Monday works for me.', 'Great, see you on Monday.',
+  'When will I know?', 'Thank you, I will wait for your call.', 'Thank you. Have a good day.']);
+T('S6 прямой день: путь до конца', r.ok, r.err);
+// назвал не тот день в подтверждении -> честная поправка -> исправился
+r = run(s6, ['Sure. Which day?', 'Wednesday is busy for me. Can we do Thursday?',
+  'Great, see you on Monday.', 'Great, see you on Thursday.',
+  'When will I know?', 'Thank you, I will wait for your call.', 'Thank you. Have a good day.']);
+T('S6 не тот день -> поправка -> путь до конца', r.ok, r.err);
+T('S6 поправка назвала договорённый день', r.ok && /agreed on Thursday/i.test(r.log[2].them), r.log[2] && r.log[2].them);
+// «не расслышал» в любой момент -> повтор вопроса, выход есть
+r = run(s6, ['Sure. Which day?', 'Wednesday is busy for me. Can we do Thursday?',
+  'Sorry?', 'Great, see you on Thursday.', 'When will I know?',
+  'Thank you, I will wait for your call.', 'Thank you. Have a good day.']);
+T('S6 «Sorry?» в conf -> повтор: путь до конца', r.ok, r.err);
+for (const at of Object.keys(s6.nodes)) {
+  const s = step(s6, at, 'the the the', {});
+  T('S6 мусор в узле ' + at + ' -> huh', /huh/.test(s.err || ''), s.err || s.br);
+}
+
 
 // ---------- итог ----------
 console.log(`\nИТОГ: ${pass} pass, ${fail} fail\n`);

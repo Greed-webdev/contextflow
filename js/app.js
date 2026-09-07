@@ -1976,8 +1976,10 @@ const Lesson = {
       Miss.ok(sample);
     }
     const nm = this.lMem.name || '…';
-    const txt = tr.them ? tr.them.replace(/\{name\}/g, nm) : '';
-    const rut = tr.ruThem ? tr.ruThem.replace(/\{name\}/g, nm) : '';
+    const dm = this.lMem.day ? cap(this.lMem.day) : '…';
+    const fill = s => s.replace(/\{name\}/g, nm).replace(/\{day\}/g, dm);
+    const txt = tr.them ? fill(tr.them) : '';
+    const rut = tr.ruThem ? fill(tr.ruThem) : '';
     if (txt){
       this.bubble('them', txt, rut);
       this.lMem.lastThem = txt;
