@@ -186,7 +186,7 @@ const negatedAt = (w,i) => {
   for (let j=0;j<w.length;j++){
     if(!NEGLEAD.includes(w[j])) continue;
     let k=j+1;
-    while(k<i && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени
+    while(k<i && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени, но не мимо неё
     if(k===i) return true;
   }
   return false;

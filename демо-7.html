@@ -186,7 +186,7 @@ const negatedAt = (w,i) => {
   for (let j=0;j<w.length;j++){
     if(!NEGLEAD.includes(w[j])) continue;
     let k=j+1;
-    while(k<w.length && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени
+    while(k<i && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени, но не мимо неё
     if(k===i) return true;
   }
   return false;
@@ -384,7 +384,8 @@ const S3 = { title:'У врача · ур. 37',
           if(chose(w,'when')) return {br:'ask'};
           if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
           if(chose(w,'yes','yeah','question','questions','ask')) return {br:'yes'};
-          if(has(w,'no','not','none')||chose(w,'nothing','ok','okay','all','fine')) return {br:'no'};
+          if(has(w,'no','not')&&!w.includes('none')) return {br:'no'};
+          if(!has(w,'no','not')&&(w.includes('none')||chose(w,'nothing','ok','okay','all','fine'))) return {br:'no'};
           if(chose(w,'bye','goodbye','see','later','thanks','thank')) return {br:'bye'};
           return {huh:1}; },
     tr:{
@@ -398,7 +399,8 @@ const S3 = { title:'У врача · ур. 37',
           if(chose(w,'when')) return {br:'ask'};
           if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
           if(chose(w,'medicine','pill','pills','tablet','tablets','how','often','long','eat','drink','work','rest','sleep','should')) return {br:'med'};
-          if(has(w,'no','not','none')||chose(w,'nothing','ok','okay','all','fine')) return {br:'no'};
+          if(has(w,'no','not')&&!w.includes('none')) return {br:'no'};
+          if(!has(w,'no','not')&&(w.includes('none')||chose(w,'nothing','ok','okay','all','fine'))) return {br:'no'};
           if(chose(w,'bye','goodbye','see','later','thanks','thank')) return {br:'bye'};
           return {huh:1}; },
     tr:{

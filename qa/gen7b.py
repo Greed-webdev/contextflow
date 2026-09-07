@@ -30,6 +30,8 @@ out = out.replace('Три сцены с ветвями (ур. 13, 19, 23).',
                   'Три сцены с ветвями (ур. 27, 31, 37).')
 out = out.replace("'want','like','need','take','have','get','choose','prefer','buy','think','do','does','did',",
                   "'want','need','take','have','get','choose','prefer','buy','think','do','does','did',")  # like вне NEGPASS (фикс партии 3)
+out = out.replace('    while(k<w.length && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени',
+                  '    while(k<i && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени, но не мимо неё')  # фикс отрицания (как в демо-8)
 
 open('демо-7.html', 'w', encoding='utf8').write(out)
 print('демо-7.html:', len(out), 'байт (оболочка демо-6 + сцены демо-7)')
