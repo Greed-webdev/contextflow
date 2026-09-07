@@ -26,14 +26,18 @@ const ctxApp = runBoth(helpers + '\n' + fs.readFileSync(LESS, 'utf8') +
 const stage1 = ctxApp.__C.en[1];
 const flowBy = {};
 const FLOW_TITLES = ['Первое приветствие', 'Заполнить анкету', 'Разговор о семье',
-  'Назвать количество', 'Выбрать цвет', 'Назначить день'];
+  'Назвать количество', 'Выбрать цвет', 'Назначить день',
+  'Узнать время', 'Разговор о погоде', 'У врача',
+  'Купить куртку', 'Заказать обед', 'У барной стойки'];
 for (const t of FLOW_TITLES) {
   const lv = stage1.find(x => x.type === 'dialog' && x.variant === 'flow' && x.title === t);
   if (!lv) { console.error('нет flow-записи «' + t + '» в курсе'); process.exit(1); }
   flowBy[t] = lv.flow;
 }
 const SCENES = { s1: flowBy['Первое приветствие'], s2: flowBy['Заполнить анкету'], s3: flowBy['Разговор о семье'],
-  s4: flowBy['Назвать количество'], s5: flowBy['Выбрать цвет'], s6: flowBy['Назначить день'] };
+  s4: flowBy['Назвать количество'], s5: flowBy['Выбрать цвет'], s6: flowBy['Назначить день'],
+  s7: flowBy['Узнать время'], s8: flowBy['Разговор о погоде'], s9: flowBy['У врача'],
+  s10: flowBy['Купить куртку'], s11: flowBy['Заказать обед'], s12: flowBy['У барной стойки'] };
 const norm = ctxApp.__H.norm, expand = ctxApp.__H.expand;
 const SPEC = JSON.parse(fs.readFileSync('/home/user/сцена-1-живая-логика.json', 'utf8'));
 
@@ -69,7 +73,7 @@ function sig(f) {
 }
 // --- идентичность: демо-6 (партия 2, одобрено) == данные приложения ---
 {
-  const html6 = fs.readFileSync('/home/user/демо-6 (1).html', 'utf8');
+  const html6 = fs.readFileSync('/home/user/демо-6.html', 'utf8');
   const src6 = [];
   for (const v of ['S1', 'S2', 'S3']) {
     const a = html6.indexOf('const ' + v + ' = {');
@@ -86,6 +90,39 @@ function sig(f) {
   for (const [k, t] of pairs6) {
     const same = sig(ctx6.__D[k]) === sig(flowBy[t]);
     T('идентичность демо-6 (одобрено): ' + t, same);
+  }
+}// --- идентичность: демо-7 и демо-8 (партии 3-4, одобрены) == данные приложения ---
+function сценыИзФайла(path) {
+  const html = fs.readFileSync(path, 'utf8');
+  const src = [];
+  for (const v of ['S1', 'S2', 'S3']) {
+    const a = html.indexOf('const ' + v + ' = {');
+    let d = 0, i = html.indexOf('{', a);
+    while (i < html.length) {
+      const c = html[i];
+      if (c === '{') d++; else if (c === '}') { d--; if (d === 0) break; }
+      i++;
+    }
+    src.push(html.slice(a, i + 1));
+  }
+  return src;
+}
+{
+  const src7 = сценыИзФайла('/home/user/демо-7.html');
+  const ctx7 = runBoth(helpers + '\n' + src7.join('\n') + '\n;globalThis.__D={s1:S1,s2:S2,s3:S3};');
+  const pairs7 = [['s1', 'Узнать время'], ['s2', 'Разговор о погоде'], ['s3', 'У врача']];
+  for (const [k, t] of pairs7) {
+    const same = sig(ctx7.__D[k]) === sig(flowBy[t]);
+    T('идентичность демо-7 (одобрено): ' + t, same);
+  }
+}
+{
+  const src8 = сценыИзФайла('/home/user/демо-8.html');
+  const ctx8 = runBoth(helpers + '\n' + src8.join('\n') + '\n;globalThis.__D={s1:S1,s2:S2,s3:S3};');
+  const pairs8 = [['s1', 'Купить куртку'], ['s2', 'Заказать обед'], ['s3', 'У барной стойки']];
+  for (const [k, t] of pairs8) {
+    const same = sig(ctx8.__D[k]) === sig(flowBy[t]);
+    T('идентичность демо-8 (одобрено): ' + t, same);
   }
 }
 
@@ -501,6 +538,81 @@ for (const at of Object.keys(s6.nodes)) {
   T('S6 мусор в узле ' + at + ' -> huh', /huh/.test(s.err || ''), s.err || s.br);
 }
 
+// ---------- партии 3-4 (s7-s12): живые пути ----------
+const s7 = SCENES.s7, s8 = SCENES.s8, s9 = SCENES.s9;
+const s10 = SCENES.s10, s11 = SCENES.s11, s12 = SCENES.s12;
+r = run(s7, ['Excuse me, what time is it?', 'Oh, I am late for work.', 'Thank you very much.',
+  'Yes, everything else is fine.', 'Thank you, I will.', 'You too, good night!']);
+T('S7 эталон: путь до конца', r.ok, r.err);
+r = run(s8, ['Yes, very cold. And windy.', "Really? I don't like snow.", 'True. Have a good day!',
+  'Is there a cafe near here?', 'Left or right?', 'Thank you, that is very helpful.']);
+T('S8 эталон: путь до конца', r.ok, r.err);
+{ const m = {}; const st = step(s8, 'cold', 'I do not know', m);
+  T('S8 cold «I do not know» -> neu (не dis)', !st.err && st.br === 'neu', st.err || st.br);
+  const st2 = step(s8, 'cold', 'No, I think it is warm today', m);
+  T('S8 cold «No, I think it is warm» -> dis', !st2.err && st2.br === 'dis', st2.err || st2.br);
+  const st3 = step(s8, 'cold', 'it is ok', m);
+  T('S8 cold «it is ok» -> neu', !st3.err && st3.br === 'neu', st3.err || st3.br);
+}
+r = run(s9, ['My head hurts.', 'Since yesterday.', 'Thank you, doctor.', 'When should I come again?',
+  'One week. I understand.', 'Thank you, doctor. Goodbye.']);
+T('S9 эталон: путь до конца', r.ok, r.err);
+r = run(s9, ['My head hurts.', 'Since yesterday.', 'Thank you, doctor.', 'Yes, I have a question.',
+  'When should I come again?', 'One week. I understand.', 'Thank you, doctor. Goodbye.']);
+T('S9 вопрос врачу (yes -> qask): путь до конца', r.ok, r.err);
+{ const st = step(s9, 'quest', 'no questions', {});
+  T('S9 quest «no questions» -> no', !st.err && st.br === 'no', st.err || st.br);
+  const st2 = step(s9, 'qask', 'What medicine should I take?', {});
+  T('S9 qask про лекарство -> med', !st2.err && st2.br === 'med', st2.err || st2.br);
+}
+r = run(s10, ['Yes, I am looking for a jacket.', 'Medium, please.', 'Thank you. I will take it.',
+  'No, that is all, thank you.', 'By card, please.', 'Thanks, you too!']);
+T('S10 эталон: путь до конца', r.ok, r.err);
+{ const st = step(s10, 'ask', 'I am not browsing', {});
+  T('S10 ask «I am not browsing» -> notb', !st.err && st.br === 'notb', st.err || st.br);
+  const st2 = step(s10, 'ask', 'No, just looking.', {});
+  T('S10 ask «No, just looking» -> browse', !st2.err && st2.br === 'browse', st2.err || st2.br);
+}
+for (const at of ['try', 'try2', 'last']) {
+  const st = step(s10, at, 'I will not take it', {});
+  T('S10 ' + at + ' «I will not take it» != take', !st.err && st.br !== 'take', st.err || st.br);
+  const st2 = step(s10, at, 'I will take it.', {});
+  T('S10 ' + at + ' «I will take it» -> take', !st2.err && st2.br === 'take', st2.err || st2.br);
+}
+r = run(s11, ['Not yet. Could I see the menu, please?', 'I will have the soup and some bread.',
+  'Just water, please.', 'No, thank you. That is all.', 'Thank you very much.',
+  'Thank you, it looks delicious.']);
+T('S11 эталон: путь до конца', r.ok, r.err);
+{ const st = step(s11, 'ready', 'Not yet. Could I see the menu, please?', {});
+  T('S11 ready best -> menu (не bye)', !st.err && st.br === 'menu', st.err || st.br);
+  const st2 = step(s11, 'ready', 'soup and bread', {});
+  T('S11 ready «soup and bread» -> не huh', !st2.err, st2.err || st2.br);
+  const st3 = step(s11, 'ready', 'I have no time', {});
+  T('S11 ready «I have no time» -> hurry', !st3.err && st3.br === 'hurry', st3.err || st3.br);
+  const st4 = step(s11, 'order', 'cat dog fish', {});
+  T('S11 order «cat dog fish» -> huh', /huh/.test(st4.err || ''), st4.err || st4.br);
+}
+r = run(s12, ['A coffee, please.', 'No milk, but with sugar, please.', 'I will pay by card.',
+  'No, thank you. That is all.', 'Thank you very much.', 'Thank you, it looks delicious.']);
+T('S12 эталон: путь до конца', r.ok, r.err);
+{ const st = step(s12, 'milk', 'No milk, but with sugar, please.', {});
+  T('S12 milk «No milk, but sugar» -> dm', !st.err && st.br === 'dm', st.err || st.br);
+}
+// «Не знаю» в UI: две ошибки подряд -> подставляется best узла (кнопка «Не знаю»).
+// Проверяем на старте S11: best обязан вести в order, а не в bye (исторический баг).
+{
+  const m = {};
+  const e1 = step(s11, 'ready', 'xx', m), e2 = step(s11, 'ready', 'yy', m);
+  const best = s11.nodes['ready'].best;
+  const b = step(s11, 'ready', best, m);
+  T('S11 две ошибки в ready -> huh', /huh/.test(e1.err || '') && /huh/.test(e2.err || ''), e1.err || e2.err);
+  T('S11 подстановка best -> menu -> order (не bye)', !b.err && b.br === 'menu' && b.next === 'order',
+    b.err || (b.br + ' -> ' + b.next));
+}
+r = run(s11, ['Not yet. Could I see the menu, please?', 'I will have the soup and some bread.',
+  'Just water, please.', 'No, thank you. That is all.', 'Thank you very much.',
+  'Thank you, it looks delicious.']);
+T('S11 путь после подстановки best: до конца', r.ok, r.err);
 
 // ---------- итог ----------
 console.log(`\nИТОГ: ${pass} pass, ${fail} fail\n`);
