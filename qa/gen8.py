@@ -164,14 +164,16 @@ const S2 = { title:'Заказать обед · ур. 45',
   nodes:{
     ready:{ task:'Попроси меню.', best:'Not yet. Could I see the menu, please?',
     judge(w){
-          if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+          const HUR=['time','wait','waiting'];
           if(chose(w,'menu')) return {br:'menu'};
+          if(chose(w,'soup','bread','salad')) return {br:'yes'};
           if(chose(w,'ready','yes','yeah','order')) return {br:'yes'};
-          const HUR=['time','minute','moment','wait','waiting'];
+          if(chose(w,'bye','goodbye','later','go')) return {br:'bye'};
           if(has(w,'no','not','never')){
             for(const x of HUR){ if(w.includes(x)) return {br:'hurry'}; }
+            for(const x of ['minute','moment','still']){ const i=w.indexOf(x); if(i>-1&&negatedAt(w,i)) return {huh:1}; }
             return {br:'wait'}; }
-          for(const x of HUR){ if(w.includes(x)&&!negatedAt(w,w.indexOf(x))) return {br:'wait'}; }
+          for(const x of ['time','minute','moment','wait','waiting']){ if(w.includes(x)&&!negatedAt(w,w.indexOf(x))) return {br:'wait'}; }
           return {huh:1}; },
     tr:{
       bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},

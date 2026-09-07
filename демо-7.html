@@ -273,7 +273,7 @@ const S2 = { title:'Разговор о погоде · ур. 31',
   nodes:{
     cold:{ task:'Согласись, что холодно.', best:'Yes, very cold. And windy.',
     judge(w){
-          if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea')||w.includes('sure')||w.includes('think'))) return {br:'neu'};
+          if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea')||w.includes('sure'))) return {br:'neu'};
           if(chose(w,'ok','okay','fine','alright','normal','same')) return {br:'neu'};
           if(chose(w,'cold','windy','freezing','chilly')||chose(w,'yes','yeah','true','right','agree','sure')) return {br:'agree'};
           if(chose(w,'warm','hot','summer','sun','like','love','enjoy','hate')) return {br:'dis'};
