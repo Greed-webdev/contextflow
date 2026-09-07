@@ -21,8 +21,8 @@ catch (e) { console.error('ядро не собралось:', e.message); proce
 const СЛУЖЕБНЫЕ = new Set(['what','when','why','how','who','where','which','sorry','pardon',
   'please','know','understand','help','need','want','think','say','tell','repeat','again',
   'question','questions','everything','anything','excuse','sure','maybe','perhaps','would',
-  'should','could','can','will','am','is','are','be','do','does','did','have','has','not','no',
-  'ok','okay','all','nothing','thanks','thank','fine','really','actually']);
+  'should','could','can','will','am','is','are','be','do','does','did','have','has','not','no','never',
+  'ok','okay','all','nothing','thanks','thank','fine','really','actually','just']);
 
 // ---------- мусор: 18 злых строк ----------
 const МУСОР = ['banana','asdfgh','fuck','!!!','lorem ipsum','zzzz','проверка','12345',
