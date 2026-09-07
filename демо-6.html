@@ -160,10 +160,39 @@ const DAY_IN = w => {
   return null;
 };
 const FLOWNUM = (w, digits) => {
-  if (digits && digits.length) return digits[0];
-  for (const x of w) if (x in NUM) return NUM[x];
-  return null;
+  if (digits && digits.length === 1) return digits[0];
+  if (digits && digits.length > 1) return null;      // несколько чисел — неоднозначно
+  const seq = [];
+  w.forEach(x => { if (x in NUM) seq.push(x); });    // слова-числительные по порядку
+  if (!seq.length) return null;
+  let cur = 0;
+  for (const x of seq) {
+    const v = NUM[x];
+    if (x === 'hundred' || x === 'thousand'){ cur = cur ? cur * v : v; }
+    else if (cur === 0) cur = v;
+    else if (cur % 10 === 0 && cur < 100 && v < 10) cur += v;      // twenty five = 25
+    else if (cur >= 100 && v < 100) cur += v;                      // one hundred (and) five = 105
+    else return null;                                              // two and three — неоднозначно
+  }
+  return cur;
 };
+/* Отрицание липнет к ближайшему содержательному слову справа.
+   «not black, red» -> отрицается black, red выбран. «no red» -> red НЕ выбран.
+   «extra small» -> small НЕ выбран. */
+const NEGLEAD=['no','not','never','without','extra'];
+const NEGPASS=['to','a','an','the','and','or','any','it','this','that','one','really','just','very','so',
+'want','like','need','take','have','get','choose','prefer','buy','think','do','does','did',
+'would','will','can','could','should','am','is','are','be'];
+const negatedAt = (w,i) => {
+  for (let j=0;j<w.length;j++){
+    if(!NEGLEAD.includes(w[j])) continue;
+    let k=j+1;
+    while(k<w.length && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени
+    if(k===i) return true;
+  }
+  return false;
+};
+const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
 
 /* ============ S1 · «Назвать количество» (партия 2) ============ */
 const S1 = { title:'Назвать количество · ур. 13',
@@ -172,24 +201,35 @@ const S1 = { title:'Назвать количество · ур. 13',
     opener:{them:'How many do you need?', ru:'Сколько вам нужно?'},
     nodes:{
     count:{ task:'Скажи, сколько нужно: пять.', best:'Five, please.',
-    judge(w,mem){ const n=FLOWNUM(w,(mem._digits||[]).map(Number));
+    judge(w,mem){ const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
     if(n===5) return {br:'five'};
-    if(n!==null) return {br:'othernum'};
+    const nums = d.length>0 || w.some(x=>x in NUM);
+    if(nums && n===0) return {huh:1};          // ноль — не количество
     if(has(w,'much','cost','price','expensive')) return {br:'price'};
     if(has(w,'bye','goodbye','leave','leaving')||(has(w,'no')&&has(w,'thanks','thank'))||(has(w,'just')&&has(w,'looking'))) return {br:'bye'};
+    if(nums){ mem._lc=(mem._lc||0)+1;           // третий круг с числом — уступаем
+      if(mem._lc>=3) return {br:'giveup'};
+      return n!==null ? {br:'othernum'} : {br:'many'}; }
     return {huh:1}; },
     tr:{ five:{them:'Five. That will be twelve euros.',ruThem:'Пять. С вас двенадцать евро.',next:'twelve'},
       othernum:{them:'We sell these in packs of five. Five, right?',ruThem:'Мы продаём их по пять штук. Пять, верно?',next:'count'},
+      many:{them:'Sorry, how many exactly? One number, please.',ruThem:'Простите, сколько именно? Одно число, пожалуйста.',next:'count'},
+      giveup:{them:'Ok, let us do five then.',ruThem:'Хорошо, тогда берём пять.',next:'twelve'},
       price:{them:'They are two euros each.',ruThem:'По два евро за штуку.',next:'count'},
       bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
     twelve:{ task:'Уточни: двенадцать?', best:'Twelve? Not twenty?',
-    judge(w,mem){ const n=FLOWNUM(w,(mem._digits||[]).map(Number));
-    if(n===12) return {br:'ok'};
-    if(n===20) return {br:'twenty'};
+    judge(w,mem){ const d=(mem._digits||[]).map(Number);
+    const is12 = chose(w,'twelve') || d.includes(12);
+    const is20 = chose(w,'twenty') || d.includes(20);
+    if(is12 && !is20) return {br:'ok'};
+    if(is20 && !is12){ mem._lt=(mem._lt||0)+1;    // третий круг «twenty» — уступаем
+      if(mem._lt>=3) return {br:'giveup'};
+      return {br:'twenty'}; }
     if(has(w,'sorry','pardon','what','again','repeat')) return {br:'again'};
     return {huh:1}; },
     tr:{ ok:{them:'Yes, twelve. Not twenty.',ruThem:'Да, двенадцать. Не двадцать.',next:'agree'},
       twenty:{them:'No, twelve. One two.',ruThem:'Нет, двенадцать. Один-два.',next:'twelve'},
+      giveup:{them:'Ok, it is twelve euros.',ruThem:'Хорошо, двенадцать евро.',next:'agree'},
       again:{them:'Twelve euros. Not twenty.',ruThem:'Двенадцать евро. Не двадцать.',next:'twelve'} } },
     agree:{ task:'Согласись и поблагодари.', best:'Right, here you are. Thank you.',
     judge(w){ const th=has(w,'thanks','thank'), ok=has(w,'right','ok','okay','yes','sure','here','fine','take');
@@ -211,8 +251,12 @@ const S1 = { title:'Назвать количество · ур. 13',
     tr:{ cash:{them:'Here is your change.',ruThem:'Вот ваша сдача.',next:'change'},
       card:{them:'Sorry, we only take cash today.',ruThem:'Извините, сегодня только наличные.',next:'pay'} } },
     change:{ task:'Проверь сдачу и поблагодари.', best:'Thank you. That is right.',
-    judge(w){ if(has(w,'wrong','short','mistake')||(has(w,'not','no')&&!has(w,'thanks','thank'))) return {br:'recheck'};
-    if(has(w,'thanks','thank')||has(w,'right','ok','okay','fine','correct')) return {br:'ok'}; return {huh:1}; },
+    judge(w){ const pos=['right','ok','okay','fine','correct','good'];
+    const negHit = pos.some(x=>{ const i=w.indexOf(x); return i>-1 && negatedAt(w,i); });
+    if(has(w,'wrong','short','mistake','incorrect')||negHit) return {br:'recheck'};
+    if(w[0]==='no'||w[0]==='not') return {br:'recheck'};        // голое «no» — сдачу не принимает
+    if(has(w,'thanks','thank')||pos.some(x=>w.includes(x))) return {br:'ok'};
+    return {huh:1}; },
     tr:{ ok:{them:'You are welcome. Have a nice day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
       recheck:{them:'Sorry. Let me count again. Here you are.',ruThem:'Извините. Пересчитаю. Вот, пожалуйста.',next:'change'} } },
     bye:{ task:'Попрощайся.', best:'Thank you. Goodbye!',
@@ -228,34 +272,45 @@ const S2 = { title:'Выбрать цвет · ур. 19',
     opener:{them:'We have it in red and in black.', ru:'Есть красный и чёрный.'},
     nodes:{
     pick:{ task:'Скажи, что предпочитаешь чёрный.', best:'I prefer the black one.',
-    judge(w){ const b=has(w,'black'), r=has(w,'red');
+    judge(w,mem){ const b=chose(w,'black'), r=chose(w,'red');
+    if(has(w,'much','cost','price','expensive')) return {br:'price'};
     if(b&&r) return {br:'both'};
     if(b) return {br:'black'};
     if(r) return {br:'red'};
-    if(has(w,'much','cost','price','expensive')) return {br:'price'};
-    if(has(w,'blue','green','white','grey','gray','yellow','brown')) return {br:'colour'};
+    if(has(w,'blue','green','white','grey','gray','yellow','brown')){ mem._lp=(mem._lp||0)+1;
+      if(mem._lp>=3) return {br:'order'};
+      return {br:'colour'}; }
+    if(has(w,'red','black','colour','color')) return {br:'ask'};   // цвет назван с отрицанием — переспрос
     if(has(w,'bye','goodbye','leave','leaving')||(has(w,'no')&&has(w,'thanks','thank'))||(has(w,'just')&&has(w,'looking'))) return {br:'bye'};
     return {huh:1}; },
     tr:{ black:{them:'Black is a good choice. What size do you need?',ruThem:'Чёрный — хороший выбор. Какой размер нужен?',next:'size'},
       red:{them:'Ok, the red one. What size do you need?',ruThem:'Хорошо, красный. Какой размер?',next:'size'},
       both:{them:'Ok, one in each colour. What size do you need?',ruThem:'Хорошо, по одному каждого цвета. Какой размер?',next:'size'},
+      ask:{them:'Ok. Would you like the red one or the black one?',ruThem:'Так. Вам красный или чёрный?',next:'pick'},
       price:{them:'They are the same price.',ruThem:'Они по одной цене.',next:'pick'},
       colour:{them:'Sorry, we only have red and black.',ruThem:'Извините, есть только красный и чёрный.',next:'pick'},
+      order:{them:'We do not have that colour in stock, but I can order it. What size do you need?',ruThem:'Этого цвета нет в наличии, но могу заказать. Какой размер?',next:'size'},
       bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
     size:{ task:'Скажи: маленький.', best:'A small one, please.',
-    judge(w){ if(has(w,'small','little')) return {br:'s'};
-    if(has(w,'medium','large','big')) return {br:'l'};
+    judge(w){ if(chose(w,'small','little')) return {br:'s'};
+    if(chose(w,'medium')) return {br:'m'};
+    if(chose(w,'large','big')) return {br:'l'};
+    if(has(w,'small','little','medium','large','big')) return {br:'ask'};
     return {huh:1}; },
     tr:{ s:{them:'A small one. Here you are.',ruThem:'Маленький. Пожалуйста.',next:'thx'},
-      l:{them:'Here you are.',ruThem:'Пожалуйста.',next:'thx'} } },
+      m:{them:'A medium one. Here you are.',ruThem:'Средний. Пожалуйста.',next:'thx'},
+      l:{them:'A large one. Here you are.',ruThem:'Большой. Пожалуйста.',next:'thx'},
+      ask:{them:'What size — small, medium or large?',ruThem:'Какой размер — маленький, средний или большой?',next:'size'} } },
     thx:{ task:'Поблагодари.', best:'Thank you very much.',
     judge(w){ if(has(w,'thanks','thank','cheers')) return {br:'ok'}; return {huh:1}; },
     tr:{ ok:{them:'You are welcome. Anything else?',ruThem:'Пожалуйста. Что-нибудь ещё?',next:'rest'} } },
     rest:{ task:'Скажи, что это всё.', best:'No, that is all, thank you.',
-    judge(w){ const extra=has(w,'more','also','need','want','another');
-    if(!extra&&(has(w,'no','nothing')||has(w,'all','everything','that'))) return {br:'all'};
+    judge(w){ const extra=has(w,'more','another','also','need','want');
+    if(extra) return {br:'more'};
+    if(has(w,'no','nothing')||has(w,'all','everything','that')) return {br:'all'};
     return {huh:1}; },
-    tr:{ all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'paym'} } },
+    tr:{ all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'paym'},
+      more:{them:'Of course. What else do you need?',ruThem:'Конечно. Что ещё вам нужно?',next:'pick'} } },
     paym:{ task:'Скажи: картой.', best:'By card, please.',
     judge(w){ if(has(w,'card')) return {br:'card'};
     if(has(w,'cash','money','notes')) return {br:'cash'}; return {huh:1}; },
