@@ -22,7 +22,7 @@ const СЛУЖЕБНЫЕ = new Set(['what','when','why','how','who','where','whi
   'please','know','understand','help','need','want','think','say','tell','repeat','again',
   'question','questions','everything','anything','excuse','sure','maybe','perhaps','would',
   'should','could','can','will','am','is','are','be','do','does','did','have','has','not','no','never',
-  'ok','okay','all','nothing','thanks','thank','fine','really','actually','just']);
+  'ok','okay','all','nothing','none','thanks','thank','fine','really','actually','just']);
 
 // ---------- мусор: 18 злых строк ----------
 const МУСОР = ['banana','asdfgh','fuck','!!!','lorem ipsum','zzzz','проверка','12345',
@@ -86,9 +86,9 @@ for (const [id, sc] of Object.entries(SCENES)) {
   // ---------- ОТРИЦАНИЕ: слова берём из кода судей ----------
   const judgeSrc = Object.values(sc.nodes).map(n => n.judge ? String(n.judge) : '').join('\n');
   const words = new Set();
-  for (const m of judgeSrc.matchAll(/(?:chose|has)\(w,\s*'([a-z]+)'/g)) {
+  for (const m of judgeSrc.matchAll(/'([a-z]{2,})'/g)) {
     const wd = m[1];
-    if (wd.length > 1 && !СЛУЖЕБНЫЕ.has(wd)) words.add(wd);
+    if (!СЛУЖЕБНЫЕ.has(wd)) words.add(wd);
   }
   for (const at of Object.keys(sc.nodes)) {
     const plain = judgeNode(sc, at, 'X', {});
@@ -166,6 +166,70 @@ for (const [id, sc] of Object.entries(SCENES)) {
     }
     T(`[${name}] эталон: проход best до конца`, broken === null && steps < 200,
       broken || `за ${steps} шагов не кончился`);
+  }
+}
+
+// ---------- ПАРТИИ 3-4: точечные проверки по рецензии ----------
+// Работают только если нужные узлы есть в файле (для других демо молча пропускаются).
+const br = (res) => (res && res.r && !res.r.huh) ? res.r.br : null;
+const сцена = (node) => { const h = Object.entries(SCENES).filter(([, sc]) => sc.nodes[node]); return h.length === 1 ? h[0][1] : null; };
+{
+  const sc = сцена('cold');
+  if (sc) {
+    T('[погода.cold] «I do not know» не спорит', br(judgeNode(sc, 'cold', 'I do not know', {})) !== 'dis');
+    T('[погода.cold] «I do not know» понимается', !!br(judgeNode(sc, 'cold', 'I do not know', {})));
+    T('[погода.cold] «I am not sure» понимается', !!br(judgeNode(sc, 'cold', 'I am not sure.', {})));
+    T('[погода.cold] «it is ok» понимается', !!br(judgeNode(sc, 'cold', 'it is ok', {})));
+    T('[погода.cold] «No, it is warm.» -> dis', br(judgeNode(sc, 'cold', 'No, it is warm.', {})) === 'dis');
+    T('[погода.cold] «Yes, very cold» -> agree', br(judgeNode(sc, 'cold', 'Yes, very cold.', {})) === 'agree');
+  }
+}
+{
+  const sc = сцена('quest');
+  if (sc) {
+    const has = k => !!sc.nodes['quest'].tr[k];
+    if (has('yes')) T('[врач.quest] «yes I have a question» -> yes', br(judgeNode(sc, 'quest', 'yes I have a question', {})) === 'yes');
+    if (has('no'))  T('[врач.quest] «no questions» -> no', br(judgeNode(sc, 'quest', 'no questions', {})) === 'no');
+    if (sc.nodes['qask']) {
+      T('[врач.qask] «when should I come again» понимается', !!br(judgeNode(sc, 'qask', 'When should I come again?', {})));
+      T('[врач.qask] «no questions» -> no', br(judgeNode(sc, 'qask', 'no questions', {})) === 'no');
+    }
+  }
+}
+{
+  const sc = сцена('try');
+  if (sc) {
+    for (const at of ['try', 'try2', 'last']) {
+      if (!sc.nodes[at]) continue;
+      T(`[магазин.${at}] «I will not take it» != take`, br(judgeNode(sc, at, 'I will not take it', {})) !== 'take');
+      T(`[магазин.${at}] «I do not want to take it» != take`, br(judgeNode(sc, at, 'I do not want to take it', {})) !== 'take');
+      T(`[магазин.${at}] «I will not buy it» != take`, br(judgeNode(sc, at, 'I will not buy it', {})) !== 'take');
+      T(`[магазин.${at}] «I will take it» -> take`, br(judgeNode(sc, at, 'I will take it.', {})) === 'take');
+    }
+    T('[магазин.try] «No, I will take it!» -> take', br(judgeNode(sc, 'try', 'No, I will take it!', {})) === 'take');
+    T('[магазин.try] «too small» -> bad', br(judgeNode(sc, 'try', 'It is too small.', {})) === 'bad');
+    if (sc.nodes['ask']) {
+      T('[магазин.ask] «I am not browsing» != browse', br(judgeNode(sc, 'ask', 'I am not browsing', {})) !== 'browse');
+      T('[магазин.ask] «No, just looking» -> browse', br(judgeNode(sc, 'ask', 'No, just looking.', {})) === 'browse');
+      T('[магазин.ask] «No, nothing.» -> browse', br(judgeNode(sc, 'ask', 'No, nothing.', {})) === 'browse');
+    }
+  }
+}
+{
+  const sc = сцена('order');
+  if (sc) {
+    T('[обед.order] «cat dog fish» -> huh', br(judgeNode(sc, 'order', 'cat dog fish', {})) === null);
+    T('[обед.order] «pizza» -> huh', br(judgeNode(sc, 'order', 'pizza', {})) === null);
+    T('[обед.order] «banana» -> huh', br(judgeNode(sc, 'order', 'a banana, please', {})) === null);
+    T('[обед.order] «soup and bread» принято', !!br(judgeNode(sc, 'order', 'soup and bread', {})));
+    T('[обед.order] «soup and salad» принято', !!br(judgeNode(sc, 'order', 'soup and salad', {})));
+    if (sc.nodes['ready']) {
+      T('[обед.ready] «I have no time» != wait', br(judgeNode(sc, 'ready', 'I have no time', {})) !== 'wait');
+      T('[обед.ready] «no time» != wait', br(judgeNode(sc, 'ready', 'no time', {})) !== 'wait');
+      T('[обед.ready] «I can not wait» != wait', br(judgeNode(sc, 'ready', 'I can not wait', {})) !== 'wait');
+      T('[обед.ready] «one moment please» -> wait', br(judgeNode(sc, 'ready', 'one moment please', {})) === 'wait');
+      T('[обед.ready] «Not yet» -> wait', br(judgeNode(sc, 'ready', 'Not yet, thanks.', {})) === 'wait');
+    }
   }
 }
 

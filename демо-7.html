@@ -273,14 +273,17 @@ const S2 = { title:'Разговор о погоде · ур. 31',
   nodes:{
     cold:{ task:'Согласись, что холодно.', best:'Yes, very cold. And windy.',
     judge(w){
+          if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea')||w.includes('sure')||w.includes('think'))) return {br:'neu'};
+          if(chose(w,'ok','okay','fine','alright','normal','same')) return {br:'neu'};
           if(chose(w,'cold','windy','freezing','chilly')||chose(w,'yes','yeah','true','right','agree','sure')) return {br:'agree'};
           if(chose(w,'warm','hot','summer','sun','like','love','enjoy','hate')) return {br:'dis'};
-          if(has(w,'no','not','never')&&(w.length===1||has(w,'really','actually','not'))) return {br:'dis'};
+          if(has(w,'no','not','never')&&(w.length===1||has(w,'really','actually','not','so','is','it'))) return {br:'dis'};
           if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
           return {huh:1}; },
     tr:{
       agree:{them:'And windy, too. They say it will snow tonight.',ruThem:'И ветрено. Говорят, ночью пойдёт снег.',next:'snow'},
       dis:{them:'Oh, I see. Do you like winter? They say it will snow tonight.',ruThem:'Понятно. А вы любите зиму? Говорят, ночью пойдёт снег.',next:'snow'},
+      neu:{them:'Well, I think it is really cold today. They say it will snow tonight.',ruThem:'Ну, по-моему, сегодня очень холодно. Говорят, ночью пойдёт снег.',next:'snow'},
       bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
     } },
     snow:{ task:'Скажи, что не любишь снег.', best:'Really? I don’t like snow.',
@@ -306,7 +309,7 @@ const S2 = { title:'Разговор о погоде · ур. 31',
     cafe:{ task:'Спроси, есть ли рядом кафе.', best:'Is there a cafe near here?',
     judge(w){
           if(chose(w,'cafe','coffee','restaurant','place','eat','tea')) return {br:'cafe'};
-          if(has(w,'no','not','never')||chose(w,'nothing','all','that','fine','ok','okay','thanks','thank')) return {br:'no'};
+          if(has(w,'no','not','never')||chose(w,'nothing','all','fine','ok','okay','thanks','thank')) return {br:'no'};
           if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
           return {huh:1}; },
     tr:{
@@ -380,11 +383,27 @@ const S3 = { title:'У врача · ур. 37',
     judge(w){
           if(chose(w,'when')) return {br:'ask'};
           if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
+          if(chose(w,'yes','yeah','question','questions','ask')) return {br:'yes'};
           if(has(w,'no','not','none')||chose(w,'nothing','ok','okay','all','fine')) return {br:'no'};
           if(chose(w,'bye','goodbye','see','later','thanks','thank')) return {br:'bye'};
           return {huh:1}; },
     tr:{
       ask:{them:'In one week, if it does not get better.',ruThem:'Через неделю, если не станет лучше.',next:'week'},
+      yes:{them:'Of course, go ahead. What is your question?',ruThem:'Конечно, задавайте. Какой у вас вопрос?',next:'qask'},
+      no:{them:'Ok. Then take care of yourself.',ruThem:'Хорошо. Тогда берегите себя.',next:'care'},
+      bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
+    } },
+    qask:{ task:'Спроси, когда прийти снова.', best:'When should I come again?',
+    judge(w){
+          if(chose(w,'when')) return {br:'ask'};
+          if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
+          if(chose(w,'medicine','pill','pills','tablet','tablets','how','often','long','eat','drink','work','rest','sleep','should')) return {br:'med'};
+          if(has(w,'no','not','none')||chose(w,'nothing','ok','okay','all','fine')) return {br:'no'};
+          if(chose(w,'bye','goodbye','see','later','thanks','thank')) return {br:'bye'};
+          return {huh:1}; },
+    tr:{
+      ask:{them:'In one week, if it does not get better.',ruThem:'Через неделю, если не станет лучше.',next:'week'},
+      med:{them:'Take the medicine twice a day and rest.',ruThem:'Принимайте лекарство два раза в день и отдыхайте.',next:'care'},
       no:{them:'Ok. Then take care of yourself.',ruThem:'Хорошо. Тогда берегите себя.',next:'care'},
       bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
     } },
