@@ -93,8 +93,8 @@ for (const [ph, want] of [['no thanks', 'recheck'], ['no, thank you', 'recheck']
 { const s = step(s1, 'change', 'this is not right', {});
   T('change «this is not right» -> recheck', !s.err && s.br === 'recheck', s.err || s.br); }
 
-// ---------- Д3: размер ----------
-for (const ph of ['not small', 'extra small']) {
+// ---------- Д3: размер (актуально: extra — усилитель, не отрицание) ----------
+for (const ph of ['not small']) {
   const s = step(s2, 'size', ph, {});
   T(`size «${ph}» -> НЕ s`, !s.err && s.br !== 's', s.err || s.br);
 }
@@ -105,6 +105,15 @@ for (const ph of ['not small', 'extra small']) {
   T('size «small» -> s (не сломалось)', !s.err && s.br === 's', s.err || s.br); }
 { const s = step(s2, 'size', 'large', {});
   T('size «large» -> l', !s.err && s.br === 'l', s.err || s.br); }
+// Д7: extra — усилитель, а не отрицание
+for (const [ph, want] of [['extra large', 'l'], ['extra big', 'l'], ['extra small', 's'], ['extra medium', 'm']]) {
+  const s = step(s2, 'size', ph, {});
+  T(`size «${ph}» -> ${want}`, !s.err && s.br === want, s.err || s.br);
+}
+{ const s = step(s2, 'size', 'extra', {});
+  T('size «extra» -> huh', /huh/.test(s.err || ''), s.err || s.br); }
+{ const s = step(s2, 'size', 'not small', {});
+  T('size «not small» -> ask (НЕ s)', !s.err && s.br === 'ask', s.err || s.br); }
 
 // ---------- Д4: составные числа и ноль ----------
 for (const ph of ['five hundred', 'two and three']) {
