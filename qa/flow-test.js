@@ -67,6 +67,27 @@ function sig(f) {
     T('идентичность демо-эталону: ' + t, same);
   }
 }
+// --- идентичность: демо-6 (партия 2) == данные приложения ---
+{
+  const html6 = fs.readFileSync('/home/user/демо-6.html', 'utf8');
+  const src6 = [];
+  for (const v of ['S1', 'S2', 'S3']) {
+    const a = html6.indexOf('const ' + v + ' = {');
+    let d = 0, i = html6.indexOf('{', a);
+    while (i < html6.length) {
+      const c = html6[i];
+      if (c === '{') d++; else if (c === '}') { d--; if (d === 0) break; }
+      i++;
+    }
+    src6.push(html6.slice(a, i + 1));
+  }
+  const ctx6 = runBoth(helpers + '\n' + src6.join('\n') + '\n;globalThis.__D={s1:S1,s2:S2,s3:S3};');
+  const pairs6 = [['s1', 'Назвать количество'], ['s2', 'Выбрать цвет'], ['s3', 'Назначить день']];
+  for (const [k, t] of pairs6) {
+    const same = sig(ctx6.__D[k]) === sig(flowBy[t]);
+    T('идентичность демо-6: ' + t, same);
+  }
+}
 
 // ---------- симулятор (та же механика, что в app.js flowJudge/flowTr) ----------
 const fmt = (s, mem) => (s || '')
