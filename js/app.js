@@ -61,7 +61,7 @@ const Ambience = {
   forScreen(id){
     if (!S.sound.amb) return;
     const m = {
-      'sc-welcome':'ridge','sc-intro':'valley','sc-hub':'quiet',
+      'sc-welcome':'ridge','sc-hub':'quiet',
       'sc-lang':'quiet','sc-map':null,'sc-levels':null,'sc-profile':'quiet','sc-done':'summit'
     };
     if (id === 'sc-map' || id === 'sc-levels'){ Sound.ambience(STAGES[Trail.stage||1].amb); return; }
@@ -122,31 +122,13 @@ const HelloScreen = {
 
 /* ---------------- онбординг ---------------- */
 const Onb = {
-  i:0,
-  start(){ Sound.boot(); Sound.fx('open'); go('sc-intro'); this.show(0); },
-  show(i){
-    this.i = i;
-    const slides = document.querySelectorAll('#slides .slide');
-    slides.forEach((s,k)=>s.classList.toggle('on', k===i));
-    document.querySelectorAll('#dots i').forEach((d,k)=>d.classList.toggle('on', k===i));
-    const s = slides[i];
-    $('intro-bg').style.backgroundImage = `url('${s.dataset.bg}')`;
-    if (S.sound.amb) Sound.ambience(s.dataset.amb);
-    $('intro-next').textContent = (i === slides.length-1) ? 'Поехали' : 'Далее';
-  },
-  next(){
-    Sound.fx('step');
-    const n = document.querySelectorAll('#slides .slide').length;
-    if (this.i < n-1) this.show(this.i+1); else this.skip();
-  },
-  skip(){
+  start(){
     S.seenIntro = true; save();
     Sound.boot(); Sound.fx('unlock');
     navStack = [];
     go(S.lang ? 'sc-hub' : 'sc-lang', {noHistory:true});
     if (!S.lang) navStack = ["sc-hub"];
-  },
-  replay(){ this.start(); }
+  }
 };
 
 /* ---------------- хаб ---------------- */

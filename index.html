@@ -27,40 +27,6 @@
       </div>
       <div class="ios-bottom">
         <button class="btn ios-start" onclick="Onb.start()">Начать</button>
-        <button class="btn quiet" onclick="Onb.skip()">Пропустить</button>
-      </div>
-    </div>
-
-    <!-- ============ 2. КРАТКОЕ ВВЕДЕНИЕ (3 слайда, пропускается) ============ -->
-    <div class="screen" id="sc-intro">
-      <div class="hero-bg" id="intro-bg"></div>
-      <div class="hero-veil"></div>
-      <div class="hero-content">
-        <div class="row between" style="padding-top:16px">
-          <span class="kicker">ContextFlow</span>
-          <button class="pill" onclick="Onb.skip()">Пропустить</button>
-        </div>
-
-        <div class="slides" id="slides">
-          <div class="slide on" data-bg="assets/map/stage-1.png" data-amb="valley">
-            <span class="kicker amber">Маршрут</span>
-            <h2 class="mid" style="margin-top:8px">Гора вместо списка уроков</h2>
-            <p class="body" style="margin-top:10px">Пять этапов — от подножия до вершины. Ты всегда видишь, где стоишь и что дальше.</p>
-          </div>
-          <div class="slide" data-bg="assets/scenes/en/cafe.jpg" data-amb="cafe">
-            <span class="kicker amber">Практика</span>
-            <h2 class="mid" style="margin-top:8px">Сцены, а не карточки</h2>
-            <p class="body" style="margin-top:10px">Кафе, банк, приём у врача, собеседование. Слова, предложения и живой диалог — вслух и письменно.</p>
-          </div>
-          <div class="slide" data-bg="assets/map/stage-4.png" data-amb="alpine">
-            <span class="kicker amber">Темп</span>
-            <h2 class="mid" style="margin-top:8px">Без допросов и дедлайнов</h2>
-            <p class="body" style="margin-top:10px">Никаких «зачем» и «сколько минут в день». Открыл — идёшь. Закрыл — гора подождёт.</p>
-          </div>
-        </div>
-
-        <div class="dots" id="dots"><i class="on"></i><i></i><i></i></div>
-        <button class="btn" style="margin-top:12px" id="intro-next" onclick="Onb.next()">Далее</button>
       </div>
     </div>
 
@@ -267,10 +233,6 @@
           <div class="set-row" onclick="Lang.open()" style="cursor:pointer">
             <div><h3 class="sm">Язык курса</h3><p class="small">Сменить в любой момент</p></div>
             <b class="row gap8" id="pf-lang-2">—</b>
-          </div>
-          <div class="set-row" onclick="Onb.replay()" style="cursor:pointer">
-            <div><h3 class="sm">Показать введение</h3><p class="small">Три экрана о приложении</p></div>
-            <span class="small">›</span>
           </div>
         </div>
 

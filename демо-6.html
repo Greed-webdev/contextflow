@@ -431,8 +431,8 @@ const D = {
       D.tries++;
       D.bub('you',said,'');
       const out=document.getElementById('out');
-      const d=document.getElementById('dunno'); d.style.display='none';
       if(D.tries>=2){
+        document.getElementById('dunno').style.display='none';
         out.innerHTML=`<div class="v"><b class="a">Собеседник не понял.</b><ul><li>Скажи, например: <b>${n.best}</b></li></ul></div>`;
         D.bub('them','Sorry, I did not understand.','Простите, я не понял.');
         const b=document.createElement('button'); b.className='g'; b.textContent='Дальше';
