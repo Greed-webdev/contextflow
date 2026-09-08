@@ -18,7 +18,17 @@ fi
 echo "Собираю свежую версию…"
 rm -rf /tmp/pages && mkdir -p /tmp/pages
 cp index.html /tmp/pages/
-cp -r css js assets /tmp/pages/
+cp -r css js /tmp/pages/
+# Тяжёлое (assets, ~32 МБ) локально не храним — берём из GitHub main.
+# Если assets есть локально (разработка) — используем его.
+ASSETS_SRC="assets"
+if [ ! -d "$ASSETS_SRC" ]; then
+  echo "  assets: локально нет — беру из GitHub main"
+  rm -rf /tmp/cf-assets
+  git clone --depth 1 -q -b main "https://github.com/$REPO.git" /tmp/cf-assets || { echo "  ✘ не смог получить assets с GitHub"; exit 1; }
+  ASSETS_SRC="/tmp/cf-assets/assets"
+fi
+cp -r "$ASSETS_SRC" /tmp/pages/assets
 
 # ── ТЯЖЁЛЫЕ ФАЙЛЫ ХРАНЯТСЯ ТОЛЬКО НА САЙТЕ ───────────────────────
 # Голосовой движок весит 40 МБ. В рабочей папке его держать незачем:
@@ -26,9 +36,9 @@ cp -r css js assets /tmp/pages/
 # берём готовый прямо с сайта и кладём обратно. Рабочая папка чистая.
 STT_DIR="/tmp/pages/assets/stt"
 mkdir -p "$STT_DIR"
-if [ -f "assets/stt/model-en.tar.gz" ]; then
-  echo "  голосовой движок: беру локальный"
-  cp assets/stt/model-en.tar.gz "$STT_DIR/"
+if [ -f "$ASSETS_SRC/stt/model-en.tar.gz" ]; then
+  echo "  голосовой движок: есть в assets"
+  cp "$ASSETS_SRC/stt/model-en.tar.gz" "$STT_DIR/"
 else
   echo "  голосовой движок: качаю с сайта (в рабочей папке не храним)"
   if ! curl -sfL -o "$STT_DIR/model-en.tar.gz" "${SITE}assets/stt/model-en.tar.gz"; then
@@ -64,6 +74,8 @@ git add -A
 git commit -q -m "обновление $(date '+%d.%m %H:%M')"
 git branch -M main
 git remote add origin "https://Greed-webdev:$GH_TOKEN@github.com/$REPO.git"
+
+rm -rf /tmp/cf-assets 2>/dev/null
 
 echo "Отправляю на GitHub…"
 if git push -qf origin main 2>&1 | tail -2; then
