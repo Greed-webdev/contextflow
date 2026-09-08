@@ -1,0 +1,67 @@
+{
+  "id": "office-greet",
+  "level": 3,
+  "title": "Первое приветствие (офис, стойка администратора)",
+  "cefr": "Oxford A1: приветствие, имя, цель визита, вежливый отказ. Фразы короткие, простые.",
+  "principles": [
+    "Бот отвечает по смыслу, а не тащит по рельсам: отказали — отпускает («No problem…»), имя после отказа не выпытывает.",
+    "На каждом ходе игрока живут 3 архетипа ответа: идеальный (продвигает сюжет), отказ/альтернатива (бот перестраивается), ошибка новичка A1 (бот понял, мягко поправил, ведёт дальше).",
+    "Поправку показываем один раз и без занудства; после неё разговор продолжается.",
+    "Имя игрока запоминается с первого упоминания и подставляется дальше ({name}); повторно не спрашиваем."
+  ],
+  "opener": { "them": "Hello! Can I help you?", "ru": "Здравствуйте! Чем могу помочь?" },
+  "firstMove": {
+    "task": "Тебя спрашивают, чем помочь. Ответь, зачем ты пришёл, и назови себя.",
+    "best": "Hi, my name is Anna. I have a meeting.",
+    "archetypes": [
+      {
+        "type": "ideal",
+        "label": "Идеальный — приветствие + имя + цель",
+        "phrase": "Hi, my name is Anna. I have a meeting.",
+        "bot": {
+          "them": "Nice to meet you, Anna. The meeting is in room 204, second floor, on the left.",
+          "ru": "Приятно познакомиться, Анна. Встреча — кабинет 204, второй этаж, слева.",
+          "next": "подтвердить кабинет (переспрос)",
+          "correction": null
+        }
+      },
+      {
+        "type": "refusal",
+        "label": "Отказ — помощь не нужна (раньше бот давил вопросом про имя)",
+        "phrase": "No, thanks. I am fine.",
+        "bot": {
+          "them": "No problem. I am here if you need anything. Have a nice day!",
+          "ru": "Без проблем. Я здесь, если что-то понадобится. Хорошего дня!",
+          "next": "вежливое прощание (короткая ветка)",
+          "correction": null
+        }
+      },
+      {
+        "type": "mistake",
+        "label": "Ошибка новичка A1 — слова-заготовки без связки (me/my)",
+        "phrase": "Me name Anna.",
+        "bot": {
+          "them": "Nice to meet you, Anna! Are you here for the meeting?",
+          "ru": "Приятно познакомиться, Анна! Вы на встречу?",
+          "next": "вопрос про цель визита",
+          "correction": "My name is Anna."
+        }
+      }
+    ]
+  },
+  "tests": [
+    { "say": "Hi, my name is Anna. I have a meeting.", "expect": "meet_full", "notInReply": [] },
+    { "say": "I am Anna. I have an appointment.", "expect": "meet_full", "notInReply": [] },
+    { "say": "No, thanks. I am fine.", "expect": "leave", "notInReply": ["name", "meeting", "appointment"] },
+    { "say": "Just looking around.", "expect": "leave", "notInReply": ["name", "meeting"] },
+    { "say": "Goodbye!", "expect": "leave", "notInReply": ["name", "meeting"] },
+    { "say": "Me name Anna.", "expect": "fix", "correction": "My name is Anna.", "notInReply": [] },
+    { "say": "My name Anna.", "expect": "fix", "correction": "My name is Anna.", "notInReply": [] },
+    { "say": "Hi, my name is Anna.", "expect": "greet", "notInReply": [] },
+    { "say": "Hi!", "expect": "hi", "notInReply": [] },
+    { "say": "Yes, I am here for the meeting.", "expect": "meet_noname", "notInReply": [] },
+    { "say": "I am waiting for a friend.", "expect": "help", "notInReply": [] },
+    { "say": "I need help, please.", "expect": "help", "notInReply": [] },
+    { "say": "Yes", "expect": "ask", "notInReply": [] }
+  ]
+}

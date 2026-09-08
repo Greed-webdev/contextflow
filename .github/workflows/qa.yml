@@ -1,0 +1,53 @@
+# QA-робот ContextFlow: гоняет стенды сам при каждом пуше в workspace.
+# Результат пишет в QA-АВТО.md и коммитит обратно — человеку ничего делать не надо.
+name: qa-robot
+
+on:
+  push:
+    branches: [ workspace ]
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Забрать код
+        uses: actions/checkout@v4
+        with:
+          ref: workspace
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Прогнать стенды
+        shell: bash
+        run: |
+          R=$(pwd)
+          # flow-test/flow6-test используют абсолютный путь /home/user — заменяем на корень репо
+          sed 's|/home/user|'"$R"'|g' qa/flow-test.js  > /tmp/flow-test.js
+          sed 's|/home/user|'"$R"'|g' qa/flow6-test.js > /tmp/flow6-test.js
+          node /tmp/flow-test.js  > /tmp/res-flow.txt  || true
+          node /tmp/flow6-test.js > /tmp/res-flow6.txt || true
+          node qa/audit2.js      > /tmp/res-audit.txt || true
+          {
+            echo "## QA-АВТО · $(date -u +%Y-%m-%dT%H:%MZ)"
+            echo
+            echo '### flow-test (приложение ↔ демо)'
+            tail -3 /tmp/res-flow.txt | grep -E 'ИТОГ|ПРОВАЛЫ' || tail -3 /tmp/res-flow.txt
+            echo
+            echo '### flow6-test (демо-6)'
+            tail -3 /tmp/res-flow6.txt | grep -E 'ИТОГ|ПРОВАЛЫ' || tail -3 /tmp/res-flow6.txt
+            echo
+            echo '### audit2'
+            head -6 /tmp/res-audit.txt
+          } > QA-АВТО.md
+
+      - name: Опубликовать отчёт
+        shell: bash
+        run: |
+          git config user.name "qa-robot"
+          git config user.email "qa@contextflow.local"
+          git add QA-АВТО.md
+          git commit -m "qa-robot: автоотчёт $(date -u +%Y-%m-%dT%H:%MZ)" || echo "нет изменений"
+          git push
