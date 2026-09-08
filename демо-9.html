@@ -200,20 +200,22 @@ const S1 = { title:'Показать квартиру · ур. 55',
   start:'place',
   opener:{them:'So this is your new place?', ru:'Так вот твоё новое жильё?'},
   nodes:{
-    place:{ task:'Скажи «да, это маленькая квартира».', best:'Yes, it is a small flat.',
+    place:{ task:'Ответь про квартиру: какая она? (например: маленькая)', best:'Yes, it is a small flat.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'like','love','nice','cosy','great')) return {br:'like'};
-          if(chose(w,'big','large')) return {br:'big'};
-          if(chose(w,'flat','apartment','small','little','new','place','yes','yeah')) return {br:'ok'};
+          if(chose(w,'like','love','nice','cosy','cozy','great','beautiful')) return {br:'like'};
+          if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea'))) return {br:'dk'};
+          if(chose(w,'big','large','huge')) return {br:'big'};
           if(has(w,'no','not','never')) return {br:'not'};
+          if(chose(w,'small','little','tiny','flat','apartment','new','place','yes','yeah','ok','okay','fine','good','alright','so')) return {br:'ok'};
           return {huh:1}; },
     tr:{
       bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
-      like:{them:'Thanks! Come in, I will show you everything.',ruThem:'Спасибо! Заходи, я всё покажу.',next:'kitchen'},
-      big:{them:'Well, it is not very big, but it is cozy. Come in!',ruThem:'Ну, она не очень большая, но уютная. Заходи!',next:'kitchen'},
-      ok:{them:'Great! Come in, I will show you everything.',ruThem:'Отлично! Заходи, я всё покажу.',next:'kitchen'},
+      like:{them:'Thanks! I love it too. Come in, I will show you everything.',ruThem:'Спасибо! Мне она тоже нравится. Заходи, я всё покажу.',next:'kitchen'},
+      dk:{them:'Come in and see it for yourself. I will show you everything.',ruThem:'Заходи и сам увидишь. Я всё покажу.',next:'kitchen'},
+      big:{them:'Big? Well, there is enough space for sure. Come in!',ruThem:'Большая? Ну, места точно хватает. Заходи!',next:'kitchen'},
       not:{them:'Oh, I see. Well, come in anyway — let me show you around.',ruThem:'А, понятно. Ну, всё равно заходи — покажу квартиру.',next:'kitchen'},
+      ok:{them:'Great! Come in, I will show you everything.',ruThem:'Отлично! Заходи, я всё покажу.',next:'kitchen'},
     } },
     kitchen:{ task:'Скажи, что кухня рядом с дверью.', best:'The kitchen is next to the door.',
     judge(w){
