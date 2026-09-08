@@ -178,3 +178,35 @@ flow-test 306/0.
 - Мой чекер: демо-9 31/0, демо-10 28/0.
 - Живые пути: эталоны всех 6 сцен до конца + ветки (13/13), мусор на стартах → huh.
 - В js/lessons.js НЕ переносилось (жду одобрения демо, как договорились для партий 3+).
+
+---
+
+# ИТЕРАЦИЯ 5 — правки демо-9/демо-10 по рецензии (промпт-демо9-10.md)
+
+Шесть дефектов закрыты, сквозное правило применено.
+
+## Фиксы
+1. **демо-9 S1 place.not — блокирующий**: «no» / «I do not like it» обрывали урок.
+   Теперь not ведёт в kitchen: «Oh, I see. Well, come in anyway — let me show you around.»
+2. **демо-9 S3 where.other — блокирующий**: «не знаю, спросите другого» обрывало.
+   Теперь other ведёт в far: «I am not sure about that, but the bank is on the next street.»
+3. **демо-9 S2 call**: добавлены общие поломки — «nothing works», «my TV is broken»,
+   «no water», «it does not work» и т.п. Предметы через chose (уважает отрицание),
+   NEG-предметы в отдельные ветки n* («no water» -> nwater -> since) — чтобы и руки
+   понимали «no water», и батарея ОТРИЦАНИЯ не ругалась. «no problem/no broken» -> переспрос.
+4. **демо-10 S2 walk**: число проверяется. five/5 -> ok5; «ten minutes»/«2 minutes» ->
+   other5 («Well, I would say about five minutes on foot») -> thx; «No, I will take a bus» -> bus5.
+5. **демо-10 S3 like**: boring/hate/tired/difficult/stress/bad/awful/terrible -> no
+   («it is boring», «I hate my job»). «no boring» (бессмыслица) -> переспрос.
+6. **демо-10 S1 sr**: «no return»/«not return» -> sing (односторонний, не переспрос);
+   «both ways» -> ret; «again/repeat/sorry/pardon» -> переспрос.
+
+## Сквозное правило рецензии
+«В конец сцены ведёт только прощание» — аудит всех узлов обоих файлов: не-bye ветки
+в конец не ведут (единственная правка по ходу: askdir.th получил «Have a nice day!»).
+Плюс askdir в s3: th с прощанием.
+
+## Проверки
+- Контрольный список рецензии 32/32 (включая «Не знаю»-проходы всех 6 сцен и 6 эталонов).
+- Чекер сверщика: демо-9 504/0, демо-10 393/0 — чисто.
+- Мой чекер: демо-9 31/0, демо-10 28/0.

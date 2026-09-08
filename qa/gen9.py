@@ -26,7 +26,7 @@ const S1 = { title:'Показать квартиру · ур. 55',
       like:{them:'Thanks! Come in, I will show you everything.',ruThem:'Спасибо! Заходи, я всё покажу.',next:'kitchen'},
       big:{them:'Well, it is not very big, but it is cozy. Come in!',ruThem:'Ну, она не очень большая, но уютная. Заходи!',next:'kitchen'},
       ok:{them:'Great! Come in, I will show you everything.',ruThem:'Отлично! Заходи, я всё покажу.',next:'kitchen'},
-      not:{them:'Oh, I see. It is still a nice place.',ruThem:'А, понятно. Всё равно хорошее место.',next:null},
+      not:{them:'Oh, I see. Well, come in anyway — let me show you around.',ruThem:'А, понятно. Ну, всё равно заходи — покажу квартиру.',next:'kitchen'},
     } },
     kitchen:{ task:'Скажи, что кухня рядом с дверью.', best:'The kitchen is next to the door.',
     judge(w){
@@ -112,6 +112,15 @@ const S2 = { title:'Что-то сломалось · ур. 59',
           if(chose(w,'door')) return {br:'door'};
           if(chose(w,'light','lamp')&&chose(w,'kitchen')) return {br:'light'};
           if(chose(w,'light','lamp')) return {br:'light2'};
+          if(chose(w,'tv','television','fridge','freezer','internet','wifi','window','roof','wall','toilet')) return {br:'otherp'};
+          if(has(w,'no','not','never')&&has(w,'water')) return {br:'nwater'};
+          if(has(w,'no','not','never')&&has(w,'heat','heater','heating')) return {br:'nheat'};
+          if(has(w,'no','not','never')&&has(w,'door')) return {br:'ndoor'};
+          if(has(w,'no','not','never')&&has(w,'light','lamp')) return {br:'nlight'};
+          if(has(w,'no','not','never')&&has(w,'tv','television','fridge','freezer','internet','wifi','window','roof','wall','toilet')) return {br:'notherp'};
+          if(has(w,'no','not','never')&&has(w,'broken','break','works','working','work')&&!has(w,'is','are','was','were','does','do','it','they','just')) return {huh:1};
+          if(has(w,'no','not','never')&&(w.includes('problem')||w.includes('trouble'))&&!has(w,'is','are','there')) return {huh:1};
+          if(has(w,'broken','break','nothing','works','working','work')||(has(w,'problem','trouble')&&!has(w,'fine','ok','okay','good','everything'))) return {br:'otherp'};
           return {huh:1}; },
     tr:{
       bye:{them:'Ok. Call me if you need anything.',ruThem:'Хорошо. Звоните, если что.',next:null},
@@ -120,6 +129,12 @@ const S2 = { title:'Что-то сломалось · ур. 59',
       door:{them:'The door? I see. Since when?',ruThem:'Дверь? Понятно. С какого времени?',next:'since'},
       light:{them:'The light in the kitchen? I see. Since when?',ruThem:'Свет на кухне? Понятно. С какого времени?',next:'since'},
       light2:{them:'The light? I see. I will come and look at it.',ruThem:'Свет? Понятно. Я приду и посмотрю.',next:'thanks'},
+      nwater:{them:'The water? I see. Since when?',ruThem:'Вода? Понятно. С какого времени?',next:'since'},
+      nheat:{them:'The heating? I see. Since when?',ruThem:'Отопление? Понятно. С какого времени?',next:'since'},
+      ndoor:{them:'The door? I see. Since when?',ruThem:'Дверь? Понятно. С какого времени?',next:'since'},
+      nlight:{them:'The light? I see. Since when?',ruThem:'Свет? Понятно. С какого времени?',next:'since'},
+      notherp:{them:'I see there is a problem. Since when?',ruThem:'Понимаю, есть проблема. С какого времени?',next:'since'},
+      otherp:{them:'I see there is a problem. Since when?',ruThem:'Понимаю, есть проблема. С какого времени?',next:'since'},
     } },
     since:{ task:'Скажи: со вчерашнего вечера.', best:'Since yesterday evening.',
     judge(w,mem){
@@ -199,7 +214,7 @@ const S3 = { title:'Найти банк · ур. 63',
       bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
       cafe0:{them:'There is a nice cafe just around the corner.',ruThem:'Хорошее кафе есть прямо за углом.',next:'askdir'},
       bank:{them:'There is one on the next street.',ruThem:'Есть один на соседней улице.',next:'far'},
-      other:{them:'Sorry, I do not know. Ask someone else.',ruThem:'Простите, не знаю. Спросите кого-нибудь ещё.',next:null},
+      other:{them:'I am not sure about that, but the bank is on the next street.',ruThem:'Не уверен насчёт этого, но банк — на соседней улице.',next:'far'},
     } },
     far:{ task:'Спроси, далеко ли это.', best:'Is it far from here?',
     judge(w){
@@ -245,7 +260,7 @@ const S3 = { title:'Найти банк · ур. 63',
           return {huh:1}; },
     tr:{
       bye:{them:'Bye!',ruThem:'Пока!',next:null},
-      th:{them:'You are welcome!',ruThem:'Пожалуйста!',next:null},
+      th:{them:'You are welcome! Have a nice day!',ruThem:'Пожалуйста! Хорошего дня!',next:null},
       dir:{them:'On your right, next to the shop.',ruThem:'Справа, рядом с магазином.',next:'thx2'},
       straight:{them:'Straight ahead, then on your left.',ruThem:'Прямо, потом налево.',next:'thx2'},
     } },

@@ -216,8 +216,10 @@ const S1 = { title:'Купить билет · ур. 67',
     sr:{ task:'Скажи: туда-обратно.', best:'Return, please.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'return','back')) return {br:'ret'};
+          if(chose(w,'return','back','both','ways')) return {br:'ret'};
+          if(has(w,'no','not','never')&&(w.includes('return')||w.includes('back'))) return {br:'sing'};
           if(chose(w,'single','one')) return {br:'sing'};
+          if(chose(w,'again','repeat','sorry','pardon')) return {br:'again'};
           if(has(w,'no','not','never')) return {br:'again'};
           return {huh:1}; },
     tr:{
@@ -275,10 +277,16 @@ const S2 = { title:'Объяснить дорогу · ур. 73',
       dir:{them:'Great, thank you! And is it far?',ruThem:'Отлично, спасибо! А это далеко?',next:'walk'},
     } },
     walk:{ task:'Скажи: около пяти минут пешком.', best:'About five minutes on foot.',
-    judge(w){
+    judge(w,mem){
+          const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'five','minute','minutes','foot','walk')) return {br:'ok5'};
-          if(chose(w,'bus','taxi','car','metro')) return {br:'bus5'};
+          if(has(w,'no','not','never')&&has(w,'bus','taxi','car','metro')&&!has(w,'take','will','i','by')) return {huh:1};
+          if(has(w,'bus','taxi','car','metro')) return {br:'bus5'};
+          if(has(w,'minute','minutes','foot','walk')&&!has(w,'no','not','never')){
+            if(n===5) return {br:'ok5'};
+            if(n!==null) return {br:'other5'};
+            if(w.includes('few')||w.includes('little')) return {br:'other5'};
+            return {br:'ok5'}; }
           if(has(w,'no','not','never')) return {br:'not5'};
           return {huh:1}; },
     tr:{
@@ -286,6 +294,7 @@ const S2 = { title:'Объяснить дорогу · ур. 73',
       ok5:{them:'That is very close. Thank you so much!',ruThem:'Это совсем рядом. Большое спасибо!',next:'thx'},
       bus5:{them:'Oh, by bus it is even shorter. Two stops. Thank you!',ruThem:'На автобусе ещё короче. Две остановки. Спасибо!',next:'thx'},
       not5:{them:'I see. Well, thank you for your help!',ruThem:'Понятно. Ну, спасибо за помощь!',next:'thx'},
+      other5:{them:'Well, I would say about five minutes on foot.',ruThem:'Ну, я бы сказал, около пяти минут пешком.',next:'thx'},
     } },
     thx:{ task:'Скажи «не за что».', best:'You are welcome.',
     judge(w){
@@ -344,7 +353,9 @@ const S3 = { title:'Рассказать о работе · ур. 77',
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'yes','yeah','like','love','enjoy')) return {br:'yes'};
           if(chose(w,'lot','much','many','hard','busy')) return {br:'busy'};
+          if(has(w,'no','not','never')&&(w.includes('boring')||w.includes('bored')||w.includes('hate')||w.includes('hates')||w.includes('tired')||w.includes('difficult')||w.includes('stress')||w.includes('stressful')||w.includes('bad')||w.includes('awful')||w.includes('terrible'))) return {huh:1};
           if(has(w,'no','not','never')) return {br:'no'};
+          if(chose(w,'boring','bored','hate','hates','tired','difficult','stress','stressful','bad','awful','terrible')) return {br:'no'};
           if(chose(w,'ok','okay','fine','sure','so')) return {br:'yes'};
           return {huh:1}; },
     tr:{
