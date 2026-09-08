@@ -60,8 +60,8 @@ import re, sys
 v = sys.argv[1]
 p = '/tmp/pages/index.html'
 s = open(p, encoding='utf-8').read()
-s = re.sub(r'(href="css/[a-z]+\.css)(\?v=[0-9]+)?"', r'\1?v=' + v + '"', s)
-s = re.sub(r'(src="js/[a-z]+\.js)(\?v=[0-9]+)?"',   r'\1?v=' + v + '"', s)
+s = re.sub(r'(href="css/[^"]*\.css)(\?v=[0-9]+)?"', r'\1?v=' + v + '"', s)
+s = re.sub(r'(src="js/[^"]*\.js)(\?v=[0-9]+)?"',   r'\1?v=' + v + '"', s)
 open(p, 'w', encoding='utf-8').write(s)
 print('  метка версии:', v)
 PYEOF
