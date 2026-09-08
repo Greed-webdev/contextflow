@@ -49,7 +49,7 @@ button:disabled{opacity:.5;cursor:default}
     <button class="g" onclick="D.again()">Заново</button>
   </div>
   <div class="row" style="margin-top:0">
-    <button class="g" id="dunno" style="display:none" onclick="D.opts()">Не знаю — покажи, как сказать</button>
+    <button class="g" id="dunno" style="display:none" onclick="D.opts()">Не знаю</button>
   </div>
   <div id="out"></div>
 </div>
@@ -200,7 +200,7 @@ const S1 = { title:'Купить куртку · ур. 41',
   start:'ask',
   opener:{them:'Are you looking for something?', ru:'Что-то ищете?'},
   nodes:{
-    ask:{ task:'Скажи, что ищешь куртку.', best:'Yes, I am looking for a jacket.',
+    ask:{ task:'Ответь, что тебе нужно (например: я ищу куртку).', best:'Yes, I am looking for a jacket.',
     judge(w){
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
           if(chose(w,'help')) return {br:'help'};
@@ -223,7 +223,7 @@ const S1 = { title:'Купить куртку · ур. 41',
       coat:{them:'Coats are over there. What size do you wear?',ruThem:'Куртки вон там. Какой размер вы носите?',next:'size'},
       other:{them:'Oh, hats and scarves are on the other side. Let me know if you need help.',ruThem:'Головные уборы и шарфы с другой стороны. Обращайтесь, если что.',next:null},
     } },
-    size:{ task:'Скажи: средний.', best:'Medium, please.',
+    size:{ task:'Назови размер (например: средний, пожалуйста).', best:'Medium, please.',
     judge(w){
           if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
           if(has(w,'no','not','never')&&chose(w,'know','idea','size')) return {br:'dk'};
@@ -238,7 +238,7 @@ const S1 = { title:'Купить куртку · ур. 41',
       l:{them:'Here is a large one. Try it.',ruThem:'Вот большого размера. Примерьте.',next:'try'},
       s:{them:'Here is a small one. Try it.',ruThem:'Вот маленького размера. Примерьте.',next:'try'},
     } },
-    try:{ task:'Поблагодари и скажи, что берёшь.', best:'Thank you. I will take it.',
+    try:{ task:'Скажи, что берёшь (например: спасибо, я возьму её).', best:'Thank you. I will take it.',
     judge(w){
           const POSS=['take','buy','like','fit','fits','perfect','good','great','fine','yes','yeah'];
           const JOB=['small','big','large','tight','loose','short'];
@@ -258,7 +258,7 @@ const S1 = { title:'Купить куртку · ур. 41',
       take:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
       bad:{them:'I see. Let me find another one for you.',ruThem:'Понял. Поищу для вас другой вариант.',next:'size2'},
     } },
-    size2:{ task:'Назови другой размер.', best:'A large one, please.',
+    size2:{ task:'Назови другой размер (например: побольше, пожалуйста).', best:'A large one, please.',
     judge(w){
           if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
           if(has(w,'no','not','never')) return {br:'last'};
@@ -269,7 +269,7 @@ const S1 = { title:'Купить куртку · ур. 41',
       last:{them:'I see. We have one more jacket in dark blue. Let me show you.',ruThem:'Понял. У нас есть ещё одна куртка, тёмно-синяя. Сейчас покажу.',next:'last'},
       try:{them:'Here you are. Try this one.',ruThem:'Вот. Примерьте эту.',next:'try2'},
     } },
-    last:{ task:'Скажи, что берёшь её.', best:'Yes, I like it. I will take it.',
+    last:{ task:'Скажи своё решение (например: да, она мне нравится, я беру её).', best:'Yes, I like it. I will take it.',
     judge(w){
           const POSL=['take','buy','like','good','perfect','fit','fits','yes','yeah'];
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
@@ -282,7 +282,7 @@ const S1 = { title:'Купить куртку · ур. 41',
       take:{them:'Great choice! Anything else?',ruThem:'Отличный выбор! Что-нибудь ещё?',next:'more'},
       no:{them:'No problem. It is not for everyone.',ruThem:'Не проблема. Не всем она подходит.',next:null},
     } },
-    try2:{ task:'Поблагодари и скажи, что берёшь.', best:'Thank you. I will take it.',
+    try2:{ task:'Скажи, что берёшь (например: спасибо, я возьму её).', best:'Thank you. I will take it.',
     judge(w){
           const P2=['take','buy','like','fit','fits','perfect','good','great','fine','yes','yeah'];
           const SML=['small','big','tight','loose','short'];
@@ -301,7 +301,7 @@ const S1 = { title:'Купить куртку · ур. 41',
       take:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
       no:{them:'No problem. It was nice to show you.',ruThem:'Ничего страшного. Рад был показать.',next:null},
     } },
-    more:{ task:'Скажи, что это всё.', best:'No, that is all, thank you.',
+    more:{ task:'Ответь, нужно ли что-то ещё (например: нет, это всё, спасибо).', best:'No, that is all, thank you.',
     judge(w,mem){
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
           if(chose(w,'hat','hats','scarf','scarves','glove','gloves','shirt','shirts','shoe','shoes','jacket','jackets','coat','coats','more','another','also','other')){
@@ -316,7 +316,7 @@ const S1 = { title:'Купить куртку · ур. 41',
       add2:{them:'Ok. Let me wrap it up for you.',ruThem:'Хорошо. Я упакую вам.',next:'pay'},
       all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'pay'},
     } },
-    pay:{ task:'Скажи: картой.', best:'By card, please.',
+    pay:{ task:'Назови способ оплаты (например: картой, пожалуйста).', best:'By card, please.',
     judge(w){
           if(chose(w,'bye','goodbye','see')) return {br:'bye'};
           if(chose(w,'card','credit')) return {br:'card'};
@@ -346,7 +346,7 @@ const S2 = { title:'Заказать обед · ур. 45',
   start:'ready',
   opener:{them:'Are you ready to order?', ru:'Готовы заказать?'},
   nodes:{
-    ready:{ task:'Попроси меню.', best:'Not yet. Could I see the menu, please?',
+    ready:{ task:'Ответь, готов ли заказывать (например: ещё нет, можно меню, пожалуйста?).', best:'Not yet. Could I see the menu, please?',
     judge(w){
           const HUR=['time','wait','waiting'];
           if(chose(w,'menu')) return {br:'menu'};
@@ -366,7 +366,7 @@ const S2 = { title:'Заказать обед · ур. 45',
       hurry:{them:'No problem. I will be quick. What would you like?',ruThem:'Без проблем. Я быстро. Что будете заказывать?',next:'order'},
       wait:{them:'No problem. Here is the menu. Take your time.',ruThem:'Без проблем. Вот меню. Не спешите.',next:'order'},
     } },
-    order:{ task:'Закажи суп и хлеб.', best:'I will have the soup and some bread.',
+    order:{ task:'Сделай заказ (например: я буду суп и хлеб).', best:'I will have the soup and some bread.',
     judge(w){
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
           if(chose(w,'soup')&&chose(w,'bread')) return {br:'full'};
@@ -377,7 +377,7 @@ const S2 = { title:'Заказать обед · ур. 45',
       full:{them:'Good choice. Anything to drink?',ruThem:'Хороший выбор. Что-нибудь выпить?',next:'drink'},
       some:{them:'Of course. Anything to drink?',ruThem:'Конечно. Что-нибудь выпить?',next:'drink'},
     } },
-    drink:{ task:'Попроси воду.', best:'Just water, please.',
+    drink:{ task:'Закажи напиток (например: только воду, пожалуйста).', best:'Just water, please.',
     judge(w){
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
           if(chose(w,'water')) return {br:'water'};
@@ -390,7 +390,7 @@ const S2 = { title:'Заказать обед · ур. 45',
       drink:{them:'Of course. Anything else?',ruThem:'Конечно. Что-нибудь ещё?',next:'more'},
       none:{them:'Ok. Anything else?',ruThem:'Хорошо. Что-нибудь ещё?',next:'more'},
     } },
-    more:{ task:'Скажи, что нет, спасибо.', best:'No, thank you. That is all.',
+    more:{ task:'Ответь, нужно ли что-то ещё (например: нет, спасибо, это всё).', best:'No, thank you. That is all.',
     judge(w,mem){
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
           if(chose(w,'soup','bread','salad','water','tea','coffee','juice','cake','cakes','dessert','more','another','also')){
@@ -414,7 +414,7 @@ const S2 = { title:'Заказать обед · ур. 45',
       bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
       ok:{them:'Here you are. Enjoy!',ruThem:'Пожалуйста. Приятного!',next:'enjoy'},
     } },
-    enjoy:{ task:'Поблагодари и скажи, что выглядит вкусно.', best:'Thank you, it looks delicious.',
+    enjoy:{ task:'Скажи, что всё хорошо (например: спасибо, выглядит вкусно).', best:'Thank you, it looks delicious.',
     judge(w){
           const YUM=['delicious','tasty','good','great','wonderful','love'];
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
@@ -435,7 +435,7 @@ const S3 = { title:'У барной стойки · ур. 49',
   start:'what',
   opener:{them:'What can I get you?', ru:'Что вам взять?'},
   nodes:{
-    what:{ task:'Закажи кофе.', best:'A coffee, please.',
+    what:{ task:'Сделай заказ (например: кофе, пожалуйста).', best:'A coffee, please.',
     judge(w){
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
           if(chose(w,'coffee','coffees')) return {br:'coffee'};
@@ -446,7 +446,7 @@ const S3 = { title:'У барной стойки · ур. 49',
       coffee:{them:'With milk?',ruThem:'С молоком?',next:'milk'},
       other:{them:'Sure. Anything else?',ruThem:'Конечно. Что-нибудь ещё?',next:'more'},
     } },
-    milk:{ task:'Скажи: без молока, но с сахаром.', best:'No milk, but with sugar, please.',
+    milk:{ task:'Уточни, как сделать кофе (например: без молока, но с сахаром).', best:'No milk, but with sugar, please.',
     judge(w){
           const BLCK=['black'];
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
@@ -464,7 +464,7 @@ const S3 = { title:'У барной стойки · ур. 49',
       wms:{them:'One coffee with milk and sugar. Two euros fifty.',ruThem:'Кофе с молоком и сахаром. Два пятьдесят.',next:'price'},
       bl:{them:'One black coffee. Two euros fifty.',ruThem:'Один чёрный кофе. Два пятьдесят.',next:'price'},
     } },
-    price:{ task:'Скажи, что платишь картой.', best:'I will pay by card.',
+    price:{ task:'Скажи, как будешь платить (например: я заплачу картой).', best:'I will pay by card.',
     judge(w,mem){
           if(chose(w,'bye','goodbye','see')) return {br:'bye'};
           if(chose(w,'card','credit')) return {br:'card'};
@@ -476,7 +476,7 @@ const S3 = { title:'У барной стойки · ур. 49',
       card:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
       cash:{them:'Perfect. Anything else?',ruThem:'Отлично. Что-нибудь ещё?',next:'more'},
     } },
-    more:{ task:'Скажи, что нет, спасибо.', best:'No, thank you. That is all.',
+    more:{ task:'Ответь, нужно ли что-то ещё (например: нет, спасибо, это всё).', best:'No, thank you. That is all.',
     judge(w,mem){
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
           if(chose(w,'coffee','tea','juice','water','cake','cakes','pastry','bun','buns','croissant','cookies','more','another','also')){
@@ -500,7 +500,7 @@ const S3 = { title:'У барной стойки · ур. 49',
       bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
       ok:{them:'Here you are. Enjoy!',ruThem:'Пожалуйста. Приятного!',next:'enjoy'},
     } },
-    enjoy:{ task:'Поблагодари и скажи, что выглядит вкусно.', best:'Thank you, it looks delicious.',
+    enjoy:{ task:'Скажи, что всё хорошо (например: спасибо, выглядит вкусно).', best:'Thank you, it looks delicious.',
     judge(w){
           const YUM=['delicious','tasty','good','great','wonderful','love'];
           if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};

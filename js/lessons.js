@@ -137,7 +137,7 @@ const COURSE = {
         intro:'Ты заходишь в офис. Человек за стойкой поднимает голову.',
         opener:{them:'Hello! Can I help you?', ru:'Здравствуйте! Чем могу помочь?'},
         nodes:{
-      n0:{ task:'Тебя спрашивают, чем помочь. Ответь, зачем ты пришёл, и назови себя.', best:'Hi, my name is Anna. I have a meeting.',
+      n0:{ task:'Поздоровайся, представься и скажи, зачем пришёл (например: привет, я Анна, у меня встреча).', best:'Hi, my name is Anna. I have a meeting.',
         judge(w,mem){
           let lim=w.length; ['with','see'].forEach(k=>{ const i=w.indexOf(k); if(i!==-1&&i<lim) lim=i; });
           const nm=pickName(w.slice(0,lim),NAME_STOP,!introduced(w));
@@ -169,15 +169,15 @@ const COURSE = {
           hi:{them:'Hello! What is your name, please?',ruThem:'Здравствуйте! Как вас зовут?',next:'name0'},
           help:{them:'I see. Take a seat, please. I will be with you in a minute.',ruThem:'Ясно. Присядьте, пожалуйста. Я подойду через минуту.',next:'wait'},
           ask:{them:'What can I do for you?',ruThem:'Чем я могу вам помочь?',next:'reason'} } },
-      name0:{ task:'Назови своё имя.', best:'My name is Anna.',
+      name0:{ task:'Скажи, как тебя зовут (например: меня зовут Анна).', best:'My name is Anna.',
         judge(w,mem){ const nm=pickName(w,NAME_STOP,false); if(nm) mem.name=nm;
           if(nm) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'Nice to meet you, {name}. Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}. Вы на встречу?',next:'meet'} } },
-      name1:{ task:'Назови своё имя.', best:'My name is Anna.',
+      name1:{ task:'Скажи, как тебя зовут (например: меня зовут Анна).', best:'My name is Anna.',
         judge(w,mem){ const nm=pickName(w,NAME_STOP,false); if(nm) mem.name=nm;
           if(nm) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'Nice to meet you, {name}. The meeting is in room 204, second floor, on the left.',ruThem:'Приятно познакомиться, {name}. Встреча — кабинет 204, второй этаж, слева.',next:'floor'} } },
-      meet:{ task:'Скажи, идёшь ли ты на встречу.', best:'Yes, I am here for the meeting.',
+      meet:{ task:'Ответь, идёшь ли ты на встречу (например: да, я на встречу).', best:'Yes, I am here for the meeting.',
         judge(w){ const neg=has(w,'no','not','nope','never');
           /* решение: «нет» на прямой вопрос — повод уточнить «чем помочь?», а не выпроводить
              (тренажёр: лишняя реплика = практика; админ в жизни уточнит). Мусор — честный huh. */
@@ -190,7 +190,7 @@ const COURSE = {
              home:{them:'Oh, I see. Take care, then!',ruThem:'А, понял. Тогда удачи!',next:'byehome'},
              other:{them:'I see. Take a seat - I will find the right person for you.',ruThem:'Ясно. Присядьте - я найду, кто вам нужен.',next:'wait'},
              ask:{them:'What can I do for you?',ruThem:'Чем я могу вам помочь?',next:'reason'} } },
-      reason:{ task:'Скажи, зачем пришёл: встреча, ждёшь друга или просто зашёл.', best:'I am here for the meeting.',
+      reason:{ task:'Ответь, зачем пришёл (например: я на встречу / жду друга / просто зашёл).', best:'I am here for the meeting.',
         judge(w){ if(has(w,'meeting','meet','appointment')&&!has(w,'no','not')) return {br:'meet'};
           if(has(w,'friend','wait','help','need','lost','someone','person','find')) return {br:'help'};
           if(has(w,'no','nothing','just','home','leave','bye','going','go','look','fine')) return {br:'home'};
@@ -208,7 +208,7 @@ const COURSE = {
         judge(w){ if(has(w,'thanks','thank','ok','okay','sure','fine','great','good','alright','right','cheers')) return {br:'ok'};
           if(has(w,'no','not','nothing','bye','goodbye')) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'You are welcome.',ruThem:'Пожалуйста.',next:null} } },
-      floor:{ task:'Переспроси: кабинет 204, второй этаж?', best:'Room 204, second floor?',
+      floor:{ task:'Переспроси, куда идти (например: кабинет 204, второй этаж?).', best:'Room 204, second floor?',
         judge(w,mem){ const d204=(mem._digits||[]).includes('204');
           if(d204||has(w,'room','floor','second','two','lift','left')) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'That is right. Take the lift.',ruThem:'Верно. Поднимитесь на лифте.',next:'lift'} } },
@@ -259,17 +259,17 @@ const COURSE = {
         intro:'Сотрудник просит данные для регистрации.',
         opener:{them:'Can I have your name, please?', ru:'Ваше имя, пожалуйста?'},
         nodes:{
-      n0:{ task:'Назови имя и фамилию.', best:'My name is Anna Petrova.',
+      n0:{ task:'Представься (например: меня зовут Анна Петрова).', best:'My name is Anna Petrova.',
         judge(w,mem){ const sig=sigWords(w,['my','name','is','i','am','im','please','hi','hello','miss','mrs','mr','can','have','you','the','and','your']).filter(x=>!NAME_STOP.includes(x)&&!NOT_NAME.has(x)&&(NAME_OK.has(x)||looksLikeName(x)));
           if(sig.length>=2){ const n=sig[0]; mem.name=n.charAt(0).toUpperCase()+n.slice(1); return {br:'full'}; }
           if(sig.length===1){ const n=sig[0]; mem.name=n.charAt(0).toUpperCase()+n.slice(1); return {br:'last'}; }
           return {huh:1}; },
         tr:{ full:{them:'Thank you, {name}. And your address?',ruThem:'Спасибо, {name}. И ваш адрес?',next:'addr'},
              last:{them:'Thank you, {name}. And your last name, please?',ruThem:'Спасибо, {name}. И ваша фамилия?',next:'n1'} } },
-      n1:{ task:'Назови фамилию.', best:'Petrova.',
+      n1:{ task:'Назови фамилию (например: Петрова).', best:'Petrova.',
         judge(w){ if(sigWords(w,['my','name','is','i','am','it','please']).filter(x=>!NAME_STOP.includes(x)&&!NOT_NAME.has(x)&&(NAME_OK.has(x)||looksLikeName(x))).length>=1) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'Perfect. And your address, please?',ruThem:'Отлично. И ваш адрес?',next:'addr'} } },
-      addr:{ task:'Скажи адрес: Парк-стрит, дом 12.', best:'I live at 12 Park Street.',
+      addr:{ task:'Назови свой адрес (например: я живу на Парк-стрит, дом 12).', best:'I live at 12 Park Street.',
         judge(w,mem){ const d12=(mem._digits||[]).includes('12');
           if(has(w,'park')&&(d12||has(w,'twelve'))) return {br:'full'};
           if(has(w,'park')) return {br:'ok'};
@@ -278,13 +278,13 @@ const COURSE = {
         tr:{ full:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'},
              ok:{them:'Thank you. And the house number, please?',ruThem:'Спасибо. И номер дома?',next:'numH'},
              which:{them:'Sorry, which street is it?',ruThem:'Простите, какая это улица?',next:'numS'} } },
-      numH:{ task:'Скажи номер дома: двенадцать.', best:'Twelve.',
+      numH:{ task:'Назови номер дома (например: двенадцать).', best:'Twelve.',
         judge(w,mem){ if((mem._digits||[]).length||numOf(w)!==null) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'} } },
-      numS:{ task:'Назови улицу: Парк-стрит.', best:'Park Street.',
+      numS:{ task:'Назови улицу (например: Парк-стрит).', best:'Park Street.',
         judge(w){ if(has(w,'park')||has(w,'street')) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'} } },
-      age:{ task:'Скажи: двадцать пять.', best:'I am twenty-five.',
+      age:{ task:'Назови свой возраст (например: двадцать пять).', best:'I am twenty-five.',
         judge(w,mem){ const ds=(mem._digits||[]).map(Number);
           if(ds.length>1) return {br:'again'};        // два числа — непонятно, какое возраст
           if(mem._raw&&/\d+[.,]\d+/.test(mem._raw)) return {br:'again'};  // 25.5 не возраст
@@ -293,13 +293,13 @@ const COURSE = {
           if(n!==null) return {br:'again'}; return {huh:1}; },
         tr:{ ok:{them:'Thank you. What is your phone number?',ruThem:'Спасибо. Ваш номер телефона?',next:'phone'},
              again:{them:'Sorry, I did not catch it. How old are you?',ruThem:'Простите, не расслышал. Сколько вам лет?',next:'age'} } },
-      phone:{ task:'Скажи: номер напишешь сам, на бумаге.', best:'Can I write it here?',
+      phone:{ task:'Спроси, можно ли записать номер здесь (например: можно, я запишу его здесь?).', best:'Can I write it here?',
         judge(w,mem){ if(has(w,'write','paper','here','myself','self','it')) return {br:'paper'};
           const digs=(mem._digits||[]).join('').length;
           if(digs>=5||has(w,'number','phone')) return {br:'digits'}; return {huh:1}; },
         tr:{ paper:{them:'Yes, please. And your email?',ruThem:'Да, пожалуйста. И ваша почта?',next:'mail'},
              digits:{them:'Thank you. And your email?',ruThem:'Спасибо. И ваша почта?',next:'mail'} } },
-      mail:{ task:'Скажи: почта тоже на бумаге.', best:'It is on the paper too.',
+      mail:{ task:'Ответь, где будет почта (например: она тоже будет на бумаге).', best:'It is on the paper too.',
         judge(w){ if(has(w,'paper','too','also','there','it','write')) return {br:'ok'};
           if(w.join(' ').includes('@')) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'Perfect. That is everything.',ruThem:'Отлично. Это всё.',next:'ready'} } },
@@ -350,24 +350,24 @@ const COURSE = {
         intro:'Коллега за обедом спрашивает про твою семью.',
         opener:{them:'Do you have a big family?', ru:'У тебя большая семья?'},
         nodes:{
-      n0:{ task:'Скажи, что у тебя брат и сестра.', best:'I have a brother and a sister.',
+      n0:{ task:'Расскажи о семье (например: у меня есть брат и сестра).', best:'I have a brother and a sister.',
         judge(w){ if(has(w,'brother','sister')) return {br:'sib'};
           if(has(w,'big','yes','family','four','three')) return {br:'who'}; return {huh:1}; },
         tr:{ sib:{them:'Nice! Are your parents here too?',ruThem:'Здорово! А родители тоже здесь?',next:'parents'},
              who:{them:'Who is in your family?',ruThem:'А кто в твоей семье?',next:'who'} } },
-      who:{ task:'Назови: brother, sister, mother…', best:'My brother and sister.',
+      who:{ task:'Назови родных по-английски (например: brother, sister, mother).', best:'My brother and sister.',
         judge(w){ if(has(w,'brother','sister','mother','father','parents','mum','dad','mom','grandmother')) return {br:'ok'};
           if(has(w,'alone','nobody','myself','small','only','no','just')) return {br:'alone'};
           return {huh:1}; },
         tr:{ ok:{them:'Are your parents here too?',ruThem:'А родители тоже здесь?',next:'parents'},
              alone:{them:'Oh, I see. Do you have friends here?',ruThem:'А, понятно. У тебя здесь есть друзья?',next:'fr'} } },
-      fr:{ task:'Скажи, есть ли у тебя здесь друзья.', best:'Yes, I have friends here.',
+      fr:{ task:'Ответь, есть ли у тебя здесь друзья (например: да, у меня есть друзья).', best:'Yes, I have friends here.',
         judge(w){ if(has(w,'no','not','none','nobody')) return {br:'no'};
           if(has(w,'yes','friends','friend','sure','have','do','ok','okay')) return {br:'ok'};
           return {huh:1}; },
         tr:{ ok:{them:'That is nice! See you at lunch, then.',ruThem:'Отлично! Тогда увидимся за обедом.',next:null},
              no:{them:'That is okay. I am your friend too. See you around!',ruThem:'Ничего страшного. Я тоже твой друг. Увидимся!',next:null} } },
-      parents:{ task:'Скажи, что родители живут в России.', best:'My parents live in Russia.',
+      parents:{ task:'Расскажи про родителей (например: они живут в России).', best:'My parents live in Russia.',
         judge(w){ const rel=has(w,'parents','mother','father','mum','dad','mom','them','they');
           if(rel&&has(w,'russia','moscow')) return {br:'russia'};
           if(has(w,'russia','moscow')) return {br:'russia'};
@@ -375,7 +375,7 @@ const COURSE = {
           if(has(w,'here','too')) return {br:'here'}; return {huh:1}; },
         tr:{ russia:{them:'Do you miss them?',ruThem:'Скучаешь по ним?',next:'miss'},
              here:{them:'Oh, that is nice! Do you see them often?',ruThem:'О, здорово! Часто с ними видишься?',next:'often'} } },
-      miss:{ task:'Скажи: да, очень.', best:'Yes, very much.',
+      miss:{ task:'Ответь, скучаешь ли ты (например: да, очень).', best:'Yes, very much.',
         judge(w){
           /* «no, I really miss them» = согласие: отрицание относится к вежливому «no»,
              а не к глаголу. Отказ — только когда not/never стоит ВПЛОТНУЮ к miss. */
@@ -387,20 +387,20 @@ const COURSE = {
           return {huh:1}; },
         tr:{ yes:{them:'Do they visit you here?',ruThem:'Они приезжают к тебе сюда?',next:'visit'},
              no:{them:'Maybe you can visit them soon, then.',ruThem:'Тогда, может, ты скоро съездишь к ним.',next:'plan'} } },
-      visit:{ task:'Скажи: они приезжали летом.', best:'They came in the summer.',
+      visit:{ task:'Ответь, когда они приезжали (например: они приезжали летом).', best:'They came in the summer.',
         judge(w){ if(has(w,'no','not','never','yet','busy')) return {br:'no'};
           if(has(w,'summer','came','come','visit','june','july','august','yes','yeah','sure','often','every','year','sometimes','spring','autumn','winter','month','week','last','time','twice')) return {br:'yes'}; return {huh:1}; },
         tr:{ yes:{them:'That is nice. How long did they stay?',ruThem:'Здорово. И надолго они приезжали?',next:'stay'},
              no:{them:'Maybe you can go and see them soon.',ruThem:'Тогда, может, ты скоро съездишь к ним.',next:'plan'} } },
-      stay:{ task:'Скажи: две недели.', best:'Two weeks.',
+      stay:{ task:'Ответь, сколько они гостили (например: две недели).', best:'Two weeks.',
         judge(w,mem){ const ds=(mem._digits||[]).map(Number); const n=ds.length?ds[0]:numOf(w);
           if(has(w,'week','weeks','month','months','day','days','couple','few')) return {br:'ok'};
           if(n===2) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'Not bad at all.',ruThem:'Совсем неплохо.',next:'plan'} } },
-      often:{ task:'Скажи: да, каждые выходные.', best:'Yes, every weekend.',
+      often:{ task:'Ответь, как часто (например: да, каждые выходные).', best:'Yes, every weekend.',
         judge(w){ if(has(w,'yes','every','weekend','week','often','sure','friday')) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'That is great to hear.',ruThem:'Приятно слышать.',next:'plan'} } },
-      plan:{ task:'Скажи, что скоро поедешь к ним.', best:'I will go and see them soon.',
+      plan:{ task:'Расскажи о планах (например: скоро поеду к ним).', best:'I will go and see them soon.',
         judge(w){ if(has(w,'go','see','visit','soon','will','next','year','summer','month','autumn')) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'That sounds nice. Say hello to them from me!',ruThem:'Звучит отлично. Передавай им привет!',next:null} } },
       }}
@@ -459,7 +459,7 @@ const COURSE = {
           start:'count',
           opener:{them:'How many do you need?', ru:'Сколько вам нужно?'},
           nodes:{
-          count:{ task:'Скажи, сколько нужно: пять.', best:'Five, please.',
+          count:{ task:'Назови, сколько нужно (например: пять, пожалуйста).', best:'Five, please.',
           judge(w,mem){ const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
           if(n===5) return {br:'five'};
           const nums = d.length>0 || w.some(x=>x in NUM);
@@ -476,7 +476,7 @@ const COURSE = {
             giveup:{them:'Ok, let us do five then.',ruThem:'Хорошо, тогда берём пять.',next:'twelve'},
             price:{them:'They are two euros each.',ruThem:'По два евро за штуку.',next:'count'},
             bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
-          twelve:{ task:'Уточни: двенадцать?', best:'Twelve? Not twenty?',
+          twelve:{ task:'Переспроси цену (например: двенадцать? не двадцать?).', best:'Twelve? Not twenty?',
           judge(w,mem){ const d=(mem._digits||[]).map(Number);
           const is12 = chose(w,'twelve') || d.includes(12);
           const is20 = chose(w,'twenty') || d.includes(20);
@@ -494,7 +494,7 @@ const COURSE = {
           judge(w){ const th=has(w,'thanks','thank'), ok=has(w,'right','ok','okay','yes','sure','here','fine','take');
           if(th||ok) return {br:'ok'}; return {huh:1}; },
           tr:{ ok:{them:'Thank you. Anything else today?',ruThem:'Спасибо. Что-нибудь ещё?',next:'extra'} } },
-          extra:{ task:'Попроси два хлеба.', best:'Two loaves of bread, please.',
+          extra:{ task:'Уточни, что нужно (например: два хлеба, пожалуйста).', best:'Two loaves of bread, please.',
           judge(w,mem){ const n=FLOWNUM(w,(mem._digits||[]).map(Number));
           const bread=has(w,'bread','loaf','loaves');
           if(bread&&n===2) return {br:'two'};
@@ -504,12 +504,12 @@ const COURSE = {
           tr:{ two:{them:'Two loaves of bread. That is three more euros.',ruThem:'Два хлеба. Ещё три евро.',next:'pay'},
             loaves:{them:'How many loaves?',ruThem:'Сколько буханок?',next:'extra'},
             done:{them:'Ok. That is twelve euros, please.',ruThem:'Хорошо. С вас двенадцать евро.',next:'pay'} } },
-          pay:{ task:'Скажи, что платишь наличными.', best:'I will pay in cash.',
+          pay:{ task:'Скажи, как будешь платить (например: наличными).', best:'I will pay in cash.',
           judge(w){ if(has(w,'card')) return {br:'card'};
           if(has(w,'cash','notes','money')) return {br:'cash'}; return {huh:1}; },
           tr:{ cash:{them:'Here is your change.',ruThem:'Вот ваша сдача.',next:'change'},
             card:{them:'Sorry, we only take cash today.',ruThem:'Извините, сегодня только наличные.',next:'pay'} } },
-          change:{ task:'Проверь сдачу и поблагодари.', best:'Thank you. That is right.',
+          change:{ task:'Поблагодари и проверь сдачу (например: спасибо, всё верно).', best:'Thank you. That is right.',
           judge(w){ const pos=['right','ok','okay','fine','correct','good'];
           const negHit = pos.some(x=>{ const i=w.indexOf(x); return i>-1 && negatedAt(w,i); });
           if(has(w,'wrong','short','mistake','incorrect')||negHit) return {br:'recheck'};
@@ -609,7 +609,7 @@ const COURSE = {
           start:'pick',
           opener:{them:'We have it in red and in black.', ru:'Есть красный и чёрный.'},
           nodes:{
-          pick:{ task:'Скажи, что предпочитаешь чёрный.', best:'I prefer the black one.',
+          pick:{ task:'Сделай выбор (например: я предпочитаю чёрный).', best:'I prefer the black one.',
           judge(w,mem){ const b=chose(w,'black'), r=chose(w,'red');
           if(has(w,'much','cost','price','expensive')) return {br:'price'};
           if(b&&r) return {br:'both'};
@@ -629,7 +629,7 @@ const COURSE = {
             colour:{them:'Sorry, we only have red and black.',ruThem:'Извините, есть только красный и чёрный.',next:'pick'},
             order:{them:'We do not have that colour in stock, but I can order it. What size do you need?',ruThem:'Этого цвета нет в наличии, но могу заказать. Какой размер?',next:'size'},
             bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
-          size:{ task:'Скажи: маленький.', best:'A small one, please.',
+          size:{ task:'Назови размер (например: маленький, пожалуйста).', best:'A small one, please.',
           judge(w){ if(chose(w,'small','little')) return {br:'s'};
           if(chose(w,'medium')) return {br:'m'};
           if(chose(w,'large','big')) return {br:'l'};
@@ -642,14 +642,14 @@ const COURSE = {
           thx:{ task:'Поблагодари.', best:'Thank you very much.',
           judge(w){ if(has(w,'thanks','thank','cheers')) return {br:'ok'}; return {huh:1}; },
           tr:{ ok:{them:'You are welcome. Anything else?',ruThem:'Пожалуйста. Что-нибудь ещё?',next:'rest'} } },
-          rest:{ task:'Скажи, что это всё.', best:'No, that is all, thank you.',
+          rest:{ task:'Ответь, нужно ли что-то ещё (например: нет, это всё, спасибо).', best:'No, that is all, thank you.',
           judge(w){ const extra=has(w,'more','another','also','need','want');
           if(extra) return {br:'more'};
           if(has(w,'no','nothing')||has(w,'all','everything','that')) return {br:'all'};
           return {huh:1}; },
           tr:{ all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'paym'},
             more:{them:'Of course. What else do you need?',ruThem:'Конечно. Что ещё вам нужно?',next:'pick'} } },
-          paym:{ task:'Скажи: картой.', best:'By card, please.',
+          paym:{ task:'Назови способ оплаты (например: картой, пожалуйста).', best:'By card, please.',
           judge(w){ if(has(w,'card')) return {br:'card'};
           if(has(w,'cash','money','notes')) return {br:'cash'}; return {huh:1}; },
           tr:{ card:{them:'Thank you. Have a good day!',ruThem:'Спасибо. Хорошего дня!',next:'wish'},
@@ -725,7 +725,7 @@ const COURSE = {
           start:'askday',
           opener:{them:'Can we meet this week?', ru:'Можем встретиться на этой неделе?'},
           nodes:{
-          askday:{ task:'Спроси, какой день.', best:'Sure. Which day?',
+          askday:{ task:'Спроси про дату (например: какой день вам подходит?).', best:'Sure. Which day?',
           judge(w,mem){ const d=DAY_IN(w);
           if(d){ mem.day=d; return {br:'direct'}; }
           if(has(w,'when','which')&&has(w,'day')) return {br:'ask'};
@@ -736,12 +736,12 @@ const COURSE = {
             ok:{them:'Great. How about Wednesday?',ruThem:'Отлично. Как насчёт среды?',next:'wed'},
             busy:{them:'No problem. When is a good day for you?',ruThem:'Без проблем. Когда вам удобно?',next:'day'},
             direct:{them:'Ok, {day} then.',ruThem:'Хорошо, тогда {day}.',next:'conf'} } },
-          day:{ task:'Назови удобный день.', best:'Thursday, please.',
+          day:{ task:'Назови удобный день (например: четверг).', best:'Thursday, please.',
           judge(w,mem){ const d=DAY_IN(w);
           if(d){ mem.day=d; return {br:'ok'}; }
           return {huh:1}; },
           tr:{ ok:{them:'Ok, {day} works for me.',ruThem:'Хорошо, {day} мне подходит.',next:'conf'} } },
-          wed:{ task:'Скажи, что среда занята, и предложи четверг.', best:'Wednesday is busy for me. Can we do Thursday?',
+          wed:{ task:'Ответь про среду и предложи другой день (например: в среду я занят, давайте в четверг?).', best:'Wednesday is busy for me. Can we do Thursday?',
           judge(w,mem){ const d=DAY_IN(w);
           if(has(w,'thursday')){ mem.day='thursday'; return {br:'thu'}; }
           if(d==='wednesday'&&!has(w,'busy','no','not')){ mem.day='wednesday'; return {br:'wed'}; }
@@ -752,7 +752,7 @@ const COURSE = {
             wed:{them:'Great. Wednesday it is.',ruThem:'Отлично, тогда среда.',next:'conf'},
             oth:{them:'Ok, {day} works for me.',ruThem:'Хорошо, {day} подходит.',next:'conf'},
             askd:{them:'I see. What day is good for you?',ruThem:'Ясно. Какой день вам удобен?',next:'day'} } },
-          conf:{ task:'Подтверди встречу и назови день.', best:'Great, see you on Thursday.',
+          conf:{ task:'Подтверди встречу (например: отлично, до встречи в четверг).', best:'Great, see you on Thursday.',
           judge(w,mem){ const d=DAY_IN(w);
           if(d){ if(!mem.day||d===mem.day) return {br:'ok'};
             return {br:'fix'}; }
@@ -761,13 +761,13 @@ const COURSE = {
           tr:{ ok:{them:'Great. Is there anything else?',ruThem:'Отлично. Что-нибудь ещё?',next:'any'},
             fix:{them:'Wait, we agreed on {day}.',ruThem:'Стоп, мы договорились на {day}.',next:'conf'},
             again:{them:'So, we meet on {day}, right?',ruThem:'Значит, встречаемся в {day}?',next:'conf'} } },
-          any:{ task:'Спроси, когда будет ответ.', best:'When will I know?',
+          any:{ task:'Спроси, когда будет ответ (например: когда я узнаю?).', best:'When will I know?',
           judge(w){ if(has(w,'no','nothing')) return {br:'done'};
           if(has(w,'when','know','call','hear','answer','soon')) return {br:'ask'};
           return {huh:1}; },
           tr:{ ask:{them:'We will call you this week.',ruThem:'Мы позвоним вам на этой неделе.',next:'wait'},
             done:{them:'Ok. We will call you this week.',ruThem:'Хорошо. Мы позвоним вам на этой неделе.',next:'wait'} } },
-          wait:{ task:'Скажи, что будешь ждать звонка.', best:'Thank you, I will wait for your call.',
+          wait:{ task:'Ответь, что будешь делать (например: спасибо, буду ждать звонка).', best:'Thank you, I will wait for your call.',
           judge(w){ if(has(w,'wait','waiting','expect','expecting','forward','hear')) return {br:'wait'};
           return {huh:1}; },
           tr:{ wait:{them:'Thank you for coming.',ruThem:'Спасибо, что пришли.',next:'bye'} } },
@@ -833,7 +833,7 @@ const COURSE = {
         start:'ask',
         opener:{them:'Are you waiting for the bus?', ru:'Автобус ждёте?'},
         nodes:{
-          ask:{ task:'Спроси, который час.', best:'Excuse me, what time is it?',
+          ask:{ task:'Спроси, который час (например: простите, сколько времени?).', best:'Excuse me, what time is it?',
           judge(w){
                 if(chose(w,'time','clock','watch')) return {br:'time'};
                 if(chose(w,'bus','wait','waiting')) return {br:'bus'};
@@ -844,7 +844,7 @@ const COURSE = {
             bus:{them:'The bus comes at nine. It is half past eight now.',ruThem:'Автобус в девять. Сейчас половина девятого.',next:'late'},
             bye:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:null},
           } },
-          late:{ task:'Скажи, что опаздываешь на работу.', best:'Oh, I am late for work.',
+          late:{ task:'Ответь, почему спешишь (например: я опаздываю на работу).', best:'Oh, I am late for work.',
           judge(w){
                 if(chose(w,'late','work','job','office')) return {br:'work'};
                 if(chose(w,'bus','wait','waiting','nothing','fine','ok','okay','alright','just')) return {br:'wait'};
@@ -864,7 +864,7 @@ const COURSE = {
             ok:{them:'You are welcome. Is everything else alright?',ruThem:'Пожалуйста. В остальном всё нормально?',next:'ok2'},
             bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
           } },
-          ok2:{ task:'Скажи, что да, всё хорошо.', best:'Yes, everything else is fine.',
+          ok2:{ task:'Ответь, всё ли в порядке (например: да, всё хорошо).', best:'Yes, everything else is fine.',
           judge(w){
                 const bad=['bad','problem','wrong','trouble'];
                 const bi=bad.map(x=>w.indexOf(x)).filter(i=>i>=0);
@@ -951,7 +951,7 @@ const COURSE = {
         start:'cold',
         opener:{them:'Cold today, isn’t it?', ru:'Холодно сегодня, правда?'},
         nodes:{
-          cold:{ task:'Согласись, что холодно.', best:'Yes, very cold. And windy.',
+          cold:{ task:'Ответь про погоду (например: да, очень холодно и ветрено).', best:'Yes, very cold. And windy.',
           judge(w){
                 if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea')||w.includes('sure'))) return {br:'neu'};
                 if(chose(w,'ok','okay','fine','alright','normal','same')) return {br:'neu'};
@@ -966,7 +966,7 @@ const COURSE = {
             neu:{them:'Well, I think it is really cold today. They say it will snow tonight.',ruThem:'Ну, по-моему, сегодня очень холодно. Говорят, ночью пойдёт снег.',next:'snow'},
             bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
           } },
-          snow:{ task:'Скажи, что не любишь снег.', best:'Really? I don’t like snow.',
+          snow:{ task:'Ответь, как ты относишься к снегу (например: я не люблю снег).', best:'Really? I don’t like snow.',
           judge(w){
                 if(chose(w,'like','love','enjoy')) return {br:'like'};
                 if(chose(w,'hate')||(has(w,'no','not','never')&&chose(w,'snow'))) return {br:'hate'};
@@ -977,7 +977,7 @@ const COURSE = {
             hate:{them:'Well, it is winter.',ruThem:'Ну, зима же.',next:'winter'},
             bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
           } },
-          winter:{ task:'Согласись и попрощайся.', best:'True. Have a good day!',
+          winter:{ task:'Согласись и попрощайся (например: верно. Хорошего дня!).', best:'True. Have a good day!',
           judge(w){
                 if(chose(w,'bye','goodbye','see','later','day')) return {br:'bye'};
                 if(chose(w,'true','yes','right','sure','agree','ok','okay','winter')) return {br:'agree'};
@@ -997,7 +997,7 @@ const COURSE = {
             no:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
             bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
           } },
-          side:{ task:'Уточни: налево или направо?', best:'Left or right?',
+          side:{ task:'Уточни дорогу (например: налево или направо?).', best:'Left or right?',
           judge(w){
                 if(chose(w,'left')) return {br:'left'};
                 if(chose(w,'right')) return {br:'right'};
@@ -1116,7 +1116,7 @@ const COURSE = {
         start:'prob',
         opener:{them:'What is the problem?', ru:'Что случилось?'},
         nodes:{
-          prob:{ task:'Скажи, что болит.', best:'My head hurts.',
+          prob:{ task:'Расскажи, что у тебя болит (например: болит голова).', best:'My head hurts.',
           judge(w){
                 if(chose(w,'head','headache','migraine')) return {br:'head'};
                 if(chose(w,'throat','stomach','back','tooth','ear','leg','arm','cough','flu','fever','temperature','sore','hurt','aches','pain')) return {br:'other'};
@@ -1129,7 +1129,7 @@ const COURSE = {
             none:{them:'Glad to hear that. Do you have any questions?',ruThem:'Рад это слышать. У вас есть вопросы?',next:'quest'},
             bye:{them:'Take care!',ruThem:'Берегите себя!',next:null},
           } },
-          since:{ task:'Скажи, с какого времени.', best:'Since yesterday.',
+          since:{ task:'Ответь, с какого времени (например: со вчерашнего дня).', best:'Since yesterday.',
           judge(w,mem){ const d=(mem._digits||[]).map(Number);
                 const span=has(w,'day','days','week','weeks','month','months','hour','hours','year','years','ago','morning','night');
                 if(chose(w,'yesterday')) return {br:'yest'};
@@ -1151,7 +1151,7 @@ const COURSE = {
             ok:{them:'Do you have any questions?',ruThem:'У вас есть вопросы?',next:'quest'},
             bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
           } },
-          quest:{ task:'Спроси, когда прийти снова.', best:'When should I come again?',
+          quest:{ task:'Спроси, когда прийти снова (например: когда мне прийти снова?).', best:'When should I come again?',
           judge(w){
                 if(chose(w,'when')) return {br:'ask'};
                 if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
@@ -1166,7 +1166,7 @@ const COURSE = {
             no:{them:'Ok. Then take care of yourself.',ruThem:'Хорошо. Тогда берегите себя.',next:'care'},
             bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
           } },
-          qask:{ task:'Спроси, когда прийти снова.', best:'When should I come again?',
+          qask:{ task:'Спроси, когда прийти снова (например: когда мне прийти снова?).', best:'When should I come again?',
           judge(w){
                 if(chose(w,'when')) return {br:'ask'};
                 if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
@@ -1181,7 +1181,7 @@ const COURSE = {
             no:{them:'Ok. Then take care of yourself.',ruThem:'Хорошо. Тогда берегите себя.',next:'care'},
             bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
           } },
-          week:{ task:'Подтверди.', best:'One week. I understand.',
+          week:{ task:'Подтверди слова врача (например: неделю, я понял).', best:'One week. I understand.',
           judge(w,mem){ const d=(mem._digits||[]).map(Number);
                 if(d.length&&(has(w,'week','weeks')||w.includes('7'))) return {br:'ok'};
                 if(chose(w,'week','weeks','understand','clear','ok','okay','yes','right','fine','sure')) return {br:'ok'};
@@ -1259,7 +1259,7 @@ const COURSE = {
         start:'ask',
         opener:{them:'Are you looking for something?', ru:'Что-то ищете?'},
         nodes:{
-          ask:{ task:'Скажи, что ищешь куртку.', best:'Yes, I am looking for a jacket.',
+          ask:{ task:'Ответь, что тебе нужно (например: я ищу куртку).', best:'Yes, I am looking for a jacket.',
           judge(w){
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
                 if(chose(w,'help')) return {br:'help'};
@@ -1282,7 +1282,7 @@ const COURSE = {
             coat:{them:'Coats are over there. What size do you wear?',ruThem:'Куртки вон там. Какой размер вы носите?',next:'size'},
             other:{them:'Oh, hats and scarves are on the other side. Let me know if you need help.',ruThem:'Головные уборы и шарфы с другой стороны. Обращайтесь, если что.',next:null},
           } },
-          size:{ task:'Скажи: средний.', best:'Medium, please.',
+          size:{ task:'Назови размер (например: средний, пожалуйста).', best:'Medium, please.',
           judge(w){
                 if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
                 if(has(w,'no','not','never')&&chose(w,'know','idea','size')) return {br:'dk'};
@@ -1297,7 +1297,7 @@ const COURSE = {
             l:{them:'Here is a large one. Try it.',ruThem:'Вот большого размера. Примерьте.',next:'try'},
             s:{them:'Here is a small one. Try it.',ruThem:'Вот маленького размера. Примерьте.',next:'try'},
           } },
-          try:{ task:'Поблагодари и скажи, что берёшь.', best:'Thank you. I will take it.',
+          try:{ task:'Скажи, что берёшь (например: спасибо, я возьму её).', best:'Thank you. I will take it.',
           judge(w){
                 const POSS=['take','buy','like','fit','fits','perfect','good','great','fine','yes','yeah'];
                 const JOB=['small','big','large','tight','loose','short'];
@@ -1317,7 +1317,7 @@ const COURSE = {
             take:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
             bad:{them:'I see. Let me find another one for you.',ruThem:'Понял. Поищу для вас другой вариант.',next:'size2'},
           } },
-          size2:{ task:'Назови другой размер.', best:'A large one, please.',
+          size2:{ task:'Назови другой размер (например: побольше, пожалуйста).', best:'A large one, please.',
           judge(w){
                 if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
                 if(has(w,'no','not','never')) return {br:'last'};
@@ -1328,7 +1328,7 @@ const COURSE = {
             last:{them:'I see. We have one more jacket in dark blue. Let me show you.',ruThem:'Понял. У нас есть ещё одна куртка, тёмно-синяя. Сейчас покажу.',next:'last'},
             try:{them:'Here you are. Try this one.',ruThem:'Вот. Примерьте эту.',next:'try2'},
           } },
-          last:{ task:'Скажи, что берёшь её.', best:'Yes, I like it. I will take it.',
+          last:{ task:'Скажи своё решение (например: да, она мне нравится, я беру её).', best:'Yes, I like it. I will take it.',
           judge(w){
                 const POSL=['take','buy','like','good','perfect','fit','fits','yes','yeah'];
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
@@ -1341,7 +1341,7 @@ const COURSE = {
             take:{them:'Great choice! Anything else?',ruThem:'Отличный выбор! Что-нибудь ещё?',next:'more'},
             no:{them:'No problem. It is not for everyone.',ruThem:'Не проблема. Не всем она подходит.',next:null},
           } },
-          try2:{ task:'Поблагодари и скажи, что берёшь.', best:'Thank you. I will take it.',
+          try2:{ task:'Скажи, что берёшь (например: спасибо, я возьму её).', best:'Thank you. I will take it.',
           judge(w){
                 const P2=['take','buy','like','fit','fits','perfect','good','great','fine','yes','yeah'];
                 const SML=['small','big','tight','loose','short'];
@@ -1360,7 +1360,7 @@ const COURSE = {
             take:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
             no:{them:'No problem. It was nice to show you.',ruThem:'Ничего страшного. Рад был показать.',next:null},
           } },
-          more:{ task:'Скажи, что это всё.', best:'No, that is all, thank you.',
+          more:{ task:'Ответь, нужно ли что-то ещё (например: нет, это всё, спасибо).', best:'No, that is all, thank you.',
           judge(w,mem){
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
                 if(chose(w,'hat','hats','scarf','scarves','glove','gloves','shirt','shirts','shoe','shoes','jacket','jackets','coat','coats','more','another','also','other')){
@@ -1375,7 +1375,7 @@ const COURSE = {
             add2:{them:'Ok. Let me wrap it up for you.',ruThem:'Хорошо. Я упакую вам.',next:'pay'},
             all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'pay'},
           } },
-          pay:{ task:'Скажи: картой.', best:'By card, please.',
+          pay:{ task:'Назови способ оплаты (например: картой, пожалуйста).', best:'By card, please.',
           judge(w){
                 if(chose(w,'bye','goodbye','see')) return {br:'bye'};
                 if(chose(w,'card','credit')) return {br:'card'};
@@ -1455,7 +1455,7 @@ const COURSE = {
         start:'ready',
         opener:{them:'Are you ready to order?', ru:'Готовы заказать?'},
         nodes:{
-          ready:{ task:'Попроси меню.', best:'Not yet. Could I see the menu, please?',
+          ready:{ task:'Ответь, готов ли заказывать (например: ещё нет, можно меню, пожалуйста?).', best:'Not yet. Could I see the menu, please?',
           judge(w){
                 const HUR=['time','wait','waiting'];
                 if(chose(w,'menu')) return {br:'menu'};
@@ -1475,7 +1475,7 @@ const COURSE = {
             hurry:{them:'No problem. I will be quick. What would you like?',ruThem:'Без проблем. Я быстро. Что будете заказывать?',next:'order'},
             wait:{them:'No problem. Here is the menu. Take your time.',ruThem:'Без проблем. Вот меню. Не спешите.',next:'order'},
           } },
-          order:{ task:'Закажи суп и хлеб.', best:'I will have the soup and some bread.',
+          order:{ task:'Сделай заказ (например: я буду суп и хлеб).', best:'I will have the soup and some bread.',
           judge(w){
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
                 if(chose(w,'soup')&&chose(w,'bread')) return {br:'full'};
@@ -1486,7 +1486,7 @@ const COURSE = {
             full:{them:'Good choice. Anything to drink?',ruThem:'Хороший выбор. Что-нибудь выпить?',next:'drink'},
             some:{them:'Of course. Anything to drink?',ruThem:'Конечно. Что-нибудь выпить?',next:'drink'},
           } },
-          drink:{ task:'Попроси воду.', best:'Just water, please.',
+          drink:{ task:'Закажи напиток (например: только воду, пожалуйста).', best:'Just water, please.',
           judge(w){
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
                 if(chose(w,'water')) return {br:'water'};
@@ -1499,7 +1499,7 @@ const COURSE = {
             drink:{them:'Of course. Anything else?',ruThem:'Конечно. Что-нибудь ещё?',next:'more'},
             none:{them:'Ok. Anything else?',ruThem:'Хорошо. Что-нибудь ещё?',next:'more'},
           } },
-          more:{ task:'Скажи, что нет, спасибо.', best:'No, thank you. That is all.',
+          more:{ task:'Ответь, нужно ли что-то ещё (например: нет, спасибо, это всё).', best:'No, thank you. That is all.',
           judge(w,mem){
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
                 if(chose(w,'soup','bread','salad','water','tea','coffee','juice','cake','cakes','dessert','more','another','also')){
@@ -1523,7 +1523,7 @@ const COURSE = {
             bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
             ok:{them:'Here you are. Enjoy!',ruThem:'Пожалуйста. Приятного!',next:'enjoy'},
           } },
-          enjoy:{ task:'Поблагодари и скажи, что выглядит вкусно.', best:'Thank you, it looks delicious.',
+          enjoy:{ task:'Скажи, что всё хорошо (например: спасибо, выглядит вкусно).', best:'Thank you, it looks delicious.',
           judge(w){
                 const YUM=['delicious','tasty','good','great','wonderful','love'];
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
@@ -1592,7 +1592,7 @@ const COURSE = {
         start:'what',
         opener:{them:'What can I get you?', ru:'Что вам взять?'},
         nodes:{
-          what:{ task:'Закажи кофе.', best:'A coffee, please.',
+          what:{ task:'Сделай заказ (например: кофе, пожалуйста).', best:'A coffee, please.',
           judge(w){
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
                 if(chose(w,'coffee','coffees')) return {br:'coffee'};
@@ -1603,7 +1603,7 @@ const COURSE = {
             coffee:{them:'With milk?',ruThem:'С молоком?',next:'milk'},
             other:{them:'Sure. Anything else?',ruThem:'Конечно. Что-нибудь ещё?',next:'more'},
           } },
-          milk:{ task:'Скажи: без молока, но с сахаром.', best:'No milk, but with sugar, please.',
+          milk:{ task:'Уточни, как сделать кофе (например: без молока, но с сахаром).', best:'No milk, but with sugar, please.',
           judge(w){
                 const BLCK=['black'];
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
@@ -1621,7 +1621,7 @@ const COURSE = {
             wms:{them:'One coffee with milk and sugar. Two euros fifty.',ruThem:'Кофе с молоком и сахаром. Два пятьдесят.',next:'price'},
             bl:{them:'One black coffee. Two euros fifty.',ruThem:'Один чёрный кофе. Два пятьдесят.',next:'price'},
           } },
-          price:{ task:'Скажи, что платишь картой.', best:'I will pay by card.',
+          price:{ task:'Скажи, как будешь платить (например: я заплачу картой).', best:'I will pay by card.',
           judge(w,mem){
                 if(chose(w,'bye','goodbye','see')) return {br:'bye'};
                 if(chose(w,'card','credit')) return {br:'card'};
@@ -1633,7 +1633,7 @@ const COURSE = {
             card:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
             cash:{them:'Perfect. Anything else?',ruThem:'Отлично. Что-нибудь ещё?',next:'more'},
           } },
-          more:{ task:'Скажи, что нет, спасибо.', best:'No, thank you. That is all.',
+          more:{ task:'Ответь, нужно ли что-то ещё (например: нет, спасибо, это всё).', best:'No, thank you. That is all.',
           judge(w,mem){
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
                 if(chose(w,'coffee','tea','juice','water','cake','cakes','pastry','bun','buns','croissant','cookies','more','another','also')){
@@ -1657,7 +1657,7 @@ const COURSE = {
             bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
             ok:{them:'Here you are. Enjoy!',ruThem:'Пожалуйста. Приятного!',next:'enjoy'},
           } },
-          enjoy:{ task:'Поблагодари и скажи, что выглядит вкусно.', best:'Thank you, it looks delicious.',
+          enjoy:{ task:'Скажи, что всё хорошо (например: спасибо, выглядит вкусно).', best:'Thank you, it looks delicious.',
           judge(w){
                 const YUM=['delicious','tasty','good','great','wonderful','love'];
                 if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
@@ -1763,28 +1763,101 @@ const COURSE = {
         {ru:'Пожалуйста, закройте окно.', parts:['Please','close','the','window'], answer:'Please close the window', full:'Please close the window.',
          whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
       ]},
-      { type:'dialog', title:'Показать квартиру', scene:'flat', cefr:'A1: Can describe where they live.',
+      { type:'dialog', variant:'flow', title:'Показать квартиру', scene:'flat', cefr:'A1: Can describe where they live.',
         intro:'Ты показываешь новую квартиру другу.',
-        turns:[
-          {who:'them', text:'So this is your new place?', ru:'Так вот твоё новое жильё?'},
-          {who:'you', ru:'Скажи «да, это маленькая квартира».', best:1,
-            options:['Flat small yes here.','Yes, it is a small flat.','Place small me have now.']},
-          {who:'them', text:'Where is the kitchen?', ru:'Где кухня?'},
-          {who:'you', ru:'Скажи, что кухня рядом с дверью.', best:0,
-            options:['The kitchen is next to the door.','Kitchen door near have.','Door there kitchen is yes.']},
-          {who:'them', text:'And the bedroom?', ru:'А спальня?'},
-          {who:'you', ru:'Скажи, что наверху.', best:2,
-            options:['Up there sleep room.','Bedroom is up yes.','It is upstairs.']},
-          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
-          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
-            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
-          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
-          {who:'you', ru:'Поблагодари.', best:0,
-            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
-          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
-          {who:'you', ru:'Пожелай того же.', best:2,
-            options:['You also evening.','Ok bye night.','You too, good night!']}
-        ]},
+        flow: {
+        intro:'Ты показываешь новую квартиру другу.',
+        start:'place',
+        opener:{them:'So this is your new place?', ru:'Так вот твоё новое жильё?'},
+        nodes:{
+          place:{ task:'Ответь про квартиру: какая она? (например: маленькая)', best:'Yes, it is a small flat.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'like','love','nice','cosy','cozy','great','beautiful')) return {br:'like'};
+                if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea'))) return {br:'dk'};
+                if(chose(w,'big','large','huge')) return {br:'big'};
+                if(has(w,'no','not','never')) return {br:'not'};
+                if(chose(w,'small','little','tiny','flat','apartment','new','place','yes','yeah','ok','okay','fine','good','alright','so')) return {br:'ok'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            like:{them:'Thanks! I love it too. Come in, I will show you everything.',ruThem:'Спасибо! Мне она тоже нравится. Заходи, я всё покажу.',next:'kitchen'},
+            dk:{them:'Come in and see it for yourself. I will show you everything.',ruThem:'Заходи и сам увидишь. Я всё покажу.',next:'kitchen'},
+            big:{them:'Big? Well, there is enough space for sure. Come in!',ruThem:'Большая? Ну, места точно хватает. Заходи!',next:'kitchen'},
+            not:{them:'Oh, I see. Well, come in anyway — let me show you around.',ruThem:'А, понятно. Ну, всё равно заходи — покажу квартиру.',next:'kitchen'},
+            ok:{them:'Great! Come in, I will show you everything.',ruThem:'Отлично! Заходи, я всё покажу.',next:'kitchen'},
+          } },
+          kitchen:{ task:'Ответь, где кухня (например: рядом с дверью).', best:'The kitchen is next to the door.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'bathroom','bath','toilet')) return {br:'bath'};
+                if(chose(w,'living')) return {br:'living'};
+                if(chose(w,'kitchen')) return {br:'kitchen'};
+                if(chose(w,'door','next','left','right')) return {br:'kitchen'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            bath:{them:'The bathroom is next to the kitchen. And the bedroom is upstairs.',ruThem:'Ванная рядом с кухней. А спальня наверху.',next:'bedroom'},
+            living:{them:'The living room is here, next to the kitchen. And the bedroom is upstairs.',ruThem:'Гостиная вот здесь, рядом с кухней. А спальня наверху.',next:'bedroom'},
+            kitchen:{them:'Right. And the bedroom?',ruThem:'Верно. А спальня?',next:'bedroom'},
+          } },
+          bedroom:{ task:'Ответь, где спальня (например: наверху).', best:'It is upstairs.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'upstairs','up')) return {br:'up'};
+                if(has(w,'no','not','never')) return {br:'nodown'};
+                if(chose(w,'down','downstairs','here')) return {br:'down'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you!',ruThem:'Ладно. До встречи!',next:null},
+            up:{them:'Nice. And is there a balcony?',ruThem:'Отлично. А балкон есть?',next:'balcony'},
+            down:{them:'Oh, really? Ok. And is there a balcony?',ruThem:'Правда? Ладно. А балкон есть?',next:'balcony'},
+            nodown:{them:'Ok, so the bedroom is upstairs. And is there a balcony?',ruThem:'Хорошо, значит спальня наверху. А балкон есть?',next:'balcony'},
+          } },
+          balcony:{ task:'Ответь, есть ли балкон (например: да, есть).', best:'Yes, there is a small balcony.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'yes','yeah','balcony')) return {br:'yes'};
+                if(has(w,'no','not','never')) return {br:'no'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            yes:{them:'That is great. The flat is really nice.',ruThem:'Здорово. Квартира правда отличная.',next:'ok2'},
+            no:{them:'No problem. The flat is still nice.',ruThem:'Ничего страшного. Квартира всё равно хорошая.',next:'ok2'},
+          } },
+          ok2:{ task:'Ответь, всё ли в порядке (например: да, всё хорошо).', best:'Yes, everything else is fine.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'yes','yeah','fine','ok','okay','good','all','everything','right','sure')) return {br:'ok'};
+                if(has(w,'no','not','never')) return {br:'any'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok, thanks for coming! Bye!',ruThem:'Ладно, спасибо, что зашёл! Пока!',next:null},
+            ok:{them:'Good. Call me if you need anything.',ruThem:'Хорошо. Звони, если что-то понадобится.',next:'thanks'},
+            any:{them:'Ok, tell me if something comes up.',ruThem:'Хорошо, скажи, если что-то возникнет.',next:'thanks'},
+          } },
+          thanks:{ task:'Поблагодари.', best:'Thank you, I will.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'yes','yeah','ok','okay','sure','will','call')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a good evening!',ruThem:'Ладно. Хорошего вечера!',next:null},
+            th:{them:'Have a good evening.',ruThem:'Хорошего вечера.',next:'wish'},
+          } },
+          wish:{ task:'Пожелай того же.', best:'You too, good night!',
+          judge(w){
+                if(chose(w,'too','likewise','same','night')) return {br:'ok'};
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Береги себя!',next:null},
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+          } },
+        }
+      }
+      },
       { type:'words', title:'Вещи в доме · 1', scene:'flat', cefr:'A1: Can name everyday objects at home.', newCount:11, words:[
         {t:'Television', r:'Телевизор'},
         {t:'Tv', r:'Телевизор'},
@@ -1838,28 +1911,110 @@ const COURSE = {
         {ru:'Положи книгу на стол.', parts:['Put','the','book','on','the','table'], answer:'Put the book on the table', full:'Put the book on the table.',
          whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
       ]},
-      { type:'dialog', title:'Что-то сломалось', scene:'flat', cefr:'A1: Can name everyday objects at home.',
+      { type:'dialog', variant:'flow', title:'Что-то сломалось', scene:'flat', cefr:'A1: Can name everyday objects at home.',
         intro:'Ты звонишь хозяину квартиры.',
-        turns:[
-          {who:'them', text:'Hello, is everything alright?', ru:'Здравствуйте, всё в порядке?'},
-          {who:'you', ru:'Скажи, что свет в кухне не работает.', best:2,
-            options:['Light kitchen no good.','Kitchen dark is bad now.','Hello. The light in the kitchen does not work.']},
-          {who:'them', text:'Since when?', ru:'С какого времени?'},
-          {who:'you', ru:'Скажи: со вчерашнего вечера.', best:0,
-            options:['Since yesterday evening.','Yesterday night from is.','Evening before no light.']},
-          {who:'them', text:'I will come tomorrow morning.', ru:'Приду завтра утром.'},
-          {who:'you', ru:'Поблагодари.', best:1,
-            options:['Ok come you morning.','Thank you very much.','Tomorrow good yes wait me.']},
-          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
-          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
-            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
-          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
-          {who:'you', ru:'Поблагодари.', best:0,
-            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
-          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
-          {who:'you', ru:'Пожелай того же.', best:2,
-            options:['You also evening.','Ok bye night.','You too, good night!']}
-        ]},
+        flow: {
+        intro:'Ты звонишь хозяину квартиры.',
+        start:'call',
+        opener:{them:'Hello, is everything alright?', ru:'Здравствуйте, всё в порядке?'},
+        nodes:{
+          call:{ task:'Расскажи, что случилось (например: не работает свет на кухне).', best:'Hello. The light in the kitchen does not work.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'water')) return {br:'water'};
+                if(chose(w,'heat','heater','heating')) return {br:'heat'};
+                if(chose(w,'door')) return {br:'door'};
+                if(chose(w,'light','lamp')&&!has(w,'no','not','never')&&(has(w,'works','working','fine','ok','okay'))) return {br:'poslight'};
+                if(chose(w,'light','lamp')&&chose(w,'kitchen')) return {br:'light'};
+                if(chose(w,'light','lamp')&&has(w,'no','not','never')) return {br:'nlight'};
+                if(chose(w,'light','lamp')&&has(w,'broken','break','problem','trouble')) return {br:'nlight'};
+                if(chose(w,'light','lamp')) return {br:'poslight'};
+                if(chose(w,'tv','television','fridge','freezer','internet','wifi','window','roof','wall','toilet')) return {br:'otherp'};
+                if(has(w,'no','not','never')&&has(w,'water')) return {br:'nwater'};
+                if(has(w,'no','not','never')&&has(w,'heat','heater','heating')) return {br:'nheat'};
+                if(has(w,'no','not','never')&&has(w,'door')) return {br:'ndoor'};
+                if(has(w,'no','not','never')&&has(w,'light','lamp')) return {br:'nlight'};
+                if(has(w,'no','not','never')&&has(w,'tv','television','fridge','freezer','internet','wifi','window','roof','wall','toilet')) return {br:'notherp'};
+                if(has(w,'no','not','never')&&has(w,'broken','break','works','working','work')&&!has(w,'is','are','was','were','does','do','it','they','just')) return {huh:1};
+                if(has(w,'no','not','never')&&(w.includes('problem')||w.includes('trouble'))&&!has(w,'is','are','there')) return {huh:1};
+                if(has(w,'broken','break','nothing','works','working','work')||(has(w,'problem','trouble')&&!has(w,'fine','ok','okay','good','everything'))) return {br:'otherp'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Call me if you need anything.',ruThem:'Хорошо. Звоните, если что.',next:null},
+            water:{them:'The water? I see. Since when?',ruThem:'Вода? Понятно. С какого времени?',next:'since'},
+            heat:{them:'The heating? I see. Since when?',ruThem:'Отопление? Понятно. С какого времени?',next:'since'},
+            door:{them:'The door? I see. Since when?',ruThem:'Дверь? Понятно. С какого времени?',next:'since'},
+            light:{them:'The light in the kitchen? I see. Since when?',ruThem:'Свет на кухне? Понятно. С какого времени?',next:'since'},
+            poslight:{them:'Sorry, what exactly is the problem?',ruThem:'Простите, а в чём именно проблема?',next:'call'},
+            nwater:{them:'The water? I see. Since when?',ruThem:'Вода? Понятно. С какого времени?',next:'since'},
+            nheat:{them:'The heating? I see. Since when?',ruThem:'Отопление? Понятно. С какого времени?',next:'since'},
+            ndoor:{them:'The door? I see. Since when?',ruThem:'Дверь? Понятно. С какого времени?',next:'since'},
+            nlight:{them:'The light? I see. Since when?',ruThem:'Свет? Понятно. С какого времени?',next:'since'},
+            notherp:{them:'I see there is a problem. Since when?',ruThem:'Понимаю, есть проблема. С какого времени?',next:'since'},
+            otherp:{them:'I see there is a problem. Since when?',ruThem:'Понимаю, есть проблема. С какого времени?',next:'since'},
+          } },
+          since:{ task:'Ответь, с какого времени (например: со вчерашнего вечера).', best:'Since yesterday evening.',
+          judge(w,mem){
+                const d=(mem._digits||[]).map(Number);
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'yesterday')) return {br:'yest'};
+                if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea'))) return {br:'dk'};
+                if(chose(w,'today','now')) return {br:'today'};
+                if(chose(w,'week','weeks','month','months')) return {br:'long'};
+                if((d.length||w.some(x=>x in NUM))&&(w.includes('day')||w.includes('days'))) return {br:'days'};
+                if(chose(w,'morning','evening','night','afternoon','monday','tuesday','wednesday','thursday','friday','saturday','sunday')) return {br:'yest'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Goodbye!',ruThem:'Хорошо. До свидания!',next:null},
+            yest:{them:'I see. I will come tomorrow morning.',ruThem:'Понятно. Приду завтра утром.',next:'thanks'},
+            dk:{them:'No problem, I will come and check it tomorrow.',ruThem:'Ничего страшного, приду и проверю завтра.',next:'thanks'},
+            today:{them:'Ok, I will come today in the evening.',ruThem:'Хорошо, приду сегодня вечером.',next:'thanks'},
+            long:{them:'That is a long time. I will come tomorrow morning.',ruThem:'Это надолго. Приду завтра утром.',next:'thanks'},
+            days:{them:'Ok. I will come tomorrow morning.',ruThem:'Хорошо. Приду завтра утром.',next:'thanks'},
+          } },
+          thanks:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','sure','fine','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Goodbye!',ruThem:'Хорошо. До свидания!',next:null},
+            th:{them:'You are welcome. Is everything else alright?',ruThem:'Пожалуйста. В остальном всё нормально?',next:'ok2'},
+          } },
+          ok2:{ task:'Ответь, всё ли в порядке (например: да, всё хорошо).', best:'Yes, everything else is fine.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'yes','yeah','fine','ok','okay','good','all','everything','right','sure')) return {br:'ok'};
+                if(has(w,'no','not','never')) return {br:'any'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Goodbye!',ruThem:'Хорошо. До свидания!',next:null},
+            ok:{them:'Good. Call me if you need anything.',ruThem:'Хорошо. Звоните, если что.',next:'thanks2'},
+            any:{them:'Ok, tell me about it when I come.',ruThem:'Хорошо, расскажете, когда приду.',next:'thanks2'},
+          } },
+          thanks2:{ task:'Поблагодари.', best:'Thank you, I will.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','will','call','sure')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a good evening!',ruThem:'Ладно. Хорошего вечера!',next:null},
+            th:{them:'Have a good evening.',ruThem:'Хорошего вечера.',next:'wish'},
+          } },
+          wish:{ task:'Пожелай того же.', best:'You too, good night!',
+          judge(w){
+                if(chose(w,'too','likewise','same','night')) return {br:'ok'};
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+          } },
+        }
+      }
+      },
       { type:'words', title:'Город вокруг · 1', scene:'street', cefr:'A1: Can name places in a town.', newCount:14, words:[
         {t:'City', r:'Город'},
         {t:'Town', r:'Городок'},
@@ -1915,28 +2070,87 @@ const COURSE = {
         {ru:'Я иду на вокзал.', parts:['I','am','going','to','the','station'], answer:'I am going to the station', full:'I am going to the station.',
          whyT:'Present Continuous: происходит сейчас', why:'am/is/are + глагол с -ing. «I am waiting» — жду прямо сейчас, в отличие от «I wait» — вообще, обычно.'}
       ]},
-      { type:'dialog', title:'Найти банк', scene:'street', cefr:'A1: Can name places in a town.',
+      { type:'dialog', variant:'flow', title:'Найти банк', scene:'street', cefr:'A1: Can name places in a town.',
         intro:'Ты останавливаешь прохожего на улице.',
-        turns:[
-          {who:'them', text:'Yes? Can I help?', ru:'Да? Помочь?'},
-          {who:'you', ru:'Спроси, где банк.', best:1,
-            options:['Bank where is me?','Excuse me, where is the bank?','Money house where have?']},
-          {who:'them', text:'There is one on the next street.', ru:'Есть один на соседней улице.'},
-          {who:'you', ru:'Спроси, далеко ли это.', best:0,
-            options:['Is it far from here?','Far is it much?','Walk long time yes no?']},
-          {who:'them', text:'No, two minutes.', ru:'Нет, две минуты.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok two minute go.','Good near is thanks.','Thank you very much.']},
-          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
-          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
-            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
-          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
-          {who:'you', ru:'Уточни направление.', best:0,
-            options:['Left or right?','Way what go me?','Which side is it?']},
-          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
-        ]},
+        flow: {
+        intro:'Ты останавливаешь прохожего на улице.',
+        start:'where',
+        opener:{them:'Yes? Can I help?', ru:'Да? Помочь?'},
+        nodes:{
+          where:{ task:'Спроси, как найти банк (или другое место).', best:'Excuse me, where is the bank?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'cafe','coffee')) return {br:'cafe0'};
+                if(chose(w,'bank')) return {br:'bank'};
+                if(chose(w,'station','bus','metro','shop','supermarket','museum','hotel','park')) return {br:'other'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            cafe0:{them:'There is a nice cafe just around the corner.',ruThem:'Хорошее кафе есть прямо за углом.',next:'askdir'},
+            bank:{them:'There is one on the next street.',ruThem:'Есть один на соседней улице.',next:'far'},
+            other:{them:'I am not sure about that, but the bank is on the next street.',ruThem:'Не уверен насчёт этого, но банк — на соседней улице.',next:'far'},
+          } },
+          far:{ task:'Уточни, далеко ли идти.', best:'Is it far from here?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'far')) return {br:'far'};
+                if(chose(w,'near','close','walk','foot','minute','minutes')) return {br:'near'};
+                if(chose(w,'bus','car','metro','taxi')) return {br:'bus'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            far:{them:'No, it is quite close. Two minutes on foot.',ruThem:'Нет, довольно близко. Две минуты пешком.',next:'thanks'},
+            near:{them:'Yes, it is very close. Two minutes from here.',ruThem:'Да, совсем рядом. Две минуты отсюда.',next:'thanks'},
+            bus:{them:'You can take the bus, it is two stops. But on foot it is five minutes.',ruThem:'Можно на автобусе, две остановки. Но пешком пять минут.',next:'thanks'},
+          } },
+          thanks:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','sure','fine')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            th:{them:'You are welcome. Do you need anything else?',ruThem:'Пожалуйста. Ещё что-то нужно?',next:'ask2'},
+          } },
+          ask2:{ task:'Спроси про что-нибудь ещё (например: есть ли рядом кафе).', best:'Is there a cafe near here?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(has(w,'no','not','never')&&(w.includes('thanks')||w.includes('thank')||w.includes('nothing')||w.includes('all'))) return {br:'bye'};
+                if(chose(w,'cafe','coffee')) return {br:'cafe'};
+                if(chose(w,'shop','supermarket','bank','station')) return {br:'otherp'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            cafe:{them:'Yes, just around the corner.',ruThem:'Да, прямо за углом.',next:'askdir'},
+            otherp:{them:'Yes, there is one not far from here.',ruThem:'Да, есть одно недалеко отсюда.',next:'askdir'},
+          } },
+          askdir:{ task:'Уточни, куда идти (например: налево или направо?).', best:'Left or right?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'left','right')) return {br:'dir'};
+                if(chose(w,'straight')) return {br:'straight'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            th:{them:'You are welcome! Have a nice day!',ruThem:'Пожалуйста! Хорошего дня!',next:null},
+            dir:{them:'On your right, next to the shop.',ruThem:'Справа, рядом с магазином.',next:'thx2'},
+            straight:{them:'Straight ahead, then on your left.',ruThem:'Прямо, потом налево.',next:'thx2'},
+          } },
+          thx2:{ task:'Поблагодари.', best:'Thank you, that is very helpful.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','great','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            th:{them:'You are welcome. Have a nice day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
+          } },
+        }
+      }
+      },
       { type:'words', title:'Транспорт · 1', scene:'street', cefr:'A1: Can use public transport and buy tickets.', newCount:10, words:[
         {t:'Bus', r:'Автобус'},
         {t:'Train', r:'Поезд'},
@@ -1990,28 +2204,71 @@ const COURSE = {
         {ru:'Где остановка такси?', parts:['Where','is','the','taxi','stop'], answer:'Where is the taxi stop', full:'Where is the taxi stop?',
          whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'}
       ]},
-      { type:'dialog', title:'Купить билет', scene:'street', cefr:'A1: Can use public transport and buy tickets.',
+      { type:'dialog', variant:'flow', title:'Купить билет', scene:'street', cefr:'A1: Can use public transport and buy tickets.',
         intro:'Ты в кассе на вокзале.',
-        turns:[
-          {who:'them', text:'Where are you going?', ru:'Куда едете?'},
-          {who:'you', ru:'Скажи, что в центр.', best:1,
-            options:['Centre go me now.','To the centre, please.','Center yes ticket give.']},
-          {who:'them', text:'Single or return?', ru:'В одну сторону или туда-обратно?'},
-          {who:'you', ru:'Скажи: туда-обратно.', best:0,
-            options:['Return, please.','Back also yes come.','Two way ticket me.']},
-          {who:'them', text:'That is six euros.', ru:'Шесть евро.'},
-          {who:'you', ru:'Спроси, во сколько отходит поезд.', best:2,
-            options:['Train go when time?','Time what train leave say.','Thank you. What time does the train leave?']},
-          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
-          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
-            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
-          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
-          {who:'you', ru:'Уточни направление.', best:0,
-            options:['Left or right?','Way what go me?','Which side is it?']},
-          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
-        ]},
+        flow: {
+        intro:'Ты в кассе на вокзале.',
+        start:'go',
+        opener:{them:'Where are you going?', ru:'Куда едете?'},
+        nodes:{
+          go:{ task:'Ответь, куда едешь (например: в центр).', best:'To the centre, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'centre','center','town','city')) return {br:'centr'};
+                if(chose(w,'airport','station','park','museum','hotel')) return {br:'other'};
+                if(has(w,'no','not','never')&&chose(w,'know','idea')) return {br:'dk'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            centr:{them:'To the centre. Single or return?',ruThem:'В центр. В одну сторону или туда-обратно?',next:'sr'},
+            other:{them:'Ok. Single or return?',ruThem:'Хорошо. В одну сторону или туда-обратно?',next:'sr'},
+            dk:{them:'No problem. Where do you usually go? The centre?',ruThem:'Ничего страшного. Куда вы обычно ездите? В центр?',next:'sr'},
+          } },
+          sr:{ task:'Выбери тип билета (например: туда-обратно).', best:'Return, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'return','back','both','ways')) return {br:'ret'};
+                if(has(w,'no','not','never')&&(w.includes('return')||w.includes('back'))) return {br:'sing'};
+                if(chose(w,'single','one')) return {br:'sing'};
+                if(has(w,'no','not','never')&&(w.includes('single')||w.includes('one'))&&!chose(w,'please','thanks','thank')) return {br:'ret'};
+                if(chose(w,'again','repeat','sorry','pardon')) return {br:'again'};
+                if(has(w,'no','not','never')) return {br:'clar'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            ret:{them:'Return. That is six euros.',ruThem:'Туда-обратно. Шесть евро.',next:'pay'},
+            sing:{them:'Single. That is three euros fifty.',ruThem:'В одну сторону. Три евро пятьдесят.',next:'pay'},
+            again:{them:'Sorry, single or return?',ruThem:'Простите, в одну сторону или туда-обратно?',next:'sr'},
+            clar:{them:'Single or return?',ruThem:'В одну сторону или туда-обратно?',next:'sr'},
+          } },
+          pay:{ task:'Спроси про поезд (например: во сколько отходит).', best:'Thank you. What time does the train leave?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'when','time','leave','leaves','depart')) return {br:'when'};
+                if(chose(w,'expensive','cheap','price','cost')) return {br:'price'};
+                if(chose(w,'cash','card','pay','here','euro','euros','money')) return {br:'cash'};
+                if(chose(w,'thanks','thank','ok','okay','yes','sure')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            when:{them:'The train leaves at half past three, platform two.',ruThem:'Поезд отходит в половине четвёртого, вторая платформа.',next:'th2'},
+            price:{them:'It is the standard price for this route.',ruThem:'Это стандартная цена на этом маршруте.',next:'pay'},
+            cash:{them:'Here is your ticket. The train leaves at half past three.',ruThem:'Вот ваш билет. Поезд отходит в половине четвёртого.',next:'th2'},
+            th:{them:'Here is your ticket. Have a good trip!',ruThem:'Вот ваш билет. Хорошей поездки!',next:'th2'},
+          } },
+          th2:{ task:'Поблагодари и попрощайся.', best:'Thank you very much. Goodbye!',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','sure','fine','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye! Have a nice trip!',ruThem:'До свидания! Хорошей поездки!',next:null},
+            th:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null},
+          } },
+        }
+      }
+      },
       { type:'words', title:'Контроль: темы 13–16', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
         {t:'Toilet', r:'Туалет', rev:true},
         {t:'Door', r:'Дверь', rev:true},
@@ -2098,28 +2355,80 @@ const COURSE = {
         {ru:'Это далеко пешком?', parts:['Is','it','far','on','foot'], answer:'Is it far on foot', full:'Is it far on foot?',
          whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
       ]},
-      { type:'dialog', title:'Объяснить дорогу', scene:'street', cefr:'A1: Can ask for and give simple directions.',
+      { type:'dialog', variant:'flow', title:'Объяснить дорогу', scene:'street', cefr:'A1: Can ask for and give simple directions.',
         intro:'Турист останавливает тебя на улице.',
-        turns:[
-          {who:'them', text:'Excuse me, where is the station?', ru:'Простите, где вокзал?'},
-          {who:'you', ru:'Скажи: прямо, потом направо.', best:2,
-            options:['Straight right go you.','Go go then right yes.','Go straight, then turn right.']},
-          {who:'them', text:'Is it far?', ru:'Далеко?'},
-          {who:'you', ru:'Скажи: пять минут пешком.', best:0,
-            options:['About five minutes on foot.','Five minute walk is.','Foot five time go.']},
-          {who:'them', text:'Thank you so much!', ru:'Большое спасибо!'},
-          {who:'you', ru:'Ответь «не за что».', best:1,
-            options:['Ok go now bye.','You are welcome.','No problem have good.']},
-          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
-          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
-            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
-          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
-          {who:'you', ru:'Уточни направление.', best:0,
-            options:['Left or right?','Way what go me?','Which side is it?']},
-          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
-        ]},
+        flow: {
+        intro:'Турист останавливает тебя на улице.',
+        start:'st',
+        opener:{them:'Excuse me, where is the station?', ru:'Простите, где вокзал?'},
+        nodes:{
+          st:{ task:'Объясни дорогу (например: прямо, потом направо).', best:'Go straight, then turn right.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'sorry','pardon','what','again','repeat')) return {br:'again'};
+                if(chose(w,'far','near','close','walk','minute','minutes')) return {br:'far'};
+                if(chose(w,'bus','car','taxi','metro','train')) return {br:'bus'};
+                if(chose(w,'straight','right','left','turn','then','ahead','station')) return {br:'dir'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            again:{them:'Go straight, then turn right. It is very simple.',ruThem:'Прямо, потом направо. Всё очень просто.',next:'walk'},
+            far:{them:'It is not far. About five minutes on foot.',ruThem:'Недалеко. Около пяти минут пешком.',next:'walk'},
+            bus:{them:'You can walk, it is five minutes. Or take the bus, two stops.',ruThem:'Можно пешком, пять минут. Или на автобусе, две остановки.',next:'walk'},
+            dir:{them:'Great, thank you! And is it far?',ruThem:'Отлично, спасибо! А это далеко?',next:'walk'},
+          } },
+          walk:{ task:'Ответь, сколько идти (например: около пяти минут пешком).', best:'About five minutes on foot.',
+          judge(w,mem){
+                const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(has(w,'no','not','never')&&has(w,'bus','taxi','car','metro')&&!has(w,'take','will','i','by')) return {huh:1};
+                if(has(w,'bus','taxi','car','metro')) return {br:'bus5'};
+                if(has(w,'minute','minutes','foot','walk')&&!has(w,'no','not','never')){
+                  if(n===5) return {br:'ok5'};
+                  if(n!==null) return {br:'other5'};
+                  if(w.includes('few')||w.includes('little')) return {br:'other5'};
+                  return {br:'ok5'}; }
+                if(has(w,'no','not','never')) return {br:'not5'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            ok5:{them:'That is very close. Thank you so much!',ruThem:'Это совсем рядом. Большое спасибо!',next:'thx'},
+            bus5:{them:'Oh, by bus it is even shorter. Two stops. Thank you!',ruThem:'На автобусе ещё короче. Две остановки. Спасибо!',next:'thx'},
+            not5:{them:'I see. Well, thank you for your help!',ruThem:'Понятно. Ну, спасибо за помощь!',next:'thx'},
+            other5:{them:'Well, I would say about five minutes on foot.',ruThem:'Ну, я бы сказал, около пяти минут пешком.',next:'thx'},
+          } },
+          thx:{ task:'Ответь на «спасибо» (например: не за что).', best:'You are welcome.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'welcome','problem','nothing','ok','okay','fine','sure','yes','yeah','thanks','thank')) return {br:'wc'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            wc:{them:'Do you need anything else?',ruThem:'Вам ещё что-нибудь нужно?',next:'any'},
+          } },
+          any:{ task:'Спроси про что-нибудь ещё (например: есть ли рядом кафе).', best:'Is there a cafe near here?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(has(w,'no','not','never')&&(w.includes('thanks')||w.includes('thank')||w.includes('nothing')||w.includes('all'))) return {br:'bye'};
+                if(chose(w,'cafe','coffee')) return {br:'cafe'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            cafe:{them:'Yes, there is a good cafe on the left, next to the shop.',ruThem:'Да, хорошее кафе слева, рядом с магазином.',next:'th2'},
+          } },
+          th2:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','great','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            th:{them:'You are welcome. Enjoy your day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
+          } },
+        }
+      }
+      },
       { type:'words', title:'Работа и профессии · 1', scene:'office', cefr:'A1: Can say what they do for a living.', newCount:12, words:[
         {t:'Work', r:'Работа / работать'},
         {t:'Job', r:'Работа (должность)'},
@@ -2175,28 +2484,77 @@ const COURSE = {
         {ru:'Сегодня я очень занят.', parts:['I','am','very','busy','today'], answer:'I am very busy today', full:'I am very busy today.',
          whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
       ]},
-      { type:'dialog', title:'Рассказать о работе', scene:'office', cefr:'A1: Can say what they do for a living.',
+      { type:'dialog', variant:'flow', title:'Рассказать о работе', scene:'office', cefr:'A1: Can say what they do for a living.',
         intro:'На вечеринке кто-то спрашивает о работе.',
-        turns:[
-          {who:'them', text:'So, what do you do?', ru:'Чем занимаешься?'},
-          {who:'you', ru:'Скажи, что работаешь в компании.', best:0,
-            options:['I work in a small company.','Company work me have.','Job company small is.']},
-          {who:'them', text:'Do you like it?', ru:'Нравится?'},
-          {who:'you', ru:'Скажи «да, но много работы».', best:1,
-            options:['Work much yes like.','Yes, but there is a lot of work.','Like yes work big have.']},
-          {who:'them', text:'I know that feeling.', ru:'Знакомое чувство.'},
-          {who:'you', ru:'Спроси, кем работает он.', best:2,
-            options:['You job what is?','Work you where say me.','And what about you?']},
-          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
-          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
-            options:['When will I know?','Answer when have me?','Time answer what is?']},
-          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
-          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
-            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
-          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
-          {who:'you', ru:'Попрощайся вежливо.', best:1,
-            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
-        ]},
+        flow: {
+        intro:'На вечеринке кто-то спрашивает о работе.',
+        start:'job',
+        opener:{them:'So, what do you do?', ru:'Чем занимаешься?'},
+        nodes:{
+          job:{ task:'Ответь, чем занимаешься (например: работаю в небольшой компании).', best:'I work in a small company.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'work','company','office','job')) return {br:'work'};
+                if(chose(w,'student','school','study','studies')) return {br:'student'};
+                if(has(w,'no','not','never')&&(w.includes('work')||w.includes('job'))) return {br:'nowork'};
+                if(chose(w,'doctor','teacher','engineer','driver','shop','bank')) return {br:'spec'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            work:{them:'Interesting. Do you like it?',ruThem:'Интересно. Нравится?',next:'like'},
+            student:{them:'Oh, are you a student? And what do you study?',ruThem:'О, вы студент? И что вы изучаете?',next:'like'},
+            nowork:{them:'I see. Are you looking for a job?',ruThem:'Понятно. Ищете работу?',next:'like'},
+            spec:{them:'That sounds interesting. Do you like it?',ruThem:'Звучит интересно. Нравится?',next:'like'},
+          } },
+          like:{ task:'Ответь, нравится ли работа (например: да, но её много).', best:'Yes, but there is a lot of work.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'yes','yeah','like','love','enjoy')) return {br:'yes'};
+                if(chose(w,'lot','much','many','busy')) return {br:'busy'};
+                if(has(w,'no','not','never')&&(w.includes('boring')||w.includes('bored')||w.includes('hate')||w.includes('hates')||w.includes('tired')||w.includes('difficult')||w.includes('stress')||w.includes('stressful')||w.includes('bad')||w.includes('awful')||w.includes('terrible')||w.includes('hard'))) return {huh:1};
+                if(has(w,'no','not','never')) return {br:'no'};
+                if(chose(w,'boring','bored','hate','hates','tired','difficult','stress','stressful','bad','awful','terrible','hard')) return {br:'no'};
+                if(chose(w,'ok','okay','fine','sure','so')) return {br:'yes'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            yes:{them:'A lot of work, I know that feeling.',ruThem:'Много работы, я знаю это чувство.',next:'you'},
+            no:{them:'That is a pity. But it is good that you have a job.',ruThem:'Жаль. Но хорошо, что работа есть.',next:'you'},
+            busy:{them:'A lot of work, I know that feeling.',ruThem:'Много работы, я знаю это чувство.',next:'you'},
+          } },
+          you:{ task:'Спроси про собеседника (например: а ты чем занимаешься?).', best:'And what about you?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'you','your','and')) return {br:'ask'};
+                if(chose(w,'work','job','doctor','teacher','engineer')) return {br:'ask'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            ask:{them:'I work in a bank. It is fine, but I am busy too.',ruThem:'Я работаю в банке. Нормально, но я тоже занят.',next:'drink'},
+          } },
+          drink:{ task:'Предложи собеседнику что-нибудь выпить.', best:'Would you like something to drink?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'drink','coffee','tea','water','juice','would','like','something')) return {br:'offer'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Nice to meet you!',ruThem:'Пока! Приятно было познакомиться!',next:null},
+            offer:{them:'Yes, coffee would be great, thank you!',ruThem:'Да, кофе было бы отлично, спасибо!',next:'wish'},
+            th:{them:'It was nice talking to you!',ruThem:'Было приятно поболтать!',next:'wish'},
+          } },
+          wish:{ task:'Попрощайся вежливо.', best:'Nice to meet you. Goodbye!',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'nice','meet','see','too','likewise','thanks','thank')) return {br:'ok'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+            ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Берегите себя!',next:null},
+          } },
+        }
+      }
+      },
       { type:'words', title:'Учёба · 1', scene:'office', cefr:'A1: Can talk about school and studying.', newCount:14, words:[
         {t:'School', r:'Школа'},
         {t:'University', r:'Университет'},

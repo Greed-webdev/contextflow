@@ -1532,7 +1532,7 @@ const Lesson = {
     }
     box.appendChild(rowA);
 
-    const dunno = el('button','btn quiet wide','Не знаю — покажи варианты');
+    const dunno = el('button','btn quiet wide','Не знаю');
     box.appendChild(dunno);
 
     let tries = 0;                     // сколько раз уже отвечал на этот ход
@@ -1767,7 +1767,7 @@ const Lesson = {
     }
     box.appendChild(rowA);
 
-    const dunno = el('button','btn quiet wide','Не знаю — покажи, как сказать');
+    const dunno = el('button','btn quiet wide','Не знаю');
     box.appendChild(dunno);
     let tries = 0;
 
@@ -2029,7 +2029,7 @@ const Lesson = {
     }
     box.appendChild(rowA);
 
-    const dunno = el('button','btn quiet wide','Не знаю — покажи, как сказать');
+    const dunno = el('button','btn quiet wide','Не знаю');
     box.appendChild(dunno);
     let tries = 0;
 

@@ -49,7 +49,7 @@ button:disabled{opacity:.5;cursor:default}
     <button class="g" onclick="D.again()">Заново</button>
   </div>
   <div class="row" style="margin-top:0">
-    <button class="g" id="dunno" style="display:none" onclick="D.opts()">Не знаю — покажи, как сказать</button>
+    <button class="g" id="dunno" style="display:none" onclick="D.opts()">Не знаю</button>
   </div>
   <div id="out"></div>
 </div>
@@ -199,7 +199,7 @@ const S1 = { title:'Назвать количество · ур. 13',
     start:'count',
     opener:{them:'How many do you need?', ru:'Сколько вам нужно?'},
     nodes:{
-    count:{ task:'Скажи, сколько нужно: пять.', best:'Five, please.',
+    count:{ task:'Назови, сколько нужно (например: пять, пожалуйста).', best:'Five, please.',
     judge(w,mem){ const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
     if(n===5) return {br:'five'};
     const nums = d.length>0 || w.some(x=>x in NUM);
@@ -216,7 +216,7 @@ const S1 = { title:'Назвать количество · ур. 13',
       giveup:{them:'Ok, let us do five then.',ruThem:'Хорошо, тогда берём пять.',next:'twelve'},
       price:{them:'They are two euros each.',ruThem:'По два евро за штуку.',next:'count'},
       bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
-    twelve:{ task:'Уточни: двенадцать?', best:'Twelve? Not twenty?',
+    twelve:{ task:'Переспроси цену (например: двенадцать? не двадцать?).', best:'Twelve? Not twenty?',
     judge(w,mem){ const d=(mem._digits||[]).map(Number);
     const is12 = chose(w,'twelve') || d.includes(12);
     const is20 = chose(w,'twenty') || d.includes(20);
@@ -234,7 +234,7 @@ const S1 = { title:'Назвать количество · ур. 13',
     judge(w){ const th=has(w,'thanks','thank'), ok=has(w,'right','ok','okay','yes','sure','here','fine','take');
     if(th||ok) return {br:'ok'}; return {huh:1}; },
     tr:{ ok:{them:'Thank you. Anything else today?',ruThem:'Спасибо. Что-нибудь ещё?',next:'extra'} } },
-    extra:{ task:'Попроси два хлеба.', best:'Two loaves of bread, please.',
+    extra:{ task:'Уточни, что нужно (например: два хлеба, пожалуйста).', best:'Two loaves of bread, please.',
     judge(w,mem){ const n=FLOWNUM(w,(mem._digits||[]).map(Number));
     const bread=has(w,'bread','loaf','loaves');
     if(bread&&n===2) return {br:'two'};
@@ -244,12 +244,12 @@ const S1 = { title:'Назвать количество · ур. 13',
     tr:{ two:{them:'Two loaves of bread. That is three more euros.',ruThem:'Два хлеба. Ещё три евро.',next:'pay'},
       loaves:{them:'How many loaves?',ruThem:'Сколько буханок?',next:'extra'},
       done:{them:'Ok. That is twelve euros, please.',ruThem:'Хорошо. С вас двенадцать евро.',next:'pay'} } },
-    pay:{ task:'Скажи, что платишь наличными.', best:'I will pay in cash.',
+    pay:{ task:'Скажи, как будешь платить (например: наличными).', best:'I will pay in cash.',
     judge(w){ if(has(w,'card')) return {br:'card'};
     if(has(w,'cash','notes','money')) return {br:'cash'}; return {huh:1}; },
     tr:{ cash:{them:'Here is your change.',ruThem:'Вот ваша сдача.',next:'change'},
       card:{them:'Sorry, we only take cash today.',ruThem:'Извините, сегодня только наличные.',next:'pay'} } },
-    change:{ task:'Проверь сдачу и поблагодари.', best:'Thank you. That is right.',
+    change:{ task:'Поблагодари и проверь сдачу (например: спасибо, всё верно).', best:'Thank you. That is right.',
     judge(w){ const pos=['right','ok','okay','fine','correct','good'];
     const negHit = pos.some(x=>{ const i=w.indexOf(x); return i>-1 && negatedAt(w,i); });
     if(has(w,'wrong','short','mistake','incorrect')||negHit) return {br:'recheck'};
@@ -270,7 +270,7 @@ const S2 = { title:'Выбрать цвет · ур. 19',
     start:'pick',
     opener:{them:'We have it in red and in black.', ru:'Есть красный и чёрный.'},
     nodes:{
-    pick:{ task:'Скажи, что предпочитаешь чёрный.', best:'I prefer the black one.',
+    pick:{ task:'Сделай выбор (например: я предпочитаю чёрный).', best:'I prefer the black one.',
     judge(w,mem){ const b=chose(w,'black'), r=chose(w,'red');
     if(has(w,'much','cost','price','expensive')) return {br:'price'};
     if(b&&r) return {br:'both'};
@@ -290,7 +290,7 @@ const S2 = { title:'Выбрать цвет · ур. 19',
       colour:{them:'Sorry, we only have red and black.',ruThem:'Извините, есть только красный и чёрный.',next:'pick'},
       order:{them:'We do not have that colour in stock, but I can order it. What size do you need?',ruThem:'Этого цвета нет в наличии, но могу заказать. Какой размер?',next:'size'},
       bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
-    size:{ task:'Скажи: маленький.', best:'A small one, please.',
+    size:{ task:'Назови размер (например: маленький, пожалуйста).', best:'A small one, please.',
     judge(w){ if(chose(w,'small','little')) return {br:'s'};
     if(chose(w,'medium')) return {br:'m'};
     if(chose(w,'large','big')) return {br:'l'};
@@ -303,14 +303,14 @@ const S2 = { title:'Выбрать цвет · ур. 19',
     thx:{ task:'Поблагодари.', best:'Thank you very much.',
     judge(w){ if(has(w,'thanks','thank','cheers')) return {br:'ok'}; return {huh:1}; },
     tr:{ ok:{them:'You are welcome. Anything else?',ruThem:'Пожалуйста. Что-нибудь ещё?',next:'rest'} } },
-    rest:{ task:'Скажи, что это всё.', best:'No, that is all, thank you.',
+    rest:{ task:'Ответь, нужно ли что-то ещё (например: нет, это всё, спасибо).', best:'No, that is all, thank you.',
     judge(w){ const extra=has(w,'more','another','also','need','want');
     if(extra) return {br:'more'};
     if(has(w,'no','nothing')||has(w,'all','everything','that')) return {br:'all'};
     return {huh:1}; },
     tr:{ all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'paym'},
       more:{them:'Of course. What else do you need?',ruThem:'Конечно. Что ещё вам нужно?',next:'pick'} } },
-    paym:{ task:'Скажи: картой.', best:'By card, please.',
+    paym:{ task:'Назови способ оплаты (например: картой, пожалуйста).', best:'By card, please.',
     judge(w){ if(has(w,'card')) return {br:'card'};
     if(has(w,'cash','money','notes')) return {br:'cash'}; return {huh:1}; },
     tr:{ card:{them:'Thank you. Have a good day!',ruThem:'Спасибо. Хорошего дня!',next:'wish'},
@@ -332,7 +332,7 @@ const S3 = { title:'Назначить день · ур. 23',
     start:'askday',
     opener:{them:'Can we meet this week?', ru:'Можем встретиться на этой неделе?'},
     nodes:{
-    askday:{ task:'Спроси, какой день.', best:'Sure. Which day?',
+    askday:{ task:'Спроси про дату (например: какой день вам подходит?).', best:'Sure. Which day?',
     judge(w,mem){ const d=DAY_IN(w);
     if(d){ mem.day=d; return {br:'direct'}; }
     if(has(w,'when','which')&&has(w,'day')) return {br:'ask'};
@@ -343,12 +343,12 @@ const S3 = { title:'Назначить день · ур. 23',
       ok:{them:'Great. How about Wednesday?',ruThem:'Отлично. Как насчёт среды?',next:'wed'},
       busy:{them:'No problem. When is a good day for you?',ruThem:'Без проблем. Когда вам удобно?',next:'day'},
       direct:{them:'Ok, {day} then.',ruThem:'Хорошо, тогда {day}.',next:'conf'} } },
-    day:{ task:'Назови удобный день.', best:'Thursday, please.',
+    day:{ task:'Назови удобный день (например: четверг).', best:'Thursday, please.',
     judge(w,mem){ const d=DAY_IN(w);
     if(d){ mem.day=d; return {br:'ok'}; }
     return {huh:1}; },
     tr:{ ok:{them:'Ok, {day} works for me.',ruThem:'Хорошо, {day} мне подходит.',next:'conf'} } },
-    wed:{ task:'Скажи, что среда занята, и предложи четверг.', best:'Wednesday is busy for me. Can we do Thursday?',
+    wed:{ task:'Ответь про среду и предложи другой день (например: в среду я занят, давайте в четверг?).', best:'Wednesday is busy for me. Can we do Thursday?',
     judge(w,mem){ const d=DAY_IN(w);
     if(has(w,'thursday')){ mem.day='thursday'; return {br:'thu'}; }
     if(d==='wednesday'&&!has(w,'busy','no','not')){ mem.day='wednesday'; return {br:'wed'}; }
@@ -359,7 +359,7 @@ const S3 = { title:'Назначить день · ур. 23',
       wed:{them:'Great. Wednesday it is.',ruThem:'Отлично, тогда среда.',next:'conf'},
       oth:{them:'Ok, {day} works for me.',ruThem:'Хорошо, {day} подходит.',next:'conf'},
       askd:{them:'I see. What day is good for you?',ruThem:'Ясно. Какой день вам удобен?',next:'day'} } },
-    conf:{ task:'Подтверди встречу и назови день.', best:'Great, see you on Thursday.',
+    conf:{ task:'Подтверди встречу (например: отлично, до встречи в четверг).', best:'Great, see you on Thursday.',
     judge(w,mem){ const d=DAY_IN(w);
     if(d){ if(!mem.day||d===mem.day) return {br:'ok'};
       return {br:'fix'}; }
@@ -368,13 +368,13 @@ const S3 = { title:'Назначить день · ур. 23',
     tr:{ ok:{them:'Great. Is there anything else?',ruThem:'Отлично. Что-нибудь ещё?',next:'any'},
       fix:{them:'Wait, we agreed on {day}.',ruThem:'Стоп, мы договорились на {day}.',next:'conf'},
       again:{them:'So, we meet on {day}, right?',ruThem:'Значит, встречаемся в {day}?',next:'conf'} } },
-    any:{ task:'Спроси, когда будет ответ.', best:'When will I know?',
+    any:{ task:'Спроси, когда будет ответ (например: когда я узнаю?).', best:'When will I know?',
     judge(w){ if(has(w,'no','nothing')) return {br:'done'};
     if(has(w,'when','know','call','hear','answer','soon')) return {br:'ask'};
     return {huh:1}; },
     tr:{ ask:{them:'We will call you this week.',ruThem:'Мы позвоним вам на этой неделе.',next:'wait'},
       done:{them:'Ok. We will call you this week.',ruThem:'Хорошо. Мы позвоним вам на этой неделе.',next:'wait'} } },
-    wait:{ task:'Скажи, что будешь ждать звонка.', best:'Thank you, I will wait for your call.',
+    wait:{ task:'Ответь, что будешь делать (например: спасибо, буду ждать звонка).', best:'Thank you, I will wait for your call.',
     judge(w){ if(has(w,'wait','waiting','expect','expecting','forward','hear')) return {br:'wait'};
     return {huh:1}; },
     tr:{ wait:{them:'Thank you for coming.',ruThem:'Спасибо, что пришли.',next:'bye'} } },

@@ -49,7 +49,7 @@ button:disabled{opacity:.5;cursor:default}
     <button class="g" onclick="D.again()">Заново</button>
   </div>
   <div class="row" style="margin-top:0">
-    <button class="g" id="dunno" style="display:none" onclick="D.opts()">Не знаю — покажи, как сказать</button>
+    <button class="g" id="dunno" style="display:none" onclick="D.opts()">Не знаю</button>
   </div>
   <div id="out"></div>
 </div>
@@ -200,7 +200,7 @@ const S1 = { title:'Узнать время · ур. 27',
   start:'ask',
   opener:{them:'Are you waiting for the bus?', ru:'Автобус ждёте?'},
   nodes:{
-    ask:{ task:'Спроси, который час.', best:'Excuse me, what time is it?',
+    ask:{ task:'Спроси, который час (например: простите, сколько времени?).', best:'Excuse me, what time is it?',
     judge(w){
           if(chose(w,'time','clock','watch')) return {br:'time'};
           if(chose(w,'bus','wait','waiting')) return {br:'bus'};
@@ -211,7 +211,7 @@ const S1 = { title:'Узнать время · ур. 27',
       bus:{them:'The bus comes at nine. It is half past eight now.',ruThem:'Автобус в девять. Сейчас половина девятого.',next:'late'},
       bye:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:null},
     } },
-    late:{ task:'Скажи, что опаздываешь на работу.', best:'Oh, I am late for work.',
+    late:{ task:'Ответь, почему спешишь (например: я опаздываю на работу).', best:'Oh, I am late for work.',
     judge(w){
           if(chose(w,'late','work','job','office')) return {br:'work'};
           if(chose(w,'bus','wait','waiting','nothing','fine','ok','okay','alright','just')) return {br:'wait'};
@@ -231,7 +231,7 @@ const S1 = { title:'Узнать время · ур. 27',
       ok:{them:'You are welcome. Is everything else alright?',ruThem:'Пожалуйста. В остальном всё нормально?',next:'ok2'},
       bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
     } },
-    ok2:{ task:'Скажи, что да, всё хорошо.', best:'Yes, everything else is fine.',
+    ok2:{ task:'Ответь, всё ли в порядке (например: да, всё хорошо).', best:'Yes, everything else is fine.',
     judge(w){
           const bad=['bad','problem','wrong','trouble'];
           const bi=bad.map(x=>w.indexOf(x)).filter(i=>i>=0);
@@ -271,7 +271,7 @@ const S2 = { title:'Разговор о погоде · ур. 31',
   start:'cold',
   opener:{them:'Cold today, isn’t it?', ru:'Холодно сегодня, правда?'},
   nodes:{
-    cold:{ task:'Согласись, что холодно.', best:'Yes, very cold. And windy.',
+    cold:{ task:'Ответь про погоду (например: да, очень холодно и ветрено).', best:'Yes, very cold. And windy.',
     judge(w){
           if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea')||w.includes('sure'))) return {br:'neu'};
           if(chose(w,'ok','okay','fine','alright','normal','same')) return {br:'neu'};
@@ -286,7 +286,7 @@ const S2 = { title:'Разговор о погоде · ур. 31',
       neu:{them:'Well, I think it is really cold today. They say it will snow tonight.',ruThem:'Ну, по-моему, сегодня очень холодно. Говорят, ночью пойдёт снег.',next:'snow'},
       bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
     } },
-    snow:{ task:'Скажи, что не любишь снег.', best:'Really? I don’t like snow.',
+    snow:{ task:'Ответь, как ты относишься к снегу (например: я не люблю снег).', best:'Really? I don’t like snow.',
     judge(w){
           if(chose(w,'like','love','enjoy')) return {br:'like'};
           if(chose(w,'hate')||(has(w,'no','not','never')&&chose(w,'snow'))) return {br:'hate'};
@@ -297,7 +297,7 @@ const S2 = { title:'Разговор о погоде · ур. 31',
       hate:{them:'Well, it is winter.',ruThem:'Ну, зима же.',next:'winter'},
       bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
     } },
-    winter:{ task:'Согласись и попрощайся.', best:'True. Have a good day!',
+    winter:{ task:'Согласись и попрощайся (например: верно. Хорошего дня!).', best:'True. Have a good day!',
     judge(w){
           if(chose(w,'bye','goodbye','see','later','day')) return {br:'bye'};
           if(chose(w,'true','yes','right','sure','agree','ok','okay','winter')) return {br:'agree'};
@@ -317,7 +317,7 @@ const S2 = { title:'Разговор о погоде · ур. 31',
       no:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
       bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
     } },
-    side:{ task:'Уточни: налево или направо?', best:'Left or right?',
+    side:{ task:'Уточни дорогу (например: налево или направо?).', best:'Left or right?',
     judge(w){
           if(chose(w,'left')) return {br:'left'};
           if(chose(w,'right')) return {br:'right'};
@@ -344,7 +344,7 @@ const S3 = { title:'У врача · ур. 37',
   start:'prob',
   opener:{them:'What is the problem?', ru:'Что случилось?'},
   nodes:{
-    prob:{ task:'Скажи, что болит.', best:'My head hurts.',
+    prob:{ task:'Расскажи, что у тебя болит (например: болит голова).', best:'My head hurts.',
     judge(w){
           if(chose(w,'head','headache','migraine')) return {br:'head'};
           if(chose(w,'throat','stomach','back','tooth','ear','leg','arm','cough','flu','fever','temperature','sore','hurt','aches','pain')) return {br:'other'};
@@ -357,7 +357,7 @@ const S3 = { title:'У врача · ур. 37',
       none:{them:'Glad to hear that. Do you have any questions?',ruThem:'Рад это слышать. У вас есть вопросы?',next:'quest'},
       bye:{them:'Take care!',ruThem:'Берегите себя!',next:null},
     } },
-    since:{ task:'Скажи, с какого времени.', best:'Since yesterday.',
+    since:{ task:'Ответь, с какого времени (например: со вчерашнего дня).', best:'Since yesterday.',
     judge(w,mem){ const d=(mem._digits||[]).map(Number);
           const span=has(w,'day','days','week','weeks','month','months','hour','hours','year','years','ago','morning','night');
           if(chose(w,'yesterday')) return {br:'yest'};
@@ -379,7 +379,7 @@ const S3 = { title:'У врача · ур. 37',
       ok:{them:'Do you have any questions?',ruThem:'У вас есть вопросы?',next:'quest'},
       bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
     } },
-    quest:{ task:'Спроси, когда прийти снова.', best:'When should I come again?',
+    quest:{ task:'Спроси, когда прийти снова (например: когда мне прийти снова?).', best:'When should I come again?',
     judge(w){
           if(chose(w,'when')) return {br:'ask'};
           if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
@@ -394,7 +394,7 @@ const S3 = { title:'У врача · ур. 37',
       no:{them:'Ok. Then take care of yourself.',ruThem:'Хорошо. Тогда берегите себя.',next:'care'},
       bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
     } },
-    qask:{ task:'Спроси, когда прийти снова.', best:'When should I come again?',
+    qask:{ task:'Спроси, когда прийти снова (например: когда мне прийти снова?).', best:'When should I come again?',
     judge(w){
           if(chose(w,'when')) return {br:'ask'};
           if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
@@ -409,7 +409,7 @@ const S3 = { title:'У врача · ур. 37',
       no:{them:'Ok. Then take care of yourself.',ruThem:'Хорошо. Тогда берегите себя.',next:'care'},
       bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
     } },
-    week:{ task:'Подтверди.', best:'One week. I understand.',
+    week:{ task:'Подтверди слова врача (например: неделю, я понял).', best:'One week. I understand.',
     judge(w,mem){ const d=(mem._digits||[]).map(Number);
           if(d.length&&(has(w,'week','weeks')||w.includes('7'))) return {br:'ok'};
           if(chose(w,'week','weeks','understand','clear','ok','okay','yes','right','fine','sure')) return {br:'ok'};

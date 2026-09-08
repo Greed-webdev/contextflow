@@ -28,7 +28,9 @@ const flowBy = {};
 const FLOW_TITLES = ['Первое приветствие', 'Заполнить анкету', 'Разговор о семье',
   'Назвать количество', 'Выбрать цвет', 'Назначить день',
   'Узнать время', 'Разговор о погоде', 'У врача',
-  'Купить куртку', 'Заказать обед', 'У барной стойки'];
+  'Купить куртку', 'Заказать обед', 'У барной стойки',
+  'Показать квартиру', 'Что-то сломалось', 'Найти банк',
+  'Купить билет', 'Объяснить дорогу', 'Рассказать о работе'];
 for (const t of FLOW_TITLES) {
   const lv = stage1.find(x => x.type === 'dialog' && x.variant === 'flow' && x.title === t);
   if (!lv) { console.error('нет flow-записи «' + t + '» в курсе'); process.exit(1); }
@@ -37,7 +39,9 @@ for (const t of FLOW_TITLES) {
 const SCENES = { s1: flowBy['Первое приветствие'], s2: flowBy['Заполнить анкету'], s3: flowBy['Разговор о семье'],
   s4: flowBy['Назвать количество'], s5: flowBy['Выбрать цвет'], s6: flowBy['Назначить день'],
   s7: flowBy['Узнать время'], s8: flowBy['Разговор о погоде'], s9: flowBy['У врача'],
-  s10: flowBy['Купить куртку'], s11: flowBy['Заказать обед'], s12: flowBy['У барной стойки'] };
+  s10: flowBy['Купить куртку'], s11: flowBy['Заказать обед'], s12: flowBy['У барной стойки'],
+  s13: flowBy['Показать квартиру'], s14: flowBy['Что-то сломалось'], s15: flowBy['Найти банк'],
+  s16: flowBy['Купить билет'], s17: flowBy['Объяснить дорогу'], s18: flowBy['Рассказать о работе'] };
 const norm = ctxApp.__H.norm, expand = ctxApp.__H.expand;
 const SPEC = JSON.parse(fs.readFileSync('/home/user/сцена-1-живая-логика.json', 'utf8'));
 
@@ -123,6 +127,25 @@ function сценыИзФайла(path) {
   for (const [k, t] of pairs8) {
     const same = sig(ctx8.__D[k]) === sig(flowBy[t]);
     T('идентичность демо-8 (одобрено): ' + t, same);
+  }
+}
+// --- идентичность: демо-9 и демо-10 (партии 5-6, вторая рецензия закрыта) == приложение ---
+{
+  const src9 = сценыИзФайла('/home/user/демо-9.html');
+  const ctx9 = runBoth(helpers + '\n' + src9.join('\n') + '\n;globalThis.__D={s1:S1,s2:S2,s3:S3};');
+  const pairs9 = [['s1', 'Показать квартиру'], ['s2', 'Что-то сломалось'], ['s3', 'Найти банк']];
+  for (const [k, t] of pairs9) {
+    const same = sig(ctx9.__D[k]) === sig(flowBy[t]);
+    T('идентичность демо-9: ' + t, same);
+  }
+}
+{
+  const src10 = сценыИзФайла('/home/user/демо-10.html');
+  const ctx10 = runBoth(helpers + '\n' + src10.join('\n') + '\n;globalThis.__D={s1:S1,s2:S2,s3:S3};');
+  const pairs10 = [['s1', 'Купить билет'], ['s2', 'Объяснить дорогу'], ['s3', 'Рассказать о работе']];
+  for (const [k, t] of pairs10) {
+    const same = sig(ctx10.__D[k]) === sig(flowBy[t]);
+    T('идентичность демо-10: ' + t, same);
   }
 }
 
@@ -613,6 +636,83 @@ r = run(s11, ['Not yet. Could I see the menu, please?', 'I will have the soup an
   'Just water, please.', 'No, thank you. That is all.', 'Thank you very much.',
   'Thank you, it looks delicious.']);
 T('S11 путь после подстановки best: до конца', r.ok, r.err);
+
+// ---------- партии 5-6: живые пути s13-s18 (эталон + кейсы второй рецензии) ----------
+const s13 = SCENES.s13, s14 = SCENES.s14, s15 = SCENES.s15,
+      s16 = SCENES.s16, s17 = SCENES.s17, s18 = SCENES.s18;
+// s13 Показать квартиру: разные тона первого хода ведут в продолжение
+for (const first of ['Yes, it is a small flat.', 'I love it!', 'It is big.',
+                     'No, not really.', 'I do not know.', 'It is cozy.']) {
+  r = run(s13, [first, 'The kitchen is next to the door.', 'It is upstairs.',
+    'Yes, there is a small balcony.', 'Yes, everything else is fine.',
+    'Thank you, I will.', 'You too, good night!']);
+  T(`S13 ход «${first}»: путь до конца`, r.ok, r.err);
+}
+// s14 Что-то сломалось: любой неисправный свет ведёт через since
+for (const first of ['The light does not work.', 'The light is broken.',
+                     'The light is not working.', 'The light in the kitchen does not work.',
+                     'Nothing works.', 'There is no water.']) {
+  r = run(s14, ['Hello. ' + first, 'Since yesterday evening.', 'Thank you very much.',
+    'Yes, everything else is fine.', 'Thank you, I will.', 'You too, good night!']);
+  T(`S14 «${first}»: путь через since до конца`, r.ok && r.log.some(l => l.at === 'since'), r.err || r.log.map(l => l.at + '>' + l.br).join(' '));
+}
+{ const s = step(s14, 'call', 'The light works', {});
+  T('S14 «the light works» -> переспрос, не поломка', !s.err && s.br === 'poslight', s.err || s.br); }
+{ const s = step(s14, 'call', 'no light', {}); const t = step(s14, 'call', 'light', {});
+  T('S14 «no light» != «light» (переспрос голого light)', s.br !== t.br, s.br + ' vs ' + t.br); }
+// s15 Найти банк: кафе и банк ведут разными путями, оба до конца
+r = run(s15, ['Is there a cafe near here?', 'Left or right?', 'Thank you, that is very helpful.']);
+T('S15 кафе: путь до конца', r.ok, r.err);
+r = run(s15, ['Excuse me, where is the bank?', 'Is it far from here?',
+  'Thank you very much.', 'Is there a cafe near here?', 'Left or right?', 'Thank you, that is very helpful.']);
+T('S15 банк: путь до конца', r.ok, r.err);
+r = run(s15, ['Where can I find a shop?', 'Is it far from here?', 'Thank you very much.',
+  'No, that is all, thank you. Goodbye!']);
+T('S15 «другое место» не обрывает (other -> far)', r.ok && r.log[0].br === 'other', r.err || r.log.map(l => l.br).join(' '));
+// s16 Купить билет: типы билетов + отрицания (вторая рецензия)
+for (const first of ['To the centre, please.', 'To the airport, please.']) {
+  r = run(s16, [first, 'Return, please.', 'Thank you. What time does the train leave?',
+    'Thank you very much. Goodbye!']);
+  T(`S16 «${first}» -> return: путь до конца`, r.ok, r.err);
+}
+r = run(s16, ['To the centre, please.', 'Single, please.', 'Thank you. What time does the train leave?',
+  'Thank you very much. Goodbye!']);
+T('S16 single: путь до конца', r.ok, r.err);
+{ const s = step(s16, 'sr', 'No single', {});
+  T('S16 «no single» -> ret', !s.err && s.br === 'ret', s.err || s.br); }
+{ const s = step(s16, 'sr', 'No return', {});
+  T('S16 «no return» -> sing', !s.err && s.br === 'sing', s.err || s.br); }
+{ const s = step(s16, 'sr', 'No', {});
+  T('S16 голое «no» -> уточнение (clar)', !s.err && s.br === 'clar' && /single or return/i.test(s.them), s.err || (s.br + ' / ' + s.them)); }
+// s17 Объяснить дорогу: пять минут принимаются, «ten minutes» переспрашивается
+r = run(s17, ['Go straight, then turn right.', 'About five minutes on foot.',
+  'You are welcome.', 'Is there a cafe near here?', 'Thank you very much.']);
+T('S17 полный путь: до конца', r.ok, r.err);
+{ const s = step(s17, 'walk', 'Five minutes', {});
+  T('S17 «five minutes» -> ok5', !s.err && s.br === 'ok5', s.err || s.br); }
+{ const s = step(s17, 'walk', 'Ten minutes', {});
+  T('S17 «ten minutes» -> other5 (переспрос числа)', !s.err && s.br === 'other5', s.err || s.br); }
+// s18 Рассказать о работе: hard и difficult в одной ветке
+r = run(s18, ['I work in a small company.', 'Yes, but there is a lot of work.',
+  'And what about you?', 'Would you like something to drink?', 'Nice to meet you. Goodbye!']);
+T('S18 полный путь: до конца', r.ok, r.err);
+{ const a = step(s18, 'like', 'It is hard', {}); const b = step(s18, 'like', 'It is difficult', {});
+  T('S18 «hard» == «difficult» (ветка no)', !a.err && !b.err && a.br === b.br && a.br === 'no', (a.err || a.br) + ' vs ' + (b.err || b.br)); }
+{ const s = step(s18, 'like', 'Yes but there is a lot of work', {});
+  T('S18 «lot of work» -> yes (не busy)', !s.err && s.br === 'yes', s.err || s.br); }
+// «Не знаю»-механика для новых сцен: best каждого узла обязан проходить (кнопка «Дальше»)
+for (const [id, sc] of Object.entries(SCENES)) {
+  if (!['s13','s14','s15','s16','s17','s18'].includes(id)) continue;
+  const mem = {}; let at = sc.start, ended = false;
+  for (let k = 0; k < 300; k++) {
+    const n = sc.nodes[at];
+    const r2 = step(sc, at, n.best, mem);
+    if (r2.err) break;
+    if (r2.next === null || r2.next === undefined) { ended = true; break; }
+    at = r2.next;
+  }
+  T(`${id} «Не знаю»-проход (best каждого узла) до конца`, ended);
+}
 
 // ---------- итог ----------
 console.log(`\nИТОГ: ${pass} pass, ${fail} fail\n`);
