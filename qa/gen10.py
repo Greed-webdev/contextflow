@@ -13,7 +13,7 @@ const S1 = { title:'Купить билет · ур. 67',
   start:'go',
   opener:{them:'Where are you going?', ru:'Куда едете?'},
   nodes:{
-    go:{ task:'Скажи, что в центр.', best:'To the centre, please.',
+    go:{ task:'Ответь, куда едешь (например: в центр).', best:'To the centre, please.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'centre','center','town','city')) return {br:'centr'};
@@ -26,7 +26,7 @@ const S1 = { title:'Купить билет · ур. 67',
       other:{them:'Ok. Single or return?',ruThem:'Хорошо. В одну сторону или туда-обратно?',next:'sr'},
       dk:{them:'No problem. Where do you usually go? The centre?',ruThem:'Ничего страшного. Куда вы обычно ездите? В центр?',next:'sr'},
     } },
-    sr:{ task:'Скажи: туда-обратно.', best:'Return, please.',
+    sr:{ task:'Выбери тип билета (например: туда-обратно).', best:'Return, please.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'return','back','both','ways')) return {br:'ret'};
@@ -41,7 +41,7 @@ const S1 = { title:'Купить билет · ур. 67',
       sing:{them:'Single. That is three euros fifty.',ruThem:'В одну сторону. Три евро пятьдесят.',next:'pay'},
       again:{them:'Sorry, single or return?',ruThem:'Простите, в одну сторону или туда-обратно?',next:'sr'},
     } },
-    pay:{ task:'Спроси, во сколько отходит поезд.', best:'Thank you. What time does the train leave?',
+    pay:{ task:'Спроси про поезд (например: во сколько отходит).', best:'Thank you. What time does the train leave?',
     judge(w){
           if(chose(w,'bye','goodbye','later')) return {br:'bye'};
           if(chose(w,'when','time','leave','leaves','depart')) return {br:'when'};
@@ -74,7 +74,7 @@ const S2 = { title:'Объяснить дорогу · ур. 73',
   start:'st',
   opener:{them:'Excuse me, where is the station?', ru:'Простите, где вокзал?'},
   nodes:{
-    st:{ task:'Скажи: прямо, потом направо.', best:'Go straight, then turn right.',
+    st:{ task:'Объясни дорогу (например: прямо, потом направо).', best:'Go straight, then turn right.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'sorry','pardon','what','again','repeat')) return {br:'again'};
@@ -89,7 +89,7 @@ const S2 = { title:'Объяснить дорогу · ур. 73',
       bus:{them:'You can walk, it is five minutes. Or take the bus, two stops.',ruThem:'Можно пешком, пять минут. Или на автобусе, две остановки.',next:'walk'},
       dir:{them:'Great, thank you! And is it far?',ruThem:'Отлично, спасибо! А это далеко?',next:'walk'},
     } },
-    walk:{ task:'Скажи: около пяти минут пешком.', best:'About five minutes on foot.',
+    walk:{ task:'Ответь, сколько идти (например: около пяти минут пешком).', best:'About five minutes on foot.',
     judge(w,mem){
           const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
@@ -109,7 +109,7 @@ const S2 = { title:'Объяснить дорогу · ур. 73',
       not5:{them:'I see. Well, thank you for your help!',ruThem:'Понятно. Ну, спасибо за помощь!',next:'thx'},
       other5:{them:'Well, I would say about five minutes on foot.',ruThem:'Ну, я бы сказал, около пяти минут пешком.',next:'thx'},
     } },
-    thx:{ task:'Скажи «не за что».', best:'You are welcome.',
+    thx:{ task:'Ответь на «спасибо» (например: не за что).', best:'You are welcome.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'welcome','problem','nothing','ok','okay','fine','sure','yes','yeah','thanks','thank')) return {br:'wc'};
@@ -118,7 +118,7 @@ const S2 = { title:'Объяснить дорогу · ур. 73',
       bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
       wc:{them:'Do you need anything else?',ruThem:'Вам ещё что-нибудь нужно?',next:'any'},
     } },
-    any:{ task:'Спроси, есть ли рядом кафе.', best:'Is there a cafe near here?',
+    any:{ task:'Спроси про что-нибудь ещё (например: есть ли рядом кафе).', best:'Is there a cafe near here?',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(has(w,'no','not','never')&&(w.includes('thanks')||w.includes('thank')||w.includes('nothing')||w.includes('all'))) return {br:'bye'};
@@ -146,7 +146,7 @@ const S3 = { title:'Рассказать о работе · ур. 77',
   start:'job',
   opener:{them:'So, what do you do?', ru:'Чем занимаешься?'},
   nodes:{
-    job:{ task:'Скажи, что работаешь в небольшой компании.', best:'I work in a small company.',
+    job:{ task:'Ответь, чем занимаешься (например: работаю в небольшой компании).', best:'I work in a small company.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'work','company','office','job')) return {br:'work'};
@@ -161,7 +161,7 @@ const S3 = { title:'Рассказать о работе · ур. 77',
       nowork:{them:'I see. Are you looking for a job?',ruThem:'Понятно. Ищете работу?',next:'like'},
       spec:{them:'That sounds interesting. Do you like it?',ruThem:'Звучит интересно. Нравится?',next:'like'},
     } },
-    like:{ task:'Скажи «да, но много работы».', best:'Yes, but there is a lot of work.',
+    like:{ task:'Ответь, нравится ли работа (например: да, но её много).', best:'Yes, but there is a lot of work.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'yes','yeah','like','love','enjoy')) return {br:'yes'};
@@ -177,7 +177,7 @@ const S3 = { title:'Рассказать о работе · ур. 77',
       no:{them:'That is a pity. But it is good that you have a job.',ruThem:'Жаль. Но хорошо, что работа есть.',next:'you'},
       busy:{them:'A lot of work, I know that feeling.',ruThem:'Много работы, я знаю это чувство.',next:'you'},
     } },
-    you:{ task:'Спроси, кем работает собеседник.', best:'And what about you?',
+    you:{ task:'Спроси про собеседника (например: а ты чем занимаешься?).', best:'And what about you?',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'you','your','and')) return {br:'ask'};
@@ -187,7 +187,7 @@ const S3 = { title:'Рассказать о работе · ур. 77',
       bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
       ask:{them:'I work in a bank. It is fine, but I am busy too.',ruThem:'Я работаю в банке. Нормально, но я тоже занят.',next:'drink'},
     } },
-    drink:{ task:'Предложи что-нибудь выпить.', best:'Would you like something to drink?',
+    drink:{ task:'Предложи собеседнику что-нибудь выпить.', best:'Would you like something to drink?',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'drink','coffee','tea','water','juice','would','like','something')) return {br:'offer'};

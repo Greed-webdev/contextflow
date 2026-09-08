@@ -30,7 +30,7 @@ const S1 = { title:'Показать квартиру · ур. 55',
       not:{them:'Oh, I see. Well, come in anyway — let me show you around.',ruThem:'А, понятно. Ну, всё равно заходи — покажу квартиру.',next:'kitchen'},
       ok:{them:'Great! Come in, I will show you everything.',ruThem:'Отлично! Заходи, я всё покажу.',next:'kitchen'},
     } },
-    kitchen:{ task:'Скажи, что кухня рядом с дверью.', best:'The kitchen is next to the door.',
+    kitchen:{ task:'Ответь, где кухня (например: рядом с дверью).', best:'The kitchen is next to the door.',
     judge(w){
           if(chose(w,'bye','goodbye','later')) return {br:'bye'};
           if(chose(w,'bathroom','bath','toilet')) return {br:'bath'};
@@ -44,7 +44,7 @@ const S1 = { title:'Показать квартиру · ур. 55',
       living:{them:'The living room is here, next to the kitchen. And the bedroom is upstairs.',ruThem:'Гостиная вот здесь, рядом с кухней. А спальня наверху.',next:'bedroom'},
       kitchen:{them:'Right. And the bedroom?',ruThem:'Верно. А спальня?',next:'bedroom'},
     } },
-    bedroom:{ task:'Скажи, что спальня наверху.', best:'It is upstairs.',
+    bedroom:{ task:'Ответь, где спальня (например: наверху).', best:'It is upstairs.',
     judge(w){
           if(chose(w,'bye','goodbye','later')) return {br:'bye'};
           if(chose(w,'upstairs','up')) return {br:'up'};
@@ -57,7 +57,7 @@ const S1 = { title:'Показать квартиру · ур. 55',
       down:{them:'Oh, really? Ok. And is there a balcony?',ruThem:'Правда? Ладно. А балкон есть?',next:'balcony'},
       nodown:{them:'Ok, so the bedroom is upstairs. And is there a balcony?',ruThem:'Хорошо, значит спальня наверху. А балкон есть?',next:'balcony'},
     } },
-    balcony:{ task:'Скажи «да, есть балкон».', best:'Yes, there is a small balcony.',
+    balcony:{ task:'Ответь, есть ли балкон (например: да, есть).', best:'Yes, there is a small balcony.',
     judge(w){
           if(chose(w,'bye','goodbye','later')) return {br:'bye'};
           if(chose(w,'yes','yeah','balcony')) return {br:'yes'};
@@ -68,7 +68,7 @@ const S1 = { title:'Показать квартиру · ур. 55',
       yes:{them:'That is great. The flat is really nice.',ruThem:'Здорово. Квартира правда отличная.',next:'ok2'},
       no:{them:'No problem. The flat is still nice.',ruThem:'Ничего страшного. Квартира всё равно хорошая.',next:'ok2'},
     } },
-    ok2:{ task:'Скажи, что да, всё хорошо.', best:'Yes, everything else is fine.',
+    ok2:{ task:'Ответь, всё ли в порядке (например: да, всё хорошо).', best:'Yes, everything else is fine.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'yes','yeah','fine','ok','okay','good','all','everything','right','sure')) return {br:'ok'};
@@ -106,7 +106,7 @@ const S2 = { title:'Что-то сломалось · ур. 59',
   start:'call',
   opener:{them:'Hello, is everything alright?', ru:'Здравствуйте, всё в порядке?'},
   nodes:{
-    call:{ task:'Скажи, что свет в кухне не работает.', best:'Hello. The light in the kitchen does not work.',
+    call:{ task:'Расскажи, что случилось (например: не работает свет на кухне).', best:'Hello. The light in the kitchen does not work.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'water')) return {br:'water'};
@@ -138,7 +138,7 @@ const S2 = { title:'Что-то сломалось · ур. 59',
       notherp:{them:'I see there is a problem. Since when?',ruThem:'Понимаю, есть проблема. С какого времени?',next:'since'},
       otherp:{them:'I see there is a problem. Since when?',ruThem:'Понимаю, есть проблема. С какого времени?',next:'since'},
     } },
-    since:{ task:'Скажи: со вчерашнего вечера.', best:'Since yesterday evening.',
+    since:{ task:'Ответь, с какого времени (например: со вчерашнего вечера).', best:'Since yesterday evening.',
     judge(w,mem){
           const d=(mem._digits||[]).map(Number);
           if(chose(w,'bye','goodbye','later')) return {br:'bye'};
@@ -167,7 +167,7 @@ const S2 = { title:'Что-то сломалось · ур. 59',
       bye:{them:'Ok. Goodbye!',ruThem:'Хорошо. До свидания!',next:null},
       th:{them:'You are welcome. Is everything else alright?',ruThem:'Пожалуйста. В остальном всё нормально?',next:'ok2'},
     } },
-    ok2:{ task:'Скажи, что да, всё хорошо.', best:'Yes, everything else is fine.',
+    ok2:{ task:'Ответь, всё ли в порядке (например: да, всё хорошо).', best:'Yes, everything else is fine.',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'yes','yeah','fine','ok','okay','good','all','everything','right','sure')) return {br:'ok'};
@@ -205,7 +205,7 @@ const S3 = { title:'Найти банк · ур. 63',
   start:'where',
   opener:{them:'Yes? Can I help?', ru:'Да? Помочь?'},
   nodes:{
-    where:{ task:'Спроси, где банк.', best:'Excuse me, where is the bank?',
+    where:{ task:'Спроси, как найти банк (или другое место).', best:'Excuse me, where is the bank?',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'cafe','coffee')) return {br:'cafe0'};
@@ -218,7 +218,7 @@ const S3 = { title:'Найти банк · ур. 63',
       bank:{them:'There is one on the next street.',ruThem:'Есть один на соседней улице.',next:'far'},
       other:{them:'I am not sure about that, but the bank is on the next street.',ruThem:'Не уверен насчёт этого, но банк — на соседней улице.',next:'far'},
     } },
-    far:{ task:'Спроси, далеко ли это.', best:'Is it far from here?',
+    far:{ task:'Уточни, далеко ли идти.', best:'Is it far from here?',
     judge(w){
           if(chose(w,'bye','goodbye','later')) return {br:'bye'};
           if(chose(w,'far')) return {br:'far'};
@@ -241,7 +241,7 @@ const S3 = { title:'Найти банк · ур. 63',
       bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
       th:{them:'You are welcome. Do you need anything else?',ruThem:'Пожалуйста. Ещё что-то нужно?',next:'ask2'},
     } },
-    ask2:{ task:'Спроси, есть ли рядом кафе.', best:'Is there a cafe near here?',
+    ask2:{ task:'Спроси про что-нибудь ещё (например: есть ли рядом кафе).', best:'Is there a cafe near here?',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(has(w,'no','not','never')&&(w.includes('thanks')||w.includes('thank')||w.includes('nothing')||w.includes('all'))) return {br:'bye'};
@@ -253,7 +253,7 @@ const S3 = { title:'Найти банк · ур. 63',
       cafe:{them:'Yes, just around the corner.',ruThem:'Да, прямо за углом.',next:'askdir'},
       otherp:{them:'Yes, there is one not far from here.',ruThem:'Да, есть одно недалеко отсюда.',next:'askdir'},
     } },
-    askdir:{ task:'Уточни: налево или направо?', best:'Left or right?',
+    askdir:{ task:'Уточни, куда идти (например: налево или направо?).', best:'Left or right?',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'thanks','thank')) return {br:'th'};
