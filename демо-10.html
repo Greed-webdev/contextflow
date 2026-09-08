@@ -219,14 +219,16 @@ const S1 = { title:'Купить билет · ур. 67',
           if(chose(w,'return','back','both','ways')) return {br:'ret'};
           if(has(w,'no','not','never')&&(w.includes('return')||w.includes('back'))) return {br:'sing'};
           if(chose(w,'single','one')) return {br:'sing'};
+          if(has(w,'no','not','never')&&(w.includes('single')||w.includes('one'))&&!chose(w,'please','thanks','thank')) return {br:'ret'};
           if(chose(w,'again','repeat','sorry','pardon')) return {br:'again'};
-          if(has(w,'no','not','never')) return {br:'again'};
+          if(has(w,'no','not','never')) return {br:'clar'};
           return {huh:1}; },
     tr:{
       bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
       ret:{them:'Return. That is six euros.',ruThem:'Туда-обратно. Шесть евро.',next:'pay'},
       sing:{them:'Single. That is three euros fifty.',ruThem:'В одну сторону. Три евро пятьдесят.',next:'pay'},
       again:{them:'Sorry, single or return?',ruThem:'Простите, в одну сторону или туда-обратно?',next:'sr'},
+      clar:{them:'Single or return?',ruThem:'В одну сторону или туда-обратно?',next:'sr'},
     } },
     pay:{ task:'Спроси про поезд (например: во сколько отходит).', best:'Thank you. What time does the train leave?',
     judge(w){
@@ -352,10 +354,10 @@ const S3 = { title:'Рассказать о работе · ур. 77',
     judge(w){
           if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
           if(chose(w,'yes','yeah','like','love','enjoy')) return {br:'yes'};
-          if(chose(w,'lot','much','many','hard','busy')) return {br:'busy'};
-          if(has(w,'no','not','never')&&(w.includes('boring')||w.includes('bored')||w.includes('hate')||w.includes('hates')||w.includes('tired')||w.includes('difficult')||w.includes('stress')||w.includes('stressful')||w.includes('bad')||w.includes('awful')||w.includes('terrible'))) return {huh:1};
+          if(chose(w,'lot','much','many','busy')) return {br:'busy'};
+          if(has(w,'no','not','never')&&(w.includes('boring')||w.includes('bored')||w.includes('hate')||w.includes('hates')||w.includes('tired')||w.includes('difficult')||w.includes('stress')||w.includes('stressful')||w.includes('bad')||w.includes('awful')||w.includes('terrible')||w.includes('hard'))) return {huh:1};
           if(has(w,'no','not','never')) return {br:'no'};
-          if(chose(w,'boring','bored','hate','hates','tired','difficult','stress','stressful','bad','awful','terrible')) return {br:'no'};
+          if(chose(w,'boring','bored','hate','hates','tired','difficult','stress','stressful','bad','awful','terrible','hard')) return {br:'no'};
           if(chose(w,'ok','okay','fine','sure','so')) return {br:'yes'};
           return {huh:1}; },
     tr:{

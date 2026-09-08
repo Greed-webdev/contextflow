@@ -47,11 +47,21 @@ const fmt = s => (s || '').replace(/\{name\}/g, 'N').replace(/\{day\}/g, 'D');
 for (const [id, sc] of Object.entries(SCENES)) {
   const name = sc.title || id;
   // ---------- СТРУКТУРА ----------
-  const starts = Object.keys(sc.nodes).filter(k => !Object.values(sc.nodes).some(n =>
+  // Старт сцены задаётся явно (sc.start). Ветки-переспросы могут возвращать в него —
+  // это легально. Проверка без входящих нужна только как запасной детектор старта
+  // и для сцен без sc.start; «сирот» (узлы без входящих, не объявленные стартом)
+  // ловит проверка достижимости ниже.
+  const declaredStart = sc.start && sc.nodes[sc.start] ? sc.start : null;
+  const zeroIn = Object.keys(sc.nodes).filter(k => !Object.values(sc.nodes).some(n =>
     Object.values(n.tr || {}).some(t => t.next === k)));
-  T(`[${name}] ровно один стартовый узел`, starts.length === 1 && sc.nodes[starts[0]] != null,
-    'стартовые: ' + starts.join(','));
-  const startNode = starts.length ? starts[0] : null;
+  if (declaredStart) {
+    const orphans = zeroIn.filter(k => k !== declaredStart);
+    T(`[${name}] нет узлов-сирот (без входящих, кроме старта)`, !orphans.length, 'сироты: ' + orphans.join(','));
+  } else {
+    T(`[${name}] ровно один стартовый узел (без входящих)`, zeroIn.length === 1 && sc.nodes[zeroIn[0]] != null,
+      'стартовые: ' + zeroIn.join(','));
+  }
+  const startNode = declaredStart || (zeroIn.length ? zeroIn[0] : null);
   const missingNext = [];
   for (const [k, n] of Object.entries(sc.nodes))
     for (const [br, t] of Object.entries(n.tr || {}))

@@ -299,8 +299,11 @@ const S2 = { title:'Что-то сломалось · ур. 59',
           if(chose(w,'water')) return {br:'water'};
           if(chose(w,'heat','heater','heating')) return {br:'heat'};
           if(chose(w,'door')) return {br:'door'};
+          if(chose(w,'light','lamp')&&!has(w,'no','not','never')&&(has(w,'works','working','fine','ok','okay'))) return {br:'poslight'};
           if(chose(w,'light','lamp')&&chose(w,'kitchen')) return {br:'light'};
-          if(chose(w,'light','lamp')) return {br:'light2'};
+          if(chose(w,'light','lamp')&&has(w,'no','not','never')) return {br:'nlight'};
+          if(chose(w,'light','lamp')&&has(w,'broken','break','problem','trouble')) return {br:'nlight'};
+          if(chose(w,'light','lamp')) return {br:'poslight'};
           if(chose(w,'tv','television','fridge','freezer','internet','wifi','window','roof','wall','toilet')) return {br:'otherp'};
           if(has(w,'no','not','never')&&has(w,'water')) return {br:'nwater'};
           if(has(w,'no','not','never')&&has(w,'heat','heater','heating')) return {br:'nheat'};
@@ -317,7 +320,7 @@ const S2 = { title:'Что-то сломалось · ур. 59',
       heat:{them:'The heating? I see. Since when?',ruThem:'Отопление? Понятно. С какого времени?',next:'since'},
       door:{them:'The door? I see. Since when?',ruThem:'Дверь? Понятно. С какого времени?',next:'since'},
       light:{them:'The light in the kitchen? I see. Since when?',ruThem:'Свет на кухне? Понятно. С какого времени?',next:'since'},
-      light2:{them:'The light? I see. I will come and look at it.',ruThem:'Свет? Понятно. Я приду и посмотрю.',next:'thanks'},
+      poslight:{them:'Sorry, what exactly is the problem?',ruThem:'Простите, а в чём именно проблема?',next:'call'},
       nwater:{them:'The water? I see. Since when?',ruThem:'Вода? Понятно. С какого времени?',next:'since'},
       nheat:{them:'The heating? I see. Since when?',ruThem:'Отопление? Понятно. С какого времени?',next:'since'},
       ndoor:{them:'The door? I see. Since when?',ruThem:'Дверь? Понятно. С какого времени?',next:'since'},
