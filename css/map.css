@@ -291,10 +291,6 @@
 
 /* диалог */
 .chat{display:flex;flex-direction:column;gap:10px;padding:4px 16px 8px}
-/* диалог-урок: l-body — колонка; скроллится только история, ответы всегда на виду */
-#l-body.dlg{display:flex;flex-direction:column}
-#l-body.dlg .chat{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-#l-body.dlg #answers{flex:0 0 auto;max-height:58%;overflow-y:auto}
 #answers .btn{min-height:54px;font-size:16.5px;border-radius:18px}
 .bub{max-width:82%;padding:12px 15px;border-radius:19px;font-size:14.5px;line-height:1.38;
   animation:bubIn .4s var(--ease) both}

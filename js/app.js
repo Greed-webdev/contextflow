@@ -1068,7 +1068,6 @@ const Lesson = {
 
   /* ---- 1. СЛОВА: узнавание + произнесение ---- */
   render(){
-    $('l-body').classList.remove('dlg');
     this.prog();
     if (this.lv.type==='words') this.wordStep();
     else this.buildStep();
@@ -1217,14 +1216,8 @@ const Lesson = {
       </div>
       <div class="chat" id="chat"></div>
       <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
-    $('l-body').classList.add('dlg');
-    $('l-action').style.display='none';     // слушать можно у самой реплики (🔊)
+        $('l-action').style.display='none';     // слушать можно у самой реплики (🔊)
     this.dialogAdvance();
-  },
-  scrollChat(){
-    const c = $('chat'); if (!c) return;
-    if (c.scrollHeight - c.scrollTop - c.clientHeight < 260)
-      c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
   },
   bubble(who, text, tr){
     const b = el('div','bub '+who, `${text}${tr?`<span class="tr">${tr}</span>`:''}`);
@@ -1240,7 +1233,9 @@ const Lesson = {
     } else {
       $('chat').appendChild(b);
     }
-    this.scrollChat();
+    const sc = $('l-body');
+    if (sc.scrollHeight - sc.scrollTop - sc.clientHeight < 260)
+      sc.scrollTop = sc.scrollHeight;
     return b;
   },
   dialogAdvance(){
@@ -1655,8 +1650,7 @@ const Lesson = {
       </div>
       <div class="chat" id="chat"></div>
       <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
-    $('l-body').classList.add('dlg');
-    $('l-action').style.display='none';     // слушать можно у самой реплики (🔊)
+        $('l-action').style.display='none';     // слушать можно у самой реплики (🔊)
     this.lostNode();
   },
   lostFind(id){ return (this.lv.lost.nodes||[]).find(n=>n.id===id); },
@@ -1939,8 +1933,7 @@ const Lesson = {
       </div>
       <div class="chat" id="chat"></div>
       <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
-    $('l-body').classList.add('dlg');
-    $('l-action').style.display='none';     // слушать можно у самой реплики (🔊)
+        $('l-action').style.display='none';     // слушать можно у самой реплики (🔊)
     if (flow.opener && flow.opener.them){
       this.bubble('them', flow.opener.them, flow.opener.ru || '');
       this.lMem.lastThem = flow.opener.them;
