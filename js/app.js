@@ -22,6 +22,8 @@ function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 
 const $  = id => document.getElementById(id);
 const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.className=cls; if(html!=null)n.innerHTML=html; return n; };
+const dunnoIco = '<span class="dunno-ico">?</span>';
+const mkDunno = () => { const b = el('button','btn dunno wide'); b.innerHTML = dunnoIco + '<span>Не знаю</span>'; return b; };
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
@@ -171,7 +173,8 @@ const Hub = {
     const slot = $('hub-tile-slot');
     slot.innerHTML = '';
     if (!L){
-      $('hub-caption').textContent = 'Выбери язык — и сразу в путь. Без анкет и вопросов.';
+      $('hub-h1').textContent = 'Твой язык';
+      $('hub-caption').textContent = 'Сначала выбери язык — дальше всё откроется.';
       $('hub-lang-btn').textContent = 'Выбрать язык';
       const empty = el('div','hub-empty',`
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#767f85" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.7 2.6 15.3 0 18M12 3c-2.6 2.7-2.6 15.3 0 18"/></svg>
@@ -184,7 +187,9 @@ const Hub = {
 
     const {done, total} = Progress.overall();
     const st = S.stage || 1;
-    $('hub-caption').textContent = `${L.place}. Этап ${st} · ${STAGES[st].cefr} — ${STAGES[st].name.toLowerCase()}.`;
+    const stStat = Progress.stageStat(st);
+    $('hub-h1').textContent = stStat.done ? 'Продолжай' : 'В путь';
+    $('hub-caption').textContent = stStat.done ? 'Ты уже прошёл часть этапа — иди дальше.' : 'Курс идёт этапами. Сейчас — первый: дальше пойдёт само.';
     $('hub-lang-btn').textContent = 'Сменить язык';
 
     const tile = el('div','lang-tile');
@@ -194,7 +199,7 @@ const Hub = {
       <div class="inner">
         <div class="tile-badge"><img class="flag" src="${flagUrl(L.flag)}"> ${L.native} · ${STAGES[st].cefr}</div>
         <div>
-          <span class="kicker amber">Продолжить</span>
+          <span class="kicker amber">${stStat.done ? 'Продолжить' : 'Начать'}</span>
           <h2 class="mid" style="margin-top:4px">${STAGES[st].name}</h2>
           <p class="small" style="margin-top:4px">${STAGES[st].sub}</p>
           <div class="tile-progress">
@@ -203,7 +208,12 @@ const Hub = {
           </div>
         </div>
       </div>`;
-    tile.onclick = ()=>{ Sound.fx('whoosh'); Trail.open(); };
+    tile.onclick = ()=>{
+      Sound.fx('whoosh');
+      if (stStat.done > 0){ Trail.open(); return; }
+      S.stage = st; save();
+      Levels.open(st);          // новичок сразу к урокам, минуя карту
+    };
     slot.appendChild(tile);
 
     // карточка «Разбор ошибок» — только если есть что разбирать
@@ -1058,6 +1068,7 @@ const Lesson = {
 
   /* ---- 1. СЛОВА: узнавание + произнесение ---- */
   render(){
+    $('l-body').classList.remove('dlg');
     this.prog();
     if (this.lv.type==='words') this.wordStep();
     else this.buildStep();
@@ -1204,14 +1215,20 @@ const Lesson = {
       </div>
       <div class="chat" id="chat"></div>
       <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
+    $('l-body').classList.add('dlg');
     $('l-action').className='btn ghost'; $('l-action').textContent='Слушать реплику';
     $('l-action').onclick = ()=>{ const last=this.lastThem; if(last) this.say(last); };
     this.dialogAdvance();
   },
+  scrollChat(){
+    const c = $('chat'); if (!c) return;
+    if (c.scrollHeight - c.scrollTop - c.clientHeight < 260)
+      c.scrollTo({ top: c.scrollHeight, behavior: 'smooth' });
+  },
   bubble(who, text, tr){
     const b = el('div','bub '+who, `${text}${tr?`<span class="tr">${tr}</span>`:''}`);
     $('chat').appendChild(b);
-    b.scrollIntoView({behavior:'smooth', block:'end'});
+    this.scrollChat();
     return b;
   },
   dialogAdvance(){
@@ -1483,7 +1500,7 @@ const Lesson = {
         (r.notes.length ? '<ul>' + r.notes.map(n=>`<li>${n}</li>`).join('') + '</ul>' : '') +
         `<ul><li>${r.ok ? 'Ещё вариант' : 'Носитель сказал бы'}: <b>${best}</b></li></ul>`;
       box.appendChild(v);
-      setTimeout(()=>v.scrollIntoView({behavior:'smooth', block:'center'}), 60);
+      setTimeout(()=>v.scrollIntoView({behavior:'smooth', block:'nearest'}), 60);
       return r.ok;
     };
 
@@ -1497,7 +1514,7 @@ const Lesson = {
     rowA.appendChild(send);
 
     if (Voice.ok()){
-      const dict = el('button','btn quiet','Надиктовать');
+      const dict = el('button','btn ghost','Надиктовать');
       dict.onclick = ()=>{
         if (Voice.busy){ Voice.stop(); dict.textContent='Надиктовать'; return; }
         dict.textContent='Слушаю…'; dict.classList.add('rec');
@@ -1514,7 +1531,7 @@ const Lesson = {
     }
     box.appendChild(rowA);
 
-    const dunno = el('button','btn quiet wide','Не знаю');
+    const dunno = mkDunno();
     box.appendChild(dunno);
 
     let tries = 0;                     // сколько раз уже отвечал на этот ход
@@ -1548,7 +1565,7 @@ const Lesson = {
           box.querySelectorAll('.verdict').forEach(x=>x.remove());
           fix.remove();
           ta.disabled = false; send.disabled = false;
-          ta.scrollIntoView({behavior:'smooth', block:'center'});
+          ta.scrollIntoView({behavior:'smooth', block:'nearest'});
           ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
         };
         box.appendChild(fix);
@@ -1556,7 +1573,7 @@ const Lesson = {
         const tip = el('div','small'); tip.style.marginTop='6px';
         tip.textContent = 'Можно поправить свой ответ — это ещё не ошибка.';
         box.appendChild(tip);
-        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
         return;
       }
 
@@ -1570,7 +1587,7 @@ const Lesson = {
       const go = el('button','btn moss wide', 'Дальше');
       go.onclick = ()=>{ this.sayStop(); Sound.fx('step'); goNext(0); };
       box.appendChild(go);
-      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
     };
 
     /* ---- страховка: варианты по запросу ---- */
@@ -1626,6 +1643,7 @@ const Lesson = {
       </div>
       <div class="chat" id="chat"></div>
       <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
+    $('l-body').classList.add('dlg');
     $('l-action').className='btn ghost'; $('l-action').textContent='Слушать реплику';
     $('l-action').onclick = ()=>{ if (this.lMem.lastThem) this.say(this.lMem.lastThem); };
     this.lostNode();
@@ -1732,7 +1750,7 @@ const Lesson = {
     const send = el('button','btn moss','Ответить');
     rowA.appendChild(send);
     if (Voice.ok()){
-      const dict = el('button','btn quiet','Надиктовать');
+      const dict = el('button','btn ghost','Надиктовать');
       dict.onclick = ()=>{
         if (Voice.busy){ Voice.stop(); dict.textContent='Надиктовать'; return; }
         dict.textContent='Слушаю…'; dict.classList.add('rec');
@@ -1749,7 +1767,7 @@ const Lesson = {
     }
     box.appendChild(rowA);
 
-    const dunno = el('button','btn quiet wide','Не знаю');
+    const dunno = mkDunno();
     box.appendChild(dunno);
     let tries = 0;
 
@@ -1773,7 +1791,7 @@ const Lesson = {
         this.at = nextId; box.innerHTML=''; this.lostNode();
       };
       box.appendChild(go);
-      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
     };
 
     send.onclick = ()=>{
@@ -1799,12 +1817,12 @@ const Lesson = {
           box.querySelectorAll('.verdict').forEach(x=>x.remove());
           fix.remove(); tip.remove();
           ta.disabled = false; send.disabled = false;
-          ta.scrollIntoView({behavior:'smooth', block:'center'});
+          ta.scrollIntoView({behavior:'smooth', block:'nearest'});
           ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
         };
         ta.disabled = true; send.disabled = true;
         box.appendChild(fix); box.appendChild(tip);
-        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
         return;
       }
       /* второй промах подряд — ошибка, показываем образец и идём дальше */
@@ -1828,7 +1846,7 @@ const Lesson = {
         this.at = nextId; box.innerHTML=''; this.lostNode();
       };
       box.appendChild(go);
-      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
     };
 
     /* страховка: готовые фразы. Любая из них — правильный пример,
@@ -1910,6 +1928,7 @@ const Lesson = {
       </div>
       <div class="chat" id="chat"></div>
       <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
+    $('l-body').classList.add('dlg');
     $('l-action').className='btn ghost'; $('l-action').textContent='Слушать реплику';
     $('l-action').onclick = ()=>{ if (this.lMem.lastThem) this.say(this.lMem.lastThem); };
     if (flow.opener && flow.opener.them){
@@ -1977,7 +1996,7 @@ const Lesson = {
       this.at = nextId; $('answers').innerHTML=''; this.flowNode();
     };
     $('answers').appendChild(go);
-    setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+    setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
   },
   flowAsk(node){
     const box = $('answers');
@@ -1994,7 +2013,7 @@ const Lesson = {
     const send = el('button','btn moss','Ответить');
     rowA.appendChild(send);
     if (Voice.ok()){
-      const dict = el('button','btn quiet','Надиктовать');
+      const dict = el('button','btn ghost','Надиктовать');
       dict.onclick = ()=>{
         if (Voice.busy){ Voice.stop(); dict.textContent='Надиктовать'; return; }
         dict.textContent='Слушаю…'; dict.classList.add('rec');
@@ -2011,7 +2030,7 @@ const Lesson = {
     }
     box.appendChild(rowA);
 
-    const dunno = el('button','btn quiet wide','Не знаю');
+    const dunno = mkDunno();
     box.appendChild(dunno);
     let tries = 0;
 
@@ -2051,7 +2070,7 @@ const Lesson = {
           box.querySelectorAll('.verdict').forEach(x=>x.remove());
           fix.remove(); tip.remove();
           ta.disabled = false; send.disabled = false;
-          ta.scrollIntoView({behavior:'smooth', block:'center'});
+          ta.scrollIntoView({behavior:'smooth', block:'nearest'});
           ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
         };
         ta.disabled = true; send.disabled = true;
@@ -2156,6 +2175,16 @@ const Settings = {
   const wake = ()=>{ Sound.boot(); Sound.resume(); if(S.sound.amb) Ambience.forScreen(current);
                      document.removeEventListener('pointerdown', wake); };
   document.addEventListener('pointerdown', wake);
+
+  // клавиатура телефона: не даём низу экрана уезжать за неё
+  const vv = window.visualViewport;
+  const syncKbd = ()=>{
+    const h = vv ? Math.max(0, (window.innerHeight||0) - vv.height) : 0;
+    document.documentElement.style.setProperty('--kbd', h + 'px');
+  };
+  syncKbd();
+  if (vv){ vv.addEventListener('resize', syncKbd); vv.addEventListener('scroll', syncKbd); }
+  document.addEventListener('focusin', ()=>setTimeout(syncKbd, 150));
 
   if (S.lang){ go('sc-hub', {noHistory:true}); }
   else if (S.seenIntro){ go('sc-lang', {noHistory:true}); navStack=['sc-hub']; }

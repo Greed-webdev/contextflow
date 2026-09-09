@@ -170,7 +170,7 @@
 .lvl-dot.done{background:var(--grad-moss);color:#eef6f0;border-color:transparent}
 
 /* ---------- сцена урока ---------- */
-#sc-lesson{padding:0;background:#0d1012}
+#sc-lesson{padding:0 0 var(--kbd,0px);background:#0d1012}
 .scene{position:absolute;inset:0;z-index:0}
 .scene img{width:100%;height:100%;object-fit:cover;transform:scale(1.06);
   animation:sceneDrift 30s ease-in-out infinite alternate;filter:saturate(.85)}
@@ -291,6 +291,11 @@
 
 /* диалог */
 .chat{display:flex;flex-direction:column;gap:10px;padding:4px 16px 8px}
+/* диалог-урок: l-body — колонка; скроллится только история, ответы всегда на виду */
+#l-body.dlg{display:flex;flex-direction:column}
+#l-body.dlg .chat{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#l-body.dlg #answers{flex:0 0 auto;max-height:58%;overflow-y:auto}
+#answers .btn{min-height:54px;font-size:16.5px;border-radius:18px}
 .bub{max-width:82%;padding:12px 15px;border-radius:19px;font-size:14.5px;line-height:1.38;
   animation:bubIn .4s var(--ease) both}
 @keyframes bubIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
@@ -310,9 +315,10 @@
 .opt:active{background:rgba(44,52,58,.92);border-color:rgba(111,156,120,.55)}
 .free-input{
   width:100%;background:rgba(28,33,37,.8);border:1px solid var(--line);border-radius:15px;
-  padding:13px 15px;color:var(--text);font-size:14.5px;font-family:var(--font);resize:none;outline:none;
+  padding:13px 15px;color:var(--text);font-size:16px;font-family:var(--font);resize:none;outline:none;
 }
-.free-input:focus{border-color:rgba(111,156,120,.6)}
+.free-input:focus{border-color:rgba(111,156,120,.6);background:rgba(30,36,40,.9)}
+.free-input::placeholder{color:var(--text-3)}
 
 /* результат */
 .summit-glow{
