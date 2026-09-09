@@ -2186,16 +2186,6 @@ const Settings = {
                      document.removeEventListener('pointerdown', wake); };
   document.addEventListener('pointerdown', wake);
 
-  // клавиатура телефона: не даём низу экрана уезжать за неё
-  const vv = window.visualViewport;
-  const syncKbd = ()=>{
-    const h = vv ? Math.max(0, (window.innerHeight||0) - vv.height) : 0;
-    document.documentElement.style.setProperty('--kbd', h + 'px');
-  };
-  syncKbd();
-  if (vv){ vv.addEventListener('resize', syncKbd); vv.addEventListener('scroll', syncKbd); }
-  document.addEventListener('focusin', ()=>setTimeout(syncKbd, 150));
-
   if (S.lang){ go('sc-hub', {noHistory:true}); }
   else if (S.seenIntro){ go('sc-lang', {noHistory:true}); navStack=['sc-hub']; }
   else { current='sc-welcome'; HelloScreen.start(); }

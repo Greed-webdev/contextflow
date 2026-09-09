@@ -58,14 +58,14 @@ body{
 .phone{
   position:relative;
   width:100%;max-width:420px;
-  height:calc(100dvh - var(--kbd,0px));max-height:900px;
+  height:100dvh;max-height:900px;
   background:var(--bg-1);
   overflow:hidden;
   display:flex;flex-direction:column;
   isolation:isolate;
 }
 @media(min-width:460px){
-  .phone{height:calc(94vh - var(--kbd,0px));border-radius:44px;border:1px solid #23282d;box-shadow:var(--shadow-2)}
+  .phone{height:94vh;border-radius:44px;border:1px solid #23282d;box-shadow:var(--shadow-2)}
 }
 
 /* зерно — делает интерфейс «плёночным», а не пластиковым */
