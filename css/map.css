@@ -299,6 +299,17 @@
 .bub{max-width:82%;padding:12px 15px;border-radius:19px;font-size:14.5px;line-height:1.38;
   animation:bubIn .4s var(--ease) both}
 @keyframes bubIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+/* ряд реплики собеседника: текст + маленький 🔊 */
+.bub-line{display:flex;align-items:flex-end;gap:7px;align-self:flex-start;max-width:88%}
+.bub-line .bub{max-width:100%}
+.bub-say{
+  flex:0 0 auto;width:31px;height:31px;border-radius:50%;padding:0;
+  border:1px solid var(--line);background:rgba(32,38,43,.86);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13.5px;line-height:1;cursor:pointer;
+  transition:transform .14s var(--ease),background .15s;
+}
+.bub-say:active{transform:scale(.88);background:rgba(44,52,58,.95)}
 .bub.them,.bub.you{background:rgba(32,38,43,.86);backdrop-filter:blur(18px);
   border:1px solid var(--line);color:var(--text)}
 .bub.them{align-self:flex-start;border-bottom-left-radius:7px}

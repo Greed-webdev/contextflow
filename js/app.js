@@ -1105,6 +1105,7 @@ const Lesson = {
     let shown = false;
     this.fb('');
     const btn = $('l-action');
+    btn.style.display = '';
     btn.textContent = 'Показать перевод';
     btn.className = 'btn ghost';
     btn.onclick = ()=>{
@@ -1160,6 +1161,7 @@ const Lesson = {
 
     this.fb('');
     const btn = $('l-action');
+    btn.style.display = '';
     btn.className='btn moss'; btn.textContent='Проверить';
     btn.onclick = ()=>{
       const said = this.built.map(b=>b.w).join(' ');
@@ -1216,8 +1218,7 @@ const Lesson = {
       <div class="chat" id="chat"></div>
       <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
     $('l-body').classList.add('dlg');
-    $('l-action').className='btn ghost'; $('l-action').textContent='Слушать реплику';
-    $('l-action').onclick = ()=>{ const last=this.lastThem; if(last) this.say(last); };
+    $('l-action').style.display='none';     // слушать можно у самой реплики (🔊)
     this.dialogAdvance();
   },
   scrollChat(){
@@ -1227,7 +1228,18 @@ const Lesson = {
   },
   bubble(who, text, tr){
     const b = el('div','bub '+who, `${text}${tr?`<span class="tr">${tr}</span>`:''}`);
-    $('chat').appendChild(b);
+    if (who === 'them'){
+      const line = el('div','bub-line');
+      line.appendChild(b);
+      const rep = el('button','bub-say','🔊');
+      rep.type = 'button';
+      rep.setAttribute('aria-label','Слушать реплику');
+      rep.onclick = ()=>{ Sound.fx('tap'); this.say(text, {now:true}); };
+      line.appendChild(rep);
+      $('chat').appendChild(line);
+    } else {
+      $('chat').appendChild(b);
+    }
     this.scrollChat();
     return b;
   },
@@ -1644,8 +1656,7 @@ const Lesson = {
       <div class="chat" id="chat"></div>
       <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
     $('l-body').classList.add('dlg');
-    $('l-action').className='btn ghost'; $('l-action').textContent='Слушать реплику';
-    $('l-action').onclick = ()=>{ if (this.lMem.lastThem) this.say(this.lMem.lastThem); };
+    $('l-action').style.display='none';     // слушать можно у самой реплики (🔊)
     this.lostNode();
   },
   lostFind(id){ return (this.lv.lost.nodes||[]).find(n=>n.id===id); },
@@ -1929,8 +1940,7 @@ const Lesson = {
       <div class="chat" id="chat"></div>
       <div class="pad" id="answers" style="display:flex;flex-direction:column;gap:9px;padding-bottom:10px"></div>`;
     $('l-body').classList.add('dlg');
-    $('l-action').className='btn ghost'; $('l-action').textContent='Слушать реплику';
-    $('l-action').onclick = ()=>{ if (this.lMem.lastThem) this.say(this.lMem.lastThem); };
+    $('l-action').style.display='none';     // слушать можно у самой реплики (🔊)
     if (flow.opener && flow.opener.them){
       this.bubble('them', flow.opener.them, flow.opener.ru || '');
       this.lMem.lastThem = flow.opener.them;
