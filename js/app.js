@@ -27,7 +27,7 @@ const mkDunno = () => { const b = el('button','btn dunno wide'); b.innerHTML = d
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v23';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v24';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -2179,6 +2179,38 @@ const Settings = {
                      document.removeEventListener('pointerdown', wake); };
   document.addEventListener('pointerdown', wake);
 
+  /* клавиатура: экран не сжимаем и не двигаем. Если клавиатура реально
+     перекрывает низ (visualViewport меньше окна) — внутри урока добавляем
+     место для прокрутки и подводим поле ответа. Закрылась — всё вернулось. */
+  const kbdFit = ()=>{
+    const vv = window.visualViewport;
+    const docH = document.documentElement.clientHeight || window.innerHeight || 0;
+    const kb = vv ? Math.max(0, docH - Math.round(vv.height)) : 0;
+    const body = $('l-body');
+    if (body && current === 'sc-lesson')
+      body.style.paddingBottom = kb ? (kb + 14) + 'px' : '';
+    const act = document.activeElement;
+    if (kb > 0 && act && act.classList && act.classList.contains('free-input')){
+      setTimeout(()=>{
+        const sc = $('l-body'); if (!sc) return;
+        const r = act.getBoundingClientRect(), sr = sc.getBoundingClientRect();
+        const under = r.bottom - sr.bottom;
+        const over  = r.top   - sr.top;
+        if (under > 0) sc.scrollTop += under + 12;
+        else if (over < 0) sc.scrollTop += over - 12;
+      }, 200);
+    }
+  };
+  const kbdTick = ()=>setTimeout(kbdFit, 30);
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', kbdTick);
+    window.visualViewport.addEventListener('scroll', kbdTick);
+  }
+  document.addEventListener('focusin', kbdTick);
+  document.addEventListener('focusout', ()=>setTimeout(kbdFit, 260));
+  kbdFit();
+
+  const pv = $('pf-ver'); if (pv) pv.textContent = APP_VERSION;
   if (S.lang){ go('sc-hub', {noHistory:true}); }
   else if (S.seenIntro){ go('sc-lang', {noHistory:true}); navStack=['sc-hub']; }
   else { current='sc-welcome'; HelloScreen.start(); }
