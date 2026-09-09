@@ -1,0 +1,6304 @@
+/* ==========================================================
+   ContextFlow · lessons.js — ЗОНА: контент.
+   UI здесь не трогаем. Только языки, этапы, уровни, фразы, диалоги.
+
+   Схема чередования уровней внутри каждого этапа (по ТЗ):
+     1) words  — заучивание новых слов + повтор прошлых (письменно и устно)
+     2) build  — построение предложения (письменно и устно)
+     3) dialog — диалог (готовые реплики ИЛИ свой ответ)
+   ...и так по кругу. Этап = уровень CEFR: 1→A1, 2→A2, 3→B1, 4→B2, 5→C1.
+   ========================================================== */
+
+const LANGUAGES = [
+  { code:'en', name:'Английский', native:'English', flag:'gb', tts:'en-GB', place:'Великобритания', scenes:'en' },
+  { code:'es', name:'Испанский',  native:'Español', flag:'es', tts:'es-ES', place:'Испания',        scenes:'en' },
+  { code:'de', name:'Немецкий',   native:'Deutsch', flag:'de', tts:'de-DE', place:'Германия',       scenes:'en' },
+  { code:'fr', name:'Французский',native:'Français',flag:'fr', tts:'fr-FR', place:'Франция',        scenes:'en' },
+  { code:'it', name:'Итальянский',native:'Italiano',flag:'it', tts:'it-IT', place:'Италия',         scenes:'en' },
+  { code:'pl', name:'Польский',   native:'Polski',  flag:'pl', tts:'pl-PL', place:'Польша',         scenes:'en' }
+];
+
+/* Этапы горы — то, что уже нарисовано на карте. Тексты можно править. */
+const STAGES = {
+  1:{ cefr:'A1', name:'Базовый лагерь', sub:'Первые слова, первые люди',
+      desc:'Зелёная долина. Ты только приехал: имя, вежливость, простые просьбы.',
+      amb:'valley', art:'assets/map/stage-1.png' },
+  2:{ cefr:'A2', name:'Подъём по склону', sub:'Быт и повседневность',
+      desc:'Тропа уходит вверх. Кафе, магазин, дорога, время, деньги.',
+      amb:'ridge', art:'assets/map/stage-2.png' },
+  3:{ cefr:'B1', name:'Горный перевал', sub:'Жизнь на месте',
+      desc:'Высокогорье. Аренда, банк, врач — разговоры, где важна точность.',
+      amb:'pass', art:'assets/map/stage-3.png' },
+  4:{ cefr:'B2', name:'Скалистый подъём', sub:'Работа и позиция',
+      desc:'Камень и снег. Собеседование, спор, объяснение своей позиции.',
+      amb:'alpine', art:'assets/map/stage-4.png' },
+  5:{ cefr:'C1', name:'Заснеженный пик', sub:'Свободный контекст',
+      desc:'Вершина. Оттенки, ирония, сложные темы — язык уже твой.',
+      amb:'summit', art:'assets/map/stage-5.png' }
+};
+
+/* Сцены: фон + звук для темы урока */
+const SCENES = {
+  airport:{ img:'airport.jpg', amb:'terminal', label:'Аэропорт' },
+  cafe:   { img:'cafe.jpg',    amb:'cafe',     label:'Кафе' },
+  street: { img:'street.jpg',  amb:'street',   label:'Улица' },
+  market: { img:'market.jpg',  amb:'indoor',   label:'Рынок' },
+  flat:   { img:'flat.jpg',    amb:'quiet',    label:'Квартира' },
+  bank:   { img:'bank.jpg',    amb:'indoor',   label:'Банк' },
+  clinic: { img:'clinic.jpg',  amb:'quiet',    label:'Клиника' },
+  office: { img:'office.jpg',  amb:'indoor',   label:'Офис' }
+};
+
+/* ----------------------------------------------------------
+   КОНТЕНТ. Формат уровня:
+   { type:'words',  title, scene, words:[{t:'иностр', r:'рус', hint?}] }
+   { type:'build',  title, scene, tasks:[{ru:'…', parts:['…'], answer:'…'}] }
+   { type:'dialog', title, scene, intro:'…', turns:[
+        {who:'them', text:'…', ru:'…'},
+        {who:'you',  options:['…','…','…'], best:0, ru:'подсказка о чём сказать'} ]}
+   ---------------------------------------------------------- */
+
+/* --- помощники судей ветвящихся диалогов (партия 2, синхронизировано с демо-6) --- */
+const DAY_IN = w => {
+  const D=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  for (const x of w) if (D.includes(x)) return x;
+  return null;
+};
+const FLOWNUM = (w, digits) => {
+  if (digits && digits.length === 1) return digits[0];
+  if (digits && digits.length > 1) return null;
+  const seq = [];
+  w.forEach(x => { if (x in NUM) seq.push(x); });
+  if (!seq.length) return null;
+  let cur = 0;
+  for (const x of seq) {
+    const v = NUM[x];
+    if (x === 'hundred' || x === 'thousand'){ cur = cur ? cur * v : v; }
+    else if (cur === 0) cur = v;
+    else if (cur % 10 === 0 && cur < 100 && v < 10) cur += v;
+    else if (cur >= 100 && v < 100) cur += v;
+    else return null;
+  }
+  return cur;
+};
+const NEGLEAD=['no','not','never','without'];
+const NEGPASS=['to','a','an','the','and','or','any','it','this','that','one','really','just','very','so',
+'want','need','take','have','get','choose','prefer','buy','think','do','does','did',
+'would','will','can','could','should','am','is','are','be'];
+const negatedAt = (w,i) => {
+  for (let j=0;j<w.length;j++){
+    if(!NEGLEAD.includes(w[j])) continue;
+    let k=j+1;
+    while(k<i && NEGPASS.includes(w[k])) k++;
+    if(k===i) return true;
+  }
+  return false;
+};
+const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
+
+const COURSE = {
+  en:{
+    1:[
+      { type:'words', title:'Знакомство', scene:'airport', cefr:'A1: Can use basic greetings and say who they are.', newCount:20, words:[
+        {t:'Please', r:'Пожалуйста', u:'Ставь в конец просьбы: «Coffee, please». Без него звучит как приказ.'},
+        {t:'Thanks', r:'Спасибо', u:'Неформальное спасибо. Официальнее — «Thank you».'},
+        {t:'Sorry', r:'Извините', u:'Извинение за поступок: толкнул, опоздал, перебил. Чтобы обратиться к незнакомцу — «Excuse me».'},
+        {t:'Go', r:'Идти / ехать'},
+        {t:'Need', r:'Нуждаться'},
+        {t:'Like', r:'Нравиться'},
+        {t:'See', r:'Видеть'},
+        {t:'Take', r:'Брать'},
+        {t:'Give', r:'Давать'},
+        {t:'Want', r:'Хотеть'},
+        {t:'Know', r:'Знать'},
+        {t:'Work', r:'Работать'},
+        {t:'Help', r:'Помогать'},
+        {t:'Say', r:'Говорить'},
+        {t:'Come', r:'Приходить'},
+        {t:'Welcome', r:'Добро пожаловать', u:'Тебе говорят при входе. В ответ на «спасибо» — «You are welcome».'},
+        {t:'Name', r:'Имя', u:'Спросят: «What is your name?» Ответ: «My name is…».'},
+        {t:'Nice', r:'Приятный', u:'В знакомстве: «Nice to meet you» — приятно познакомиться.'},
+        {t:'Meet', r:'Встречать / знакомиться', u:'О знакомстве и о встрече: «Let us meet at six».'},
+        {t:'Goodbye', r:'До свидания', u:'Нейтральное прощание. «Bye» — короче и теплее, «Goodbye» — вежливее и суше.'}
+      ]},
+      { type:'build', title:'Собери: Знакомство', scene:'airport', cefr:'A1: Can use basic greetings and say who they are.', tasks:[
+        {ru:'Здравствуйте, меня зовут Анна.', parts:['Hello','my','name','is','Anna'], answer:'Hello my name is Anna', full:'Hello, my name is Anna.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Приятно познакомиться.', parts:['Nice','to','meet','you'], answer:'Nice to meet you', full:'Nice to meet you.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Извините, спасибо, до свидания.', parts:['Sorry','thanks','goodbye'], answer:'Sorry thanks goodbye', full:'Sorry, thanks, goodbye.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Привет! Как тебя зовут?', parts:['Hi','What','is','your','name'], answer:'Hi What is your name', full:'Hi! What is your name?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Первое приветствие', scene:'airport', cefr:'A1: Can use basic greetings and say who they are.',
+        intro:'Ты заходишь в офис. Человек за стойкой поднимает голову.',
+        flow:       { title:'Первое приветствие · ур. 3', start:'n0',
+        intro:'Ты заходишь в офис. Человек за стойкой поднимает голову.',
+        opener:{them:'Hello! Can I help you?', ru:'Здравствуйте! Чем могу помочь?'},
+        nodes:{
+      n0:{ task:'Поздоровайся, представься и скажи, зачем пришёл (например: привет, я Анна, у меня встреча).', best:'Hi, my name is Anna. I have a meeting.',
+        judge(w,mem){
+          let lim=w.length; ['with','see'].forEach(k=>{ const i=w.indexOf(k); if(i!==-1&&i<lim) lim=i; });
+          const nm=pickName(w.slice(0,lim),NAME_STOP,!introduced(w));
+          const meeting=has(w,'meeting','appointment');
+          /* отрицание = отказ, только если оно НЕ часть вежливого оборота
+             (no problem/no worries/no thanks/not late/not sure/do not know/not yet)
+             и стоит рядом с делом (meeting/appointment) или фразой ухода. */
+          const SOFT=['problem','worries','worry','late','sure','know','yet','matter'];
+          let neg=false;
+          w.forEach((x,i)=>{ if(x==='no'||x==='not'){
+            const around=w.slice(Math.max(0,i-2),i+3).some(y=>SOFT.includes(y));
+            if(!around) neg=true; } });
+          if(meeting&&neg) return {br:'leave'};
+          if(!meeting&&(neg||has(w,'leaving','going','go','home','bye','goodbye','nothing')||(has(w,'just')&&has(w,'looking')))) return {br:'leave'};
+          if(nm) mem.name=nm;
+          if(meeting) return nm?{br:'meet_full'}:{br:'meet_noname'};
+          if((has(w,'name')&&!(has(w,'my')&&has(w,'is')))||has(w,'call')) return nm?{br:'fix'}:{br:'hi'};
+          if(has(w,'friend','wait','waiting','lost','help','need','someone','person','find')) return {br:'help'};
+          if(nm) return {br:'greet'};
+          if(has(w,'hi','hello','hey','good','morning')) return {br:'hi'};
+          if(has(w,'yes','yeah','sure','ok','okay','maybe','am','is','have')) return {br:'ask'};
+          return {huh:1}; },
+        tr:{
+          meet_full:{them:'Nice to meet you, {name}. The meeting is in room 204, second floor, on the left.',ruThem:'Приятно познакомиться, {name}. Встреча — кабинет 204, второй этаж, слева.',next:'floor'},
+          meet_noname:{them:'Of course. What is your name, please?',ruThem:'Конечно. Ваше имя, пожалуйста?',next:'name1'},
+          leave:{them:'No problem. I am here if you need anything. Have a nice day!',ruThem:'Без проблем. Я здесь, если что-то понадобится. Хорошего дня!',next:'bye'},
+          fix:{them:'Nice to meet you, {name}! Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}! Вы на встречу?',note:'My name is Anna.',next:'meet'},
+          greet:{them:'Nice to meet you, {name}. Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}. Вы на встречу?',next:'meet'},
+          hi:{them:'Hello! What is your name, please?',ruThem:'Здравствуйте! Как вас зовут?',next:'name0'},
+          help:{them:'I see. Take a seat, please. I will be with you in a minute.',ruThem:'Ясно. Присядьте, пожалуйста. Я подойду через минуту.',next:'wait'},
+          ask:{them:'What can I do for you?',ruThem:'Чем я могу вам помочь?',next:'reason'} } },
+      name0:{ task:'Скажи, как тебя зовут (например: меня зовут Анна).', best:'My name is Anna.',
+        judge(w,mem){ const nm=pickName(w,NAME_STOP,false); if(nm) mem.name=nm;
+          if(nm) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Nice to meet you, {name}. Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}. Вы на встречу?',next:'meet'} } },
+      name1:{ task:'Скажи, как тебя зовут (например: меня зовут Анна).', best:'My name is Anna.',
+        judge(w,mem){ const nm=pickName(w,NAME_STOP,false); if(nm) mem.name=nm;
+          if(nm) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Nice to meet you, {name}. The meeting is in room 204, second floor, on the left.',ruThem:'Приятно познакомиться, {name}. Встреча — кабинет 204, второй этаж, слева.',next:'floor'} } },
+      meet:{ task:'Ответь, идёшь ли ты на встречу (например: да, я на встречу).', best:'Yes, I am here for the meeting.',
+        judge(w){ const neg=has(w,'no','not','nope','never');
+          /* решение: «нет» на прямой вопрос — повод уточнить «чем помочь?», а не выпроводить
+             (тренажёр: лишняя реплика = практика; админ в жизни уточнит). Мусор — честный huh. */
+          if(!neg&&has(w,'yes','yeah','sure','meeting','meet','appointment','course','right','correct','exactly')) return {br:'meet'};
+          if(has(w,'home','leave','leaving','going','go','bye','later','nothing')) return {br:'home'};
+          if(has(w,'help','lost','wait','waiting','friend','someone','person','look','find','another','wrong','just')) return {br:'other'};
+          if(neg||has(w,'what','why','sorry','pardon','repeat','again','know','understand')) return {br:'ask'};
+          return {huh:1}; },
+        tr:{ meet:{them:'Great. The meeting is in room 204, second floor, on the left.',ruThem:'Отлично. Встреча — кабинет 204, второй этаж, слева.',next:'floor'},
+             home:{them:'Oh, I see. Take care, then!',ruThem:'А, понял. Тогда удачи!',next:'byehome'},
+             other:{them:'I see. Take a seat - I will find the right person for you.',ruThem:'Ясно. Присядьте - я найду, кто вам нужен.',next:'wait'},
+             ask:{them:'What can I do for you?',ruThem:'Чем я могу вам помочь?',next:'reason'} } },
+      reason:{ task:'Ответь, зачем пришёл (например: я на встречу / жду друга / просто зашёл).', best:'I am here for the meeting.',
+        judge(w){ if(has(w,'meeting','meet','appointment')&&!has(w,'no','not')) return {br:'meet'};
+          if(has(w,'friend','wait','help','need','lost','someone','person','find')) return {br:'help'};
+          if(has(w,'no','nothing','just','home','leave','bye','going','go','look','fine')) return {br:'home'};
+          return {huh:1}; },
+        tr:{ meet:{them:'The meeting is in room 204, second floor, on the left.',ruThem:'Встреча — кабинет 204, второй этаж, слева.',next:'floor'},
+             help:{them:'I see. Take a seat, please. I will be with you in a minute.',ruThem:'Ясно. Присядьте, пожалуйста. Я подойду через минуту.',next:'wait'},
+             home:{them:'Ah, I see. Have a nice day then!',ruThem:'А, ясно. Тогда хорошего дня!',next:'byehome'} } },
+      bye:{ task:'Попрощайся.', best:'Thank you. Goodbye!',
+        judge(w){ if(has(w,'bye','goodbye','thanks','thank','see','later','day')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null} } },
+      byehome:{ task:'Попрощайся.', best:'Bye. Have a nice day!',
+        judge(w){ if(has(w,'bye','goodbye','see','thanks','thank','later')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Берегите себя!',next:null} } },
+      wait:{ task:'Поблагодари.', best:'Thank you very much.',
+        judge(w){ if(has(w,'thanks','thank','ok','okay','sure','fine','great','good','alright','right','cheers')) return {br:'ok'};
+          if(has(w,'no','not','nothing','bye','goodbye')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'You are welcome.',ruThem:'Пожалуйста.',next:null} } },
+      floor:{ task:'Переспроси, куда идти (например: кабинет 204, второй этаж?).', best:'Room 204, second floor?',
+        judge(w,mem){ const d204=(mem._digits||[]).includes('204');
+          if(d204||has(w,'room','floor','second','two','lift','left')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'That is right. Take the lift.',ruThem:'Верно. Поднимитесь на лифте.',next:'lift'} } },
+      lift:{ task:'Поблагодари и попрощайся.', best:'Thanks a lot. Have a good day!',
+        judge(w){ const th=has(w,'thanks','thank'), by=has(w,'bye','goodbye','day','see');
+          if(th&&by) return {br:'full'}; if(by) return {br:'bye'}; if(th) return {br:'th'}; return {huh:1}; },
+        tr:{ full:{them:'Good luck with the meeting. Goodbye!',ruThem:'Удачи на встрече. До свидания!',next:null},
+             bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
+             th:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null} } },
+      }}
+      },
+      { type:'words', title:'Я и мои данные', scene:'office', cefr:'A1: Can give personal information.', newCount:21, words:[
+        {t:'I', r:'Я'},
+        {t:'You', r:'Ты / вы'},
+        {t:'My', r:'Мой'},
+        {t:'Your', r:'Твой / ваш'},
+        {t:'Me', r:'Меня / мне'},
+        {t:'Address', r:'Адрес'},
+        {t:'Age', r:'Возраст'},
+        {t:'Year', r:'Год'},
+        {t:'Old', r:'Старый / лет'},
+        {t:'Young', r:'Молодой'},
+        {t:'Person', r:'Человек'},
+        {t:'Adult', r:'Взрослый'},
+        {t:'Phone', r:'Телефон'},
+        {t:'Email', r:'Электронная почта'},
+        {t:'Passport', r:'Паспорт'},
+        {t:'Number', r:'Номер', u:'Номер телефона, дома, рейса. «What is your number?» — просят телефон.'},
+        {t:'Here', r:'Здесь', u:'Место рядом с тобой. «Here is…» — вот, держите. «I am here» — я здесь.'},
+        {t:'There', r:'Там', u:'Место подальше. Ещё оборот «there is / there are» — «есть, имеется».'},
+        {t:'Very', r:'Очень', u:'Усиливает признак: «very cold» — очень холодно. С глаголом не ставят.'},
+        {t:'Too', r:'Слишком / тоже', u:'Два смысла: «too big» — слишком велико; «me too» — я тоже.'},
+        {t:'Twenty', r:'Двадцать', u:'Дальше по образцу: twenty-one, twenty-two. Через дефис.'}
+      ]},
+      { type:'build', title:'Собери: Я и мои данные', scene:'office', cefr:'A1: Can give personal information.', tasks:[
+        {ru:'Мне двадцать пять лет.', parts:['I','am','twenty-five','years','old'], answer:'I am twenty-five years old', full:'I am twenty-five years old.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это мой адрес.', parts:['This','is','my','address'], answer:'This is my address', full:'This is my address.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Какой у вас номер телефона?', parts:['What','is','your','phone','number'], answer:'What is your phone number', full:'What is your phone number?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Вот мой паспорт.', parts:['Here','is','my','passport'], answer:'Here is my passport', full:'Here is my passport.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Заполнить анкету', scene:'office', cefr:'A1: Can give personal information.',
+        intro:'Сотрудник просит данные для регистрации.',
+        flow:       { title:'Заполнить анкету · ур. 6', start:'n0',
+        intro:'Сотрудник просит данные для регистрации.',
+        opener:{them:'Can I have your name, please?', ru:'Ваше имя, пожалуйста?'},
+        nodes:{
+      n0:{ task:'Представься (например: меня зовут Анна Петрова).', best:'My name is Anna Petrova.',
+        judge(w,mem){ const sig=sigWords(w,['my','name','is','i','am','im','please','hi','hello','miss','mrs','mr','can','have','you','the','and','your']).filter(x=>!NAME_STOP.includes(x)&&!NOT_NAME.has(x)&&(NAME_OK.has(x)||looksLikeName(x)));
+          if(sig.length>=2){ const n=sig[0]; mem.name=n.charAt(0).toUpperCase()+n.slice(1); return {br:'full'}; }
+          if(sig.length===1){ const n=sig[0]; mem.name=n.charAt(0).toUpperCase()+n.slice(1); return {br:'last'}; }
+          return {huh:1}; },
+        tr:{ full:{them:'Thank you, {name}. And your address?',ruThem:'Спасибо, {name}. И ваш адрес?',next:'addr'},
+             last:{them:'Thank you, {name}. And your last name, please?',ruThem:'Спасибо, {name}. И ваша фамилия?',next:'n1'} } },
+      n1:{ task:'Назови фамилию (например: Петрова).', best:'Petrova.',
+        judge(w){ if(sigWords(w,['my','name','is','i','am','it','please']).filter(x=>!NAME_STOP.includes(x)&&!NOT_NAME.has(x)&&(NAME_OK.has(x)||looksLikeName(x))).length>=1) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Perfect. And your address, please?',ruThem:'Отлично. И ваш адрес?',next:'addr'} } },
+      addr:{ task:'Назови свой адрес (например: я живу на Парк-стрит, дом 12).', best:'I live at 12 Park Street.',
+        judge(w,mem){ const d12=(mem._digits||[]).includes('12');
+          if(has(w,'park')&&(d12||has(w,'twelve'))) return {br:'full'};
+          if(has(w,'park')) return {br:'ok'};
+          if(d12||has(w,'twelve')) return {br:'which'};
+          return {huh:1}; },
+        tr:{ full:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'},
+             ok:{them:'Thank you. And the house number, please?',ruThem:'Спасибо. И номер дома?',next:'numH'},
+             which:{them:'Sorry, which street is it?',ruThem:'Простите, какая это улица?',next:'numS'} } },
+      numH:{ task:'Назови номер дома (например: двенадцать).', best:'Twelve.',
+        judge(w,mem){ if((mem._digits||[]).length||numOf(w)!==null) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'} } },
+      numS:{ task:'Назови улицу (например: Парк-стрит).', best:'Park Street.',
+        judge(w){ if(has(w,'park')||has(w,'street')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'} } },
+      age:{ task:'Назови свой возраст (например: двадцать пять).', best:'I am twenty-five.',
+        judge(w,mem){ const ds=(mem._digits||[]).map(Number);
+          if(ds.length>1) return {br:'again'};        // два числа — непонятно, какое возраст
+          if(mem._raw&&/\d+[.,]\d+/.test(mem._raw)) return {br:'again'};  // 25.5 не возраст
+          const n=ds.length?ds[0]:numOf(w);
+          if(n===25) return {br:'ok'};
+          if(n!==null) return {br:'again'}; return {huh:1}; },
+        tr:{ ok:{them:'Thank you. What is your phone number?',ruThem:'Спасибо. Ваш номер телефона?',next:'phone'},
+             again:{them:'Sorry, I did not catch it. How old are you?',ruThem:'Простите, не расслышал. Сколько вам лет?',next:'age'} } },
+      phone:{ task:'Спроси, можно ли записать номер здесь (например: можно, я запишу его здесь?).', best:'Can I write it here?',
+        judge(w,mem){ if(has(w,'write','paper','here','myself','self','it')) return {br:'paper'};
+          const digs=(mem._digits||[]).join('').length;
+          if(digs>=5||has(w,'number','phone')) return {br:'digits'}; return {huh:1}; },
+        tr:{ paper:{them:'Yes, please. And your email?',ruThem:'Да, пожалуйста. И ваша почта?',next:'mail'},
+             digits:{them:'Thank you. And your email?',ruThem:'Спасибо. И ваша почта?',next:'mail'} } },
+      mail:{ task:'Ответь, где будет почта (например: она тоже будет на бумаге).', best:'It is on the paper too.',
+        judge(w){ if(has(w,'paper','too','also','there','it','write')) return {br:'ok'};
+          if(w.join(' ').includes('@')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Perfect. That is everything.',ruThem:'Отлично. Это всё.',next:'ready'} } },
+      ready:{ task:'Спроси, когда будет готово.', best:'When will it be ready?',
+        judge(w){ if(has(w,'when','ready','time','will','tomorrow')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'It will be ready tomorrow. Come in the morning.',ruThem:'Будет готово завтра. Приходите утром.',next:'thx'} } },
+      thx:{ task:'Поблагодари.', best:'Thank you very much.',
+        judge(w){ if(has(w,'thanks','thank','ok','great','sure')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null} } },
+      }}
+      },
+      { type:'words', title:'Семья', scene:'flat', cefr:'A1: Can describe their family in simple words.', newCount:21, words:[
+        {t:'Family', r:'Семья'},
+        {t:'Mother', r:'Мать'},
+        {t:'Father', r:'Отец'},
+        {t:'Mum', r:'Мама'},
+        {t:'Dad', r:'Папа'},
+        {t:'Brother', r:'Брат'},
+        {t:'Sister', r:'Сестра'},
+        {t:'Son', r:'Сын'},
+        {t:'Daughter', r:'Дочь'},
+        {t:'Child', r:'Ребёнок'},
+        {t:'Baby', r:'Младенец'},
+        {t:'Husband', r:'Муж'},
+        {t:'Wife', r:'Жена'},
+        {t:'Parent', r:'Родитель'},
+        {t:'Aunt', r:'Тётя'},
+        {t:'Uncle', r:'Дядя'},
+        {t:'Cousin', r:'Двоюродный брат/сестра'},
+        {t:'Grandmother', r:'Бабушка'},
+        {t:'Grandfather', r:'Дедушка'},
+        {t:'Grandparent', r:'Дедушка и бабушка'},
+        {t:'Children', r:'Дети', u:'Множественное от child. Не «childs»: это слово-исключение.'}
+      ]},
+      { type:'build', title:'Собери: Семья', scene:'flat', cefr:'A1: Can describe their family in simple words.', tasks:[
+        {ru:'У меня есть брат и сестра.', parts:['I','have','a','brother','and','a','sister'], answer:'I have a brother and a sister', full:'I have a brother and a sister.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Это моя мама и мой папа.', parts:['This','is','my','mother','and','my','father'], answer:'This is my mother and my father', full:'This is my mother and my father.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Моя жена работает здесь.', parts:['My','wife','works','here'], answer:'My wife works here', full:'My wife works here.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'У них двое детей.', parts:['They','have','two','children'], answer:'They have two children', full:'They have two children.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Разговор о семье', scene:'flat', cefr:'A1: Can describe their family in simple words.',
+        intro:'Коллега за обедом спрашивает про твою семью.',
+        flow:       { title:'Разговор о семье · ур. 9', start:'n0',
+        intro:'Коллега за обедом спрашивает про твою семью.',
+        opener:{them:'Do you have a big family?', ru:'У тебя большая семья?'},
+        nodes:{
+      n0:{ task:'Расскажи о семье (например: у меня есть брат и сестра).', best:'I have a brother and a sister.',
+        judge(w){ if(has(w,'brother','sister')) return {br:'sib'};
+          if(has(w,'big','yes','family','four','three')) return {br:'who'}; return {huh:1}; },
+        tr:{ sib:{them:'Nice! Are your parents here too?',ruThem:'Здорово! А родители тоже здесь?',next:'parents'},
+             who:{them:'Who is in your family?',ruThem:'А кто в твоей семье?',next:'who'} } },
+      who:{ task:'Назови родных по-английски (например: brother, sister, mother).', best:'My brother and sister.',
+        judge(w){ if(has(w,'brother','sister','mother','father','parents','mum','dad','mom','grandmother')) return {br:'ok'};
+          if(has(w,'alone','nobody','myself','small','only','no','just')) return {br:'alone'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Are your parents here too?',ruThem:'А родители тоже здесь?',next:'parents'},
+             alone:{them:'Oh, I see. Do you have friends here?',ruThem:'А, понятно. У тебя здесь есть друзья?',next:'fr'} } },
+      fr:{ task:'Ответь, есть ли у тебя здесь друзья (например: да, у меня есть друзья).', best:'Yes, I have friends here.',
+        judge(w){ if(has(w,'no','not','none','nobody')) return {br:'no'};
+          if(has(w,'yes','friends','friend','sure','have','do','ok','okay')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'That is nice! See you at lunch, then.',ruThem:'Отлично! Тогда увидимся за обедом.',next:null},
+             no:{them:'That is okay. I am your friend too. See you around!',ruThem:'Ничего страшного. Я тоже твой друг. Увидимся!',next:null} } },
+      parents:{ task:'Расскажи про родителей (например: они живут в России).', best:'My parents live in Russia.',
+        judge(w){ const rel=has(w,'parents','mother','father','mum','dad','mom','them','they');
+          if(rel&&has(w,'russia','moscow')) return {br:'russia'};
+          if(has(w,'russia','moscow')) return {br:'russia'};
+          if(rel&&has(w,'here','too','also')) return {br:'here'};
+          if(has(w,'here','too')) return {br:'here'}; return {huh:1}; },
+        tr:{ russia:{them:'Do you miss them?',ruThem:'Скучаешь по ним?',next:'miss'},
+             here:{them:'Oh, that is nice! Do you see them often?',ruThem:'О, здорово! Часто с ними видишься?',next:'often'} } },
+      miss:{ task:'Ответь, скучаешь ли ты (например: да, очень).', best:'Yes, very much.',
+        judge(w){
+          /* «no, I really miss them» = согласие: отрицание относится к вежливому «no»,
+             а не к глаголу. Отказ — только когда not/never стоит ВПЛОТНУЮ к miss. */
+          const hardNo=w.some((x,i)=>(x==='not'||x==='never'||x==='do')&&
+            (w[i+1]==='miss'||w[i+2]==='miss'||(w[i]==='not'&&w[i+1]==='really'&&!has(w,'miss'))));
+          if(hardNo) return {br:'no'};
+          if(has(w,'yes','very','miss','sure','course','sometimes','little','bit','lot','always','every','day','terribly','really')) return {br:'yes'};
+          if(has(w,'no','not','never')) return {br:'no'};
+          return {huh:1}; },
+        tr:{ yes:{them:'Do they visit you here?',ruThem:'Они приезжают к тебе сюда?',next:'visit'},
+             no:{them:'Maybe you can visit them soon, then.',ruThem:'Тогда, может, ты скоро съездишь к ним.',next:'plan'} } },
+      visit:{ task:'Ответь, когда они приезжали (например: они приезжали летом).', best:'They came in the summer.',
+        judge(w){ if(has(w,'no','not','never','yet','busy')) return {br:'no'};
+          if(has(w,'summer','came','come','visit','june','july','august','yes','yeah','sure','often','every','year','sometimes','spring','autumn','winter','month','week','last','time','twice')) return {br:'yes'}; return {huh:1}; },
+        tr:{ yes:{them:'That is nice. How long did they stay?',ruThem:'Здорово. И надолго они приезжали?',next:'stay'},
+             no:{them:'Maybe you can go and see them soon.',ruThem:'Тогда, может, ты скоро съездишь к ним.',next:'plan'} } },
+      stay:{ task:'Ответь, сколько они гостили (например: две недели).', best:'Two weeks.',
+        judge(w,mem){ const ds=(mem._digits||[]).map(Number); const n=ds.length?ds[0]:numOf(w);
+          if(has(w,'week','weeks','month','months','day','days','couple','few')) return {br:'ok'};
+          if(n===2) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Not bad at all.',ruThem:'Совсем неплохо.',next:'plan'} } },
+      often:{ task:'Ответь, как часто (например: да, каждые выходные).', best:'Yes, every weekend.',
+        judge(w){ if(has(w,'yes','every','weekend','week','often','sure','friday')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'That is great to hear.',ruThem:'Приятно слышать.',next:'plan'} } },
+      plan:{ task:'Расскажи о планах (например: скоро поеду к ним).', best:'I will go and see them soon.',
+        judge(w){ if(has(w,'go','see','visit','soon','will','next','year','summer','month','autumn')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'That sounds nice. Say hello to them from me!',ruThem:'Звучит отлично. Передавай им привет!',next:null} } },
+      }}
+      },
+      { type:'words', title:'Числа до ста · 1', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.', newCount:12, words:[
+        {t:'One', r:'Один'},
+        {t:'Two', r:'Два'},
+        {t:'Three', r:'Три'},
+        {t:'Four', r:'Четыре'},
+        {t:'Five', r:'Пять'},
+        {t:'Six', r:'Шесть'},
+        {t:'Seven', r:'Семь'},
+        {t:'Eight', r:'Восемь'},
+        {t:'Nine', r:'Девять'},
+        {t:'Ten', r:'Десять'},
+        {t:'Eleven', r:'Одиннадцать'},
+        {t:'Twelve', r:'Двенадцать'},
+        {t:'I', r:'Я', rev:true},
+        {t:'You', r:'Ты / вы', rev:true},
+        {t:'My', r:'Мой', rev:true},
+        {t:'Please', r:'Пожалуйста', u:'Ставь в конец просьбы: «Coffee, please». Без него звучит как приказ.', rev:true}
+      ]},
+      { type:'words', title:'Числа до ста · 2', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.', newCount:12, words:[
+        {t:'Fifteen', r:'Пятнадцать'},
+        {t:'Twenty', r:'Двадцать', u:'Дальше по образцу: twenty-one, twenty-two. Через дефис.'},
+        {t:'Thirty', r:'Тридцать'},
+        {t:'Fifty', r:'Пятьдесят'},
+        {t:'Hundred', r:'Сто'},
+        {t:'Number', r:'Число / номер', u:'Номер телефона, дома, рейса. «What is your number?» — просят телефон.'},
+        {t:'First', r:'Первый'},
+        {t:'Half', r:'Половина'},
+        {t:'Costs', r:'Стоит', u:'Форма cost для he/she/it: «It costs ten euros». С I/you/we — «cost».'},
+        {t:'Euros', r:'Евро', u:'Множественное от euro. Цену называют так: «ten euros».'},
+        {t:'Kilo', r:'Килограмм', u:'На рынке и в магазине: «half a kilo» — полкило.'},
+        {t:'Tickets', r:'Билеты', u:'Множественное от ticket. «Two tickets, please» — в кассе.'},
+        {t:'Thanks', r:'Спасибо', u:'Неформальное спасибо. Официальнее — «Thank you».', rev:true},
+        {t:'Goodbye', r:'До свидания', u:'Нейтральное прощание. «Bye» — короче и теплее, «Goodbye» — вежливее и суше.', rev:true},
+        {t:'Family', r:'Семья', rev:true},
+        {t:'Mother', r:'Мать', rev:true},
+        {t:'Father', r:'Отец', rev:true}
+      ]},
+      { type:'build', title:'Собери: Числа до ста', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.', tasks:[
+        {ru:'Мне нужно три билета.', parts:['I','need','three','tickets'], answer:'I need three tickets', full:'I need three tickets.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Это стоит двадцать евро.', parts:['It','costs','twenty','euros'], answer:'It costs twenty euros', full:'It costs twenty euros.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Полкило, пожалуйста.', parts:['Half','a','kilo','please'], answer:'Half a kilo please', full:'Half a kilo, please.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Мой номер — пятьдесят один.', parts:['My','number','is','fifty-one'], answer:'My number is fifty-one', full:'My number is fifty-one.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Назвать количество', scene:'market', cefr:'A1: Can handle numbers, quantities, cost and time.',
+        intro:'Продавец взвешивает и уточняет.',
+        flow: {
+        intro:'Продавец взвешивает и уточняет.',
+          start:'count',
+          opener:{them:'How many do you need?', ru:'Сколько вам нужно?'},
+          nodes:{
+          count:{ task:'Назови, сколько нужно (например: пять, пожалуйста).', best:'Five, please.',
+          judge(w,mem){ const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
+          if(n===5) return {br:'five'};
+          const nums = d.length>0 || w.some(x=>x in NUM);
+          if(nums && n===0) return {huh:1};          // ноль — не количество
+          if(has(w,'much','cost','price','expensive')) return {br:'price'};
+          if(has(w,'bye','goodbye','leave','leaving')||(has(w,'no')&&has(w,'thanks','thank'))||(has(w,'just')&&has(w,'looking'))) return {br:'bye'};
+          if(nums){ mem._lc=(mem._lc||0)+1;           // третий круг с числом — уступаем
+            if(mem._lc>=3) return {br:'giveup'};
+            return n!==null ? {br:'othernum'} : {br:'many'}; }
+          return {huh:1}; },
+          tr:{ five:{them:'Five. That will be twelve euros.',ruThem:'Пять. С вас двенадцать евро.',next:'twelve'},
+            othernum:{them:'We sell these in packs of five. Five, right?',ruThem:'Мы продаём их по пять штук. Пять, верно?',next:'count'},
+            many:{them:'Sorry, how many exactly? One number, please.',ruThem:'Простите, сколько именно? Одно число, пожалуйста.',next:'count'},
+            giveup:{them:'Ok, let us do five then.',ruThem:'Хорошо, тогда берём пять.',next:'twelve'},
+            price:{them:'They are two euros each.',ruThem:'По два евро за штуку.',next:'count'},
+            bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
+          twelve:{ task:'Переспроси цену (например: двенадцать? не двадцать?).', best:'Twelve? Not twenty?',
+          judge(w,mem){ const d=(mem._digits||[]).map(Number);
+          const is12 = chose(w,'twelve') || d.includes(12);
+          const is20 = chose(w,'twenty') || d.includes(20);
+          if(is12 && !is20) return {br:'ok'};
+          if(is20 && !is12){ mem._lt=(mem._lt||0)+1;    // третий круг «twenty» — уступаем
+            if(mem._lt>=3) return {br:'giveup'};
+            return {br:'twenty'}; }
+          if(has(w,'sorry','pardon','what','again','repeat')) return {br:'again'};
+          return {huh:1}; },
+          tr:{ ok:{them:'Yes, twelve. Not twenty.',ruThem:'Да, двенадцать. Не двадцать.',next:'agree'},
+            twenty:{them:'No, twelve. One two.',ruThem:'Нет, двенадцать. Один-два.',next:'twelve'},
+            giveup:{them:'Ok, it is twelve euros.',ruThem:'Хорошо, двенадцать евро.',next:'agree'},
+            again:{them:'Twelve euros. Not twenty.',ruThem:'Двенадцать евро. Не двадцать.',next:'twelve'} } },
+          agree:{ task:'Согласись и поблагодари.', best:'Right, here you are. Thank you.',
+          judge(w){ const th=has(w,'thanks','thank'), ok=has(w,'right','ok','okay','yes','sure','here','fine','take');
+          if(th||ok) return {br:'ok'}; return {huh:1}; },
+          tr:{ ok:{them:'Thank you. Anything else today?',ruThem:'Спасибо. Что-нибудь ещё?',next:'extra'} } },
+          extra:{ task:'Уточни, что нужно (например: два хлеба, пожалуйста).', best:'Two loaves of bread, please.',
+          judge(w,mem){ const n=FLOWNUM(w,(mem._digits||[]).map(Number));
+          const bread=has(w,'bread','loaf','loaves');
+          if(bread&&n===2) return {br:'two'};
+          if(bread) return {br:'loaves'};
+          if(has(w,'no','nothing','all','that')) return {br:'done'};
+          return {huh:1}; },
+          tr:{ two:{them:'Two loaves of bread. That is three more euros.',ruThem:'Два хлеба. Ещё три евро.',next:'pay'},
+            loaves:{them:'How many loaves?',ruThem:'Сколько буханок?',next:'extra'},
+            done:{them:'Ok. That is twelve euros, please.',ruThem:'Хорошо. С вас двенадцать евро.',next:'pay'} } },
+          pay:{ task:'Скажи, как будешь платить (например: наличными).', best:'I will pay in cash.',
+          judge(w){ if(has(w,'card')) return {br:'card'};
+          if(has(w,'cash','notes','money')) return {br:'cash'}; return {huh:1}; },
+          tr:{ cash:{them:'Here is your change.',ruThem:'Вот ваша сдача.',next:'change'},
+            card:{them:'Sorry, we only take cash today.',ruThem:'Извините, сегодня только наличные.',next:'pay'} } },
+          change:{ task:'Поблагодари и проверь сдачу (например: спасибо, всё верно).', best:'Thank you. That is right.',
+          judge(w){ const pos=['right','ok','okay','fine','correct','good'];
+          const negHit = pos.some(x=>{ const i=w.indexOf(x); return i>-1 && negatedAt(w,i); });
+          if(has(w,'wrong','short','mistake','incorrect')||negHit) return {br:'recheck'};
+          if(w[0]==='no'||w[0]==='not') return {br:'recheck'};        // голое «no» — сдачу не принимает
+          if(has(w,'thanks','thank')||pos.some(x=>w.includes(x))) return {br:'ok'};
+          return {huh:1}; },
+          tr:{ ok:{them:'You are welcome. Have a nice day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
+            recheck:{them:'Sorry. Let me count again. Here you are.',ruThem:'Извините. Пересчитаю. Вот, пожалуйста.',next:'change'} } },
+          bye:{ task:'Попрощайся.', best:'Thank you. Goodbye!',
+          judge(w){ if(has(w,'bye','goodbye','thanks','thank','see','later','day')) return {br:'ok'}; return {huh:1}; },
+          tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
+          }
+      }
+      },
+      { type:'words', title:'Контроль: темы 1–4', scene:'market', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Sorry', r:'Извините', u:'Извинение за поступок: толкнул, опоздал, перебил. Чтобы обратиться к незнакомцу — «Excuse me».', rev:true},
+        {t:'Go', r:'Идти / ехать', rev:true},
+        {t:'Need', r:'Нуждаться', rev:true},
+        {t:'Like', r:'Нравиться', rev:true},
+        {t:'See', r:'Видеть', rev:true},
+        {t:'Take', r:'Брать', rev:true},
+        {t:'Give', r:'Давать', rev:true},
+        {t:'Want', r:'Хотеть', rev:true},
+        {t:'Know', r:'Знать', rev:true},
+        {t:'Work', r:'Работать', rev:true},
+        {t:'Help', r:'Помогать', rev:true},
+        {t:'Say', r:'Говорить', rev:true},
+        {t:'Come', r:'Приходить', rev:true},
+        {t:'Welcome', r:'Добро пожаловать', u:'Тебе говорят при входе. В ответ на «спасибо» — «You are welcome».', rev:true},
+        {t:'Name', r:'Имя', u:'Спросят: «What is your name?» Ответ: «My name is…».', rev:true},
+        {t:'Nice', r:'Приятный', u:'В знакомстве: «Nice to meet you» — приятно познакомиться.', rev:true},
+        {t:'Meet', r:'Встречать / знакомиться', u:'О знакомстве и о встрече: «Let us meet at six».', rev:true},
+        {t:'Your', r:'Твой / ваш', rev:true},
+        {t:'Me', r:'Меня / мне', rev:true},
+        {t:'Address', r:'Адрес', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 1–4', scene:'market', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Здравствуйте, меня зовут Анна.', parts:['Hello','my','name','is','Anna'], answer:'Hello my name is Anna', full:'Hello, my name is Anna.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Приятно познакомиться.', parts:['Nice','to','meet','you'], answer:'Nice to meet you', full:'Nice to meet you.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Извините, спасибо, до свидания.', parts:['Sorry','thanks','goodbye'], answer:'Sorry thanks goodbye', full:'Sorry, thanks, goodbye.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Привет! Как тебя зовут?', parts:['Hi','What','is','your','name'], answer:'Hi What is your name', full:'Hi! What is your name?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Мне двадцать пять лет.', parts:['I','am','twenty-five','years','old'], answer:'I am twenty-five years old', full:'I am twenty-five years old.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это мой адрес.', parts:['This','is','my','address'], answer:'This is my address', full:'This is my address.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'words', title:'Цвета и размеры · 1', scene:'market', cefr:'A1: Can describe objects simply.', newCount:10, words:[
+        {t:'Colour', r:'Цвет'},
+        {t:'Red', r:'Красный'},
+        {t:'Blue', r:'Синий'},
+        {t:'Green', r:'Зелёный'},
+        {t:'Yellow', r:'Жёлтый'},
+        {t:'Black', r:'Чёрный'},
+        {t:'White', r:'Белый'},
+        {t:'Brown', r:'Коричневый'},
+        {t:'Grey', r:'Серый'},
+        {t:'Pink', r:'Розовый'},
+        {t:'One', r:'Один', rev:true},
+        {t:'Two', r:'Два', rev:true},
+        {t:'Three', r:'Три', rev:true},
+        {t:'Mum', r:'Мама', rev:true}
+      ]},
+      { type:'words', title:'Цвета и размеры · 2', scene:'market', cefr:'A1: Can describe objects simply.', newCount:10, words:[
+        {t:'Purple', r:'Фиолетовый'},
+        {t:'Orange', r:'Оранжевый'},
+        {t:'Big', r:'Большой'},
+        {t:'Small', r:'Маленький'},
+        {t:'Large', r:'Крупный'},
+        {t:'Short', r:'Короткий'},
+        {t:'Tall', r:'Высокий'},
+        {t:'Fat', r:'Толстый'},
+        {t:'Thing', r:'Вещь'},
+        {t:'Object', r:'Предмет'},
+        {t:'Dad', r:'Папа', rev:true},
+        {t:'Brother', r:'Брат', rev:true},
+        {t:'Your', r:'Твой / ваш', rev:true},
+        {t:'Me', r:'Меня / мне', rev:true}
+      ]},
+      { type:'build', title:'Собери: Цвета и размеры', scene:'market', cefr:'A1: Can describe objects simply.', tasks:[
+        {ru:'У вас есть это в чёрном?', parts:['Do','you','have','this','in','black'], answer:'Do you have this in black', full:'Do you have this in black?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это слишком большое для меня.', parts:['This','is','too','big','for','me'], answer:'This is too big for me', full:'This is too big for me.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Мне нравится синий цвет.', parts:['I','like','the','blue','colour'], answer:'I like the blue colour', full:'I like the blue colour.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Дайте маленький, пожалуйста.', parts:['Give','me','a','small','one','please'], answer:'Give me a small one please', full:'Give me a small one, please.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Выбрать цвет', scene:'market', cefr:'A1: Can describe objects simply.',
+        intro:'Продавец показывает два варианта.',
+        flow: {
+        intro:'Продавец показывает два варианта.',
+          start:'pick',
+          opener:{them:'We have it in red and in black.', ru:'Есть красный и чёрный.'},
+          nodes:{
+          pick:{ task:'Сделай выбор (например: я предпочитаю чёрный).', best:'I prefer the black one.',
+          judge(w,mem){ const b=chose(w,'black'), r=chose(w,'red');
+          if(has(w,'much','cost','price','expensive')) return {br:'price'};
+          if(b&&r) return {br:'both'};
+          if(b) return {br:'black'};
+          if(r) return {br:'red'};
+          if(has(w,'blue','green','white','grey','gray','yellow','brown')){ mem._lp=(mem._lp||0)+1;
+            if(mem._lp>=3) return {br:'order'};
+            return {br:'colour'}; }
+          if(has(w,'red','black','colour','color')) return {br:'ask'};   // цвет назван с отрицанием — переспрос
+          if(has(w,'bye','goodbye','leave','leaving')||(has(w,'no')&&has(w,'thanks','thank'))||(has(w,'just')&&has(w,'looking'))) return {br:'bye'};
+          return {huh:1}; },
+          tr:{ black:{them:'Black is a good choice. What size do you need?',ruThem:'Чёрный — хороший выбор. Какой размер нужен?',next:'size'},
+            red:{them:'Ok, the red one. What size do you need?',ruThem:'Хорошо, красный. Какой размер?',next:'size'},
+            both:{them:'Ok, one in each colour. What size do you need?',ruThem:'Хорошо, по одному каждого цвета. Какой размер?',next:'size'},
+            ask:{them:'Ok. Would you like the red one or the black one?',ruThem:'Так. Вам красный или чёрный?',next:'pick'},
+            price:{them:'They are the same price.',ruThem:'Они по одной цене.',next:'pick'},
+            colour:{them:'Sorry, we only have red and black.',ruThem:'Извините, есть только красный и чёрный.',next:'pick'},
+            order:{them:'We do not have that colour in stock, but I can order it. What size do you need?',ruThem:'Этого цвета нет в наличии, но могу заказать. Какой размер?',next:'size'},
+            bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
+          size:{ task:'Назови размер (например: маленький, пожалуйста).', best:'A small one, please.',
+          judge(w){ if(chose(w,'small','little')) return {br:'s'};
+          if(chose(w,'medium')) return {br:'m'};
+          if(chose(w,'large','big')) return {br:'l'};
+          if(has(w,'small','little','medium','large','big')) return {br:'ask'};
+          return {huh:1}; },
+          tr:{ s:{them:'A small one. Here you are.',ruThem:'Маленький. Пожалуйста.',next:'thx'},
+            m:{them:'A medium one. Here you are.',ruThem:'Средний. Пожалуйста.',next:'thx'},
+            l:{them:'A large one. Here you are.',ruThem:'Большой. Пожалуйста.',next:'thx'},
+            ask:{them:'What size — small, medium or large?',ruThem:'Какой размер — маленький, средний или большой?',next:'size'} } },
+          thx:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){ if(has(w,'thanks','thank','cheers')) return {br:'ok'}; return {huh:1}; },
+          tr:{ ok:{them:'You are welcome. Anything else?',ruThem:'Пожалуйста. Что-нибудь ещё?',next:'rest'} } },
+          rest:{ task:'Ответь, нужно ли что-то ещё (например: нет, это всё, спасибо).', best:'No, that is all, thank you.',
+          judge(w){ const extra=has(w,'more','another','also','need','want');
+          if(extra) return {br:'more'};
+          if(has(w,'no','nothing')||has(w,'all','everything','that')) return {br:'all'};
+          return {huh:1}; },
+          tr:{ all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'paym'},
+            more:{them:'Of course. What else do you need?',ruThem:'Конечно. Что ещё вам нужно?',next:'pick'} } },
+          paym:{ task:'Назови способ оплаты (например: картой, пожалуйста).', best:'By card, please.',
+          judge(w){ if(has(w,'card')) return {br:'card'};
+          if(has(w,'cash','money','notes')) return {br:'cash'}; return {huh:1}; },
+          tr:{ card:{them:'Thank you. Have a good day!',ruThem:'Спасибо. Хорошего дня!',next:'wish'},
+            cash:{them:'Thank you. Here is your change. Have a good day!',ruThem:'Спасибо. Вот сдача. Хорошего дня!',next:'wish'} } },
+          wish:{ task:'Пожелай того же.', best:'Thanks, you too!',
+          judge(w){ if(has(w,'too','likewise','same')) return {br:'ok'};
+          if(has(w,'bye','goodbye','see','later','day')) return {br:'bye'}; return {huh:1}; },
+          tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null} } },
+          bye:{ task:'Попрощайся.', best:'Thank you. Goodbye!',
+          judge(w){ if(has(w,'bye','goodbye','thanks','thank','see','later','day')) return {br:'ok'}; return {huh:1}; },
+          tr:{ ok:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null} } }
+          }
+      }
+      },
+      { type:'words', title:'Дни и месяцы · 1', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.', newCount:12, words:[
+        {t:'Day', r:'День'},
+        {t:'Week', r:'Неделя'},
+        {t:'Month', r:'Месяц'},
+        {t:'Monday', r:'Понедельник'},
+        {t:'Tuesday', r:'Вторник'},
+        {t:'Wednesday', r:'Среда'},
+        {t:'Thursday', r:'Четверг'},
+        {t:'Friday', r:'Пятница'},
+        {t:'Saturday', r:'Суббота'},
+        {t:'Sunday', r:'Воскресенье'},
+        {t:'January', r:'Январь'},
+        {t:'February', r:'Февраль'},
+        {t:'Go', r:'Идти / ехать', rev:true},
+        {t:'Cousin', r:'Двоюродный брат/сестра', rev:true},
+        {t:'Grandmother', r:'Бабушка', rev:true},
+        {t:'Grandfather', r:'Дедушка', rev:true},
+        {t:'Grandparent', r:'Дедушка и бабушка', rev:true},
+        {t:'Children', r:'Дети', u:'Множественное от child. Не «childs»: это слово-исключение.', rev:true},
+        {t:'Colour', r:'Цвет', rev:true}
+      ]},
+      { type:'words', title:'Дни и месяцы · 2', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.', newCount:12, words:[
+        {t:'March', r:'Март'},
+        {t:'May', r:'Май'},
+        {t:'June', r:'Июнь'},
+        {t:'July', r:'Июль'},
+        {t:'August', r:'Август'},
+        {t:'September', r:'Сентябрь'},
+        {t:'October', r:'Октябрь'},
+        {t:'December', r:'Декабрь'},
+        {t:'Weekend', r:'Выходные'},
+        {t:'Date', r:'Дата'},
+        {t:'Free', r:'Свободный / бесплатный', u:'Два смысла: «Are you free?» — свободен ли ты; «It is free» — бесплатно.'},
+        {t:'Today', r:'Сегодня', u:'Ставят в начало или конец: «Today is Monday» / «I work today».'},
+        {t:'Red', r:'Красный', rev:true},
+        {t:'Blue', r:'Синий', rev:true},
+        {t:'Four', r:'Четыре', rev:true},
+        {t:'Five', r:'Пять', rev:true},
+        {t:'Six', r:'Шесть', rev:true},
+        {t:'Sister', r:'Сестра', rev:true},
+        {t:'Son', r:'Сын', rev:true},
+        {t:'Sorry', r:'Извините', u:'Извинение за поступок: толкнул, опоздал, перебил. Чтобы обратиться к незнакомцу — «Excuse me».', rev:true}
+      ]},
+      { type:'build', title:'Собери: Дни и месяцы', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.', tasks:[
+        {ru:'Увидимся в понедельник.', parts:['See','you','on','Monday'], answer:'See you on Monday', full:'See you on Monday.',
+         whyT:'Предлоги времени', why:'at — точное время (at six), on — день (on Monday), in — часть суток и период (in the morning, in a week). Ошибка «in Monday» — типичная.'},
+        {ru:'Я работаю с понедельника по пятницу.', parts:['I','work','from','Monday','to','Friday'], answer:'I work from Monday to Friday', full:'I work from Monday to Friday.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Какое сегодня число?', parts:['What','is','the','date','today'], answer:'What is the date today', full:'What is the date today?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'В субботу я свободен.', parts:['On','Saturday','I','am','free'], answer:'On Saturday I am free', full:'On Saturday I am free.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Назначить день', scene:'office', cefr:'A1: Can ask and tell day, time of day and date.',
+        intro:'Коллега подбирает день для встречи.',
+        flow: {
+        intro:'Коллега подбирает день для встречи.',
+          start:'askday',
+          opener:{them:'Can we meet this week?', ru:'Можем встретиться на этой неделе?'},
+          nodes:{
+          askday:{ task:'Спроси про дату (например: какой день вам подходит?).', best:'Sure. Which day?',
+          judge(w,mem){ const d=DAY_IN(w);
+          if(d){ mem.day=d; return {br:'direct'}; }
+          if(has(w,'when','which')&&has(w,'day')) return {br:'ask'};
+          if(has(w,'yes','ok','okay','sure','fine','great')) return {br:'ok'};
+          if(has(w,'no','not','busy')) return {br:'busy'};
+          return {huh:1}; },
+          tr:{ ask:{them:'How about Wednesday?',ruThem:'Как насчёт среды?',next:'wed'},
+            ok:{them:'Great. How about Wednesday?',ruThem:'Отлично. Как насчёт среды?',next:'wed'},
+            busy:{them:'No problem. When is a good day for you?',ruThem:'Без проблем. Когда вам удобно?',next:'day'},
+            direct:{them:'Ok, {day} then.',ruThem:'Хорошо, тогда {day}.',next:'conf'} } },
+          day:{ task:'Назови удобный день (например: четверг).', best:'Thursday, please.',
+          judge(w,mem){ const d=DAY_IN(w);
+          if(d){ mem.day=d; return {br:'ok'}; }
+          return {huh:1}; },
+          tr:{ ok:{them:'Ok, {day} works for me.',ruThem:'Хорошо, {day} мне подходит.',next:'conf'} } },
+          wed:{ task:'Ответь про среду и предложи другой день (например: в среду я занят, давайте в четверг?).', best:'Wednesday is busy for me. Can we do Thursday?',
+          judge(w,mem){ const d=DAY_IN(w);
+          if(has(w,'thursday')){ mem.day='thursday'; return {br:'thu'}; }
+          if(d==='wednesday'&&!has(w,'busy','no','not')){ mem.day='wednesday'; return {br:'wed'}; }
+          if(d){ mem.day=d; return {br:'oth'}; }
+          if(has(w,'busy','no','not')) return {br:'askd'};
+          return {huh:1}; },
+          tr:{ thu:{them:'Thursday is fine.',ruThem:'Четверг подходит.',next:'conf'},
+            wed:{them:'Great. Wednesday it is.',ruThem:'Отлично, тогда среда.',next:'conf'},
+            oth:{them:'Ok, {day} works for me.',ruThem:'Хорошо, {day} подходит.',next:'conf'},
+            askd:{them:'I see. What day is good for you?',ruThem:'Ясно. Какой день вам удобен?',next:'day'} } },
+          conf:{ task:'Подтверди встречу (например: отлично, до встречи в четверг).', best:'Great, see you on Thursday.',
+          judge(w,mem){ const d=DAY_IN(w);
+          if(d){ if(!mem.day||d===mem.day) return {br:'ok'};
+            return {br:'fix'}; }
+          if(has(w,'sorry','pardon','repeat','again','what')) return {br:'again'};
+          return {huh:1}; },
+          tr:{ ok:{them:'Great. Is there anything else?',ruThem:'Отлично. Что-нибудь ещё?',next:'any'},
+            fix:{them:'Wait, we agreed on {day}.',ruThem:'Стоп, мы договорились на {day}.',next:'conf'},
+            again:{them:'So, we meet on {day}, right?',ruThem:'Значит, встречаемся в {day}?',next:'conf'} } },
+          any:{ task:'Спроси, когда будет ответ (например: когда я узнаю?).', best:'When will I know?',
+          judge(w){ if(has(w,'no','nothing')) return {br:'done'};
+          if(has(w,'when','know','call','hear','answer','soon')) return {br:'ask'};
+          return {huh:1}; },
+          tr:{ ask:{them:'We will call you this week.',ruThem:'Мы позвоним вам на этой неделе.',next:'wait'},
+            done:{them:'Ok. We will call you this week.',ruThem:'Хорошо. Мы позвоним вам на этой неделе.',next:'wait'} } },
+          wait:{ task:'Ответь, что будешь делать (например: спасибо, буду ждать звонка).', best:'Thank you, I will wait for your call.',
+          judge(w){ if(has(w,'wait','waiting','expect','expecting','forward','hear')) return {br:'wait'};
+          return {huh:1}; },
+          tr:{ wait:{them:'Thank you for coming.',ruThem:'Спасибо, что пришли.',next:'bye'} } },
+          bye:{ task:'Попрощайся вежливо.', best:'Thank you. Have a good day.',
+          judge(w){ if(has(w,'bye','goodbye','thanks','thank','day','see','later')) return {br:'ok'}; return {huh:1}; },
+          tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
+          }
+      }
+      },
+      { type:'words', title:'Время суток · 1', scene:'flat', cefr:'A1: Can tell the time of day.', newCount:10, words:[
+        {t:'Time', r:'Время'},
+        {t:'Hour', r:'Час'},
+        {t:'Minute', r:'Минута'},
+        {t:'Morning', r:'Утро'},
+        {t:'Afternoon', r:'День (после полудня)'},
+        {t:'Evening', r:'Вечер'},
+        {t:'Night', r:'Ночь'},
+        {t:'Midnight', r:'Полночь'},
+        {t:'Early', r:'Рано'},
+        {t:'Late', r:'Поздно'},
+        {t:'Age', r:'Возраст', rev:true},
+        {t:'First', r:'Первый', rev:true},
+        {t:'Half', r:'Половина', rev:true},
+        {t:'Costs', r:'Стоит', u:'Форма cost для he/she/it: «It costs ten euros». С I/you/we — «cost».', rev:true},
+        {t:'Euros', r:'Евро', u:'Множественное от euro. Цену называют так: «ten euros».', rev:true},
+        {t:'Tickets', r:'Билеты', u:'Множественное от ticket. «Two tickets, please» — в кассе.', rev:true},
+        {t:'Day', r:'День', rev:true}
+      ]},
+      { type:'words', title:'Время суток · 2', scene:'flat', cefr:'A1: Can tell the time of day.', newCount:10, words:[
+        {t:'Now', r:'Сейчас'},
+        {t:'Later', r:'Позже'},
+        {t:'Soon', r:'Скоро'},
+        {t:'Today', r:'Сегодня', u:'Ставят в начало или конец: «Today is Monday» / «I work today».'},
+        {t:'Tomorrow', r:'Завтра'},
+        {t:'Yesterday', r:'Вчера'},
+        {t:'Quarter', r:'Четверть'},
+        {t:'Clock', r:'Часы'},
+        {t:'Let', r:'Давай', u:'«Let us» (Let’s) — предложение вместе: «Let us meet» — давай встретимся.'},
+        {t:'Past', r:'После (о времени)', u:'Минуты после часа: «ten past five» — пять десять.'},
+        {t:'Week', r:'Неделя', rev:true},
+        {t:'Month', r:'Месяц', rev:true},
+        {t:'Green', r:'Зелёный', rev:true},
+        {t:'Yellow', r:'Жёлтый', rev:true},
+        {t:'Black', r:'Чёрный', rev:true},
+        {t:'Seven', r:'Семь', rev:true},
+        {t:'Eight', r:'Восемь', rev:true},
+        {t:'Address', r:'Адрес', rev:true}
+      ]},
+      { type:'build', title:'Собери: Время суток', scene:'flat', cefr:'A1: Can tell the time of day.', tasks:[
+        {ru:'Сколько сейчас времени?', parts:['What','time','is','it','now'], answer:'What time is it now', full:'What time is it now?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Я приду позже вечером.', parts:['I','will','come','later','in','the','evening'], answer:'I will come later in the evening', full:'I will come later in the evening.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Встретимся завтра утром.', parts:['Let','us','meet','tomorrow','morning'], answer:'Let us meet tomorrow morning', full:'Let us meet tomorrow morning.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Сейчас четверть седьмого.', parts:['It','is','a','quarter','past','six'], answer:'It is a quarter past six', full:'It is a quarter past six.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Узнать время', scene:'flat', cefr:'A1: Can tell the time of day.',
+        intro:'Ты стоишь на остановке и ждёшь автобус. Прохожий рядом спрашивает.',
+        flow: {
+        intro:'Ты стоишь на остановке и ждёшь автобус. Прохожий рядом спрашивает.',
+        start:'ask',
+        opener:{them:'Are you waiting for the bus?', ru:'Автобус ждёте?'},
+        nodes:{
+          ask:{ task:'Спроси, который час (например: простите, сколько времени?).', best:'Excuse me, what time is it?',
+          judge(w){
+                if(chose(w,'time','clock','watch')) return {br:'time'};
+                if(chose(w,'bus','wait','waiting')) return {br:'bus'};
+                if(chose(w,'bye','goodbye','see','later','go','leave','leaving')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            time:{them:'It is half past eight.',ruThem:'Половина девятого.',next:'late'},
+            bus:{them:'The bus comes at nine. It is half past eight now.',ruThem:'Автобус в девять. Сейчас половина девятого.',next:'late'},
+            bye:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+          } },
+          late:{ task:'Ответь, почему спешишь (например: я опаздываю на работу).', best:'Oh, I am late for work.',
+          judge(w){
+                if(chose(w,'late','work','job','office')) return {br:'work'};
+                if(chose(w,'bus','wait','waiting','nothing','fine','ok','okay','alright','just')) return {br:'wait'};
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            work:{them:'Oh no. The next bus comes soon.',ruThem:'Ой. Следующий автобус скоро.',next:'thanks'},
+            wait:{them:'Ok. The bus should be here in five minutes.',ruThem:'Хорошо. Автобус будет минут через пять.',next:'thanks'},
+            bye:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+          } },
+          thanks:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'thanks','thank')) return {br:'ok'};
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'You are welcome. Is everything else alright?',ruThem:'Пожалуйста. В остальном всё нормально?',next:'ok2'},
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+          } },
+          ok2:{ task:'Ответь, всё ли в порядке (например: да, всё хорошо).', best:'Yes, everything else is fine.',
+          judge(w){
+                const bad=['bad','problem','wrong','trouble'];
+                const bi=bad.map(x=>w.indexOf(x)).filter(i=>i>=0);
+                if(bi.some(i=>!negatedAt(w,i))) return {br:'no'};
+                if(bi.length&&bi.every(i=>negatedAt(w,i))) return {br:'fine'};
+                if(chose(w,'yes','yeah','fine','ok','okay','alright','good','all','right','sure')) return {br:'fine'};
+                if(has(w,'no','not','never')) return {br:'no'};
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            fine:{them:'Good. Call me if you need anything.',ruThem:'Хорошо. Звоните, если что-то понадобится.',next:'thanks2'},
+            no:{them:'Oh, I am sorry to hear that. I hope it gets better. Call me if you need anything.',ruThem:'Жаль слышать. Надеюсь, всё наладится. Звоните, если что.',next:'thanks2'},
+            bye:{them:'Take care!',ruThem:'Берегите себя!',next:null},
+          } },
+          thanks2:{ task:'Поблагодари.', best:'Thank you, I will.',
+          judge(w){
+                if(chose(w,'thanks','thank')) return {br:'ok'};
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'Have a good evening.',ruThem:'Хорошего вечера.',next:'wish'},
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+          } },
+          wish:{ task:'Пожелай того же.', best:'You too, good night!',
+          judge(w){
+                if(chose(w,'too','likewise','same','night')) return {br:'ok'};
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Берегите себя!',next:null},
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+          } },  }
+      }
+      },
+      { type:'words', title:'Погода · 1', scene:'street', cefr:'A1: Can talk about the weather in simple terms.', newCount:10, words:[
+        {t:'Weather', r:'Погода'},
+        {t:'Hot', r:'Жарко'},
+        {t:'Cold', r:'Холодно'},
+        {t:'Warm', r:'Тепло'},
+        {t:'Sun', r:'Солнце'},
+        {t:'Rain', r:'Дождь'},
+        {t:'Snow', r:'Снег'},
+        {t:'Sport', r:'Спорт'},
+        {t:'Free', r:'Свободный', u:'Два смысла: «Are you free?» — свободен ли ты; «It is free» — бесплатно.'},
+        {t:'Sea', r:'Море'},
+        {t:'White', r:'Белый', rev:true},
+        {t:'Brown', r:'Коричневый', rev:true},
+        {t:'Daughter', r:'Дочь', rev:true},
+        {t:'Child', r:'Ребёнок', rev:true},
+        {t:'Fat', r:'Толстый', rev:true},
+        {t:'Object', r:'Предмет', rev:true}
+      ]},
+      { type:'words', title:'Погода · 2', scene:'street', cefr:'A1: Can talk about the weather in simple terms.', newCount:9, words:[
+        {t:'Spring', r:'Весна'},
+        {t:'Summer', r:'Лето'},
+        {t:'Autumn', r:'Осень'},
+        {t:'Winter', r:'Зима'},
+        {t:'Umbrella', r:'Зонт'},
+        {t:'Cool', r:'Прохладно'},
+        {t:'Holiday', r:'Отпуск / праздник'},
+        {t:'Ice', r:'Лёд'},
+        {t:'Sunny', r:'Солнечно', u:'О погоде: «It is sunny today». От слова sun — солнце.'},
+        {t:'Time', r:'Время', rev:true},
+        {t:'Hour', r:'Час', rev:true},
+        {t:'Minute', r:'Минута', rev:true},
+        {t:'Monday', r:'Понедельник', rev:true},
+        {t:'Tuesday', r:'Вторник', rev:true},
+        {t:'Wednesday', r:'Среда', rev:true}
+      ]},
+      { type:'build', title:'Собери: Погода', scene:'street', cefr:'A1: Can talk about the weather in simple terms.', tasks:[
+        {ru:'Сегодня очень холодно.', parts:['It','is','very','cold','today'], answer:'It is very cold today', full:'It is very cold today.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Идёт дождь, возьми зонт.', parts:['It','is','raining','take','an','umbrella'], answer:'It is raining take an umbrella', full:'It is raining, take an umbrella.',
+         whyT:'Present Continuous: происходит сейчас', why:'am/is/are + глагол с -ing. «I am waiting» — жду прямо сейчас, в отличие от «I wait» — вообще, обычно.'},
+        {ru:'Летом здесь жарко.', parts:['It','is','hot','here','in','summer'], answer:'It is hot here in summer', full:'It is hot here in summer.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Завтра будет солнце.', parts:['Tomorrow','it','will','be','sunny'], answer:'Tomorrow it will be sunny', full:'Tomorrow it will be sunny.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Разговор о погоде', scene:'street', cefr:'A1: Can talk about the weather in simple terms.',
+        intro:'Сосед у подъезда смотрит на небо.',
+        flow: {
+        intro:'Сосед у подъезда смотрит на небо.',
+        start:'cold',
+        opener:{them:'Cold today, isn’t it?', ru:'Холодно сегодня, правда?'},
+        nodes:{
+          cold:{ task:'Ответь про погоду (например: да, очень холодно и ветрено).', best:'Yes, very cold. And windy.',
+          judge(w){
+                if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea')||w.includes('sure'))) return {br:'neu'};
+                if(chose(w,'ok','okay','fine','alright','normal','same')) return {br:'neu'};
+                if(chose(w,'cold','windy','freezing','chilly')||chose(w,'yes','yeah','true','right','agree','sure')) return {br:'agree'};
+                if(chose(w,'warm','hot','summer','sun','like','love','enjoy','hate')) return {br:'dis'};
+                if(has(w,'no','not','never')&&(w.length===1||has(w,'really','actually','not','so','is','it'))) return {br:'dis'};
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            agree:{them:'And windy, too. They say it will snow tonight.',ruThem:'И ветрено. Говорят, ночью пойдёт снег.',next:'snow'},
+            dis:{them:'Oh, I see. Do you like winter? They say it will snow tonight.',ruThem:'Понятно. А вы любите зиму? Говорят, ночью пойдёт снег.',next:'snow'},
+            neu:{them:'Well, I think it is really cold today. They say it will snow tonight.',ruThem:'Ну, по-моему, сегодня очень холодно. Говорят, ночью пойдёт снег.',next:'snow'},
+            bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
+          } },
+          snow:{ task:'Ответь, как ты относишься к снегу (например: я не люблю снег).', best:'Really? I don’t like snow.',
+          judge(w){
+                if(chose(w,'like','love','enjoy')) return {br:'like'};
+                if(chose(w,'hate')||(has(w,'no','not','never')&&chose(w,'snow'))) return {br:'hate'};
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            like:{them:'Lucky you! I love snow too.',ruThem:'Повезло! Я тоже люблю снег.',next:'winter'},
+            hate:{them:'Well, it is winter.',ruThem:'Ну, зима же.',next:'winter'},
+            bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
+          } },
+          winter:{ task:'Согласись и попрощайся (например: верно. Хорошего дня!).', best:'True. Have a good day!',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later','day')) return {br:'bye'};
+                if(chose(w,'true','yes','right','sure','agree','ok','okay','winter')) return {br:'agree'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'You too. By the way, do you need anything else?',ruThem:'И вам. Кстати, вам что-нибудь ещё нужно?',next:'cafe'},
+            agree:{them:'Yes, winter days are short. Anything else I can do?',ruThem:'Да, зимой дни короткие. Могу ещё чем-то помочь?',next:'cafe'},
+          } },
+          cafe:{ task:'Спроси, есть ли рядом кафе.', best:'Is there a cafe near here?',
+          judge(w){
+                if(chose(w,'cafe','coffee','restaurant','place','eat','tea')) return {br:'cafe'};
+                if(has(w,'no','not','never')||chose(w,'nothing','all','fine','ok','okay','thanks','thank')) return {br:'no'};
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            cafe:{them:'Yes, just around the corner.',ruThem:'Да, прямо за углом.',next:'side'},
+            no:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
+          } },
+          side:{ task:'Уточни дорогу (например: налево или направо?).', best:'Left or right?',
+          judge(w){
+                if(chose(w,'left')) return {br:'left'};
+                if(chose(w,'right')) return {br:'right'};
+                if(chose(w,'corner','next','where','shop','which','side')) return {br:'which'};
+                return {huh:1}; },
+          tr:{
+            left:{them:'On your left, next to the shop.',ruThem:'Слева, рядом с магазином.',next:'thx'},
+            right:{them:'On your right, next to the shop.',ruThem:'Справа, рядом с магазином.',next:'thx'},
+            which:{them:'Which side — left or right?',ruThem:'С какой стороны — слева или справа?',next:'side'},
+          } },
+          thx:{ task:'Поблагодари.', best:'Thank you, that is very helpful.',
+          judge(w){
+                if(chose(w,'thanks','thank')) return {br:'ok'};
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'You are welcome. Have a good day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
+            bye:{them:'Have a good day!',ruThem:'Хорошего дня!',next:null},
+          } },  }
+      }
+      },
+      { type:'words', title:'Контроль: темы 5–8', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Grey', r:'Серый', rev:true},
+        {t:'Pink', r:'Розовый', rev:true},
+        {t:'Purple', r:'Фиолетовый', rev:true},
+        {t:'Orange', r:'Оранжевый', rev:true},
+        {t:'Big', r:'Большой', rev:true},
+        {t:'Small', r:'Маленький', rev:true},
+        {t:'Large', r:'Крупный', rev:true},
+        {t:'Short', r:'Короткий', rev:true},
+        {t:'Tall', r:'Высокий', rev:true},
+        {t:'Thing', r:'Вещь', rev:true},
+        {t:'Thursday', r:'Четверг', rev:true},
+        {t:'Friday', r:'Пятница', rev:true},
+        {t:'Saturday', r:'Суббота', rev:true},
+        {t:'Sunday', r:'Воскресенье', rev:true},
+        {t:'January', r:'Январь', rev:true},
+        {t:'February', r:'Февраль', rev:true},
+        {t:'March', r:'Март', rev:true},
+        {t:'May', r:'Май', rev:true},
+        {t:'June', r:'Июнь', rev:true},
+        {t:'July', r:'Июль', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 5–8', scene:'street', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'У вас есть это в чёрном?', parts:['Do','you','have','this','in','black'], answer:'Do you have this in black', full:'Do you have this in black?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это слишком большое для меня.', parts:['This','is','too','big','for','me'], answer:'This is too big for me', full:'This is too big for me.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Мне нравится синий цвет.', parts:['I','like','the','blue','colour'], answer:'I like the blue colour', full:'I like the blue colour.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Дайте маленький, пожалуйста.', parts:['Give','me','a','small','one','please'], answer:'Give me a small one please', full:'Give me a small one, please.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Увидимся в понедельник.', parts:['See','you','on','Monday'], answer:'See you on Monday', full:'See you on Monday.',
+         whyT:'Предлоги времени', why:'at — точное время (at six), on — день (on Monday), in — часть суток и период (in the morning, in a week). Ошибка «in Monday» — типичная.'},
+        {ru:'Я работаю с понедельника по пятницу.', parts:['I','work','from','Monday','to','Friday'], answer:'I work from Monday to Friday', full:'I work from Monday to Friday.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'words', title:'Тело и здоровье · 1', scene:'clinic', cefr:'A1: Can name parts of the body and say what hurts.', newCount:11, words:[
+        {t:'Body', r:'Тело'},
+        {t:'Head', r:'Голова'},
+        {t:'Hair', r:'Волосы'},
+        {t:'Eye', r:'Глаз'},
+        {t:'Ear', r:'Ухо'},
+        {t:'Nose', r:'Нос'},
+        {t:'Mouth', r:'Рот'},
+        {t:'Tooth', r:'Зуб'},
+        {t:'Face', r:'Лицо'},
+        {t:'Hand', r:'Рука (кисть)'},
+        {t:'Arm', r:'Рука'},
+        {t:'August', r:'Август', rev:true},
+        {t:'September', r:'Сентябрь', rev:true},
+        {t:'October', r:'Октябрь', rev:true},
+        {t:'December', r:'Декабрь', rev:true},
+        {t:'Weekend', r:'Выходные', rev:true},
+        {t:'Date', r:'Дата', rev:true},
+        {t:'Weather', r:'Погода', rev:true},
+        {t:'Hot', r:'Жарко', rev:true},
+        {t:'Cold', r:'Холодно', rev:true}
+      ]},
+      { type:'words', title:'Тело и здоровье · 2', scene:'clinic', cefr:'A1: Can name parts of the body and say what hurts.', newCount:11, words:[
+        {t:'Leg', r:'Нога'},
+        {t:'Foot', r:'Ступня'},
+        {t:'Back', r:'Спина'},
+        {t:'Health', r:'Здоровье'},
+        {t:'Healthy', r:'Здоровый'},
+        {t:'Sick', r:'Больной'},
+        {t:'Hospital', r:'Больница'},
+        {t:'Doctor', r:'Врач'},
+        {t:'Nurse', r:'Медсестра'},
+        {t:'Hurts', r:'Болит', u:'Форма hurt для he/she/it: «My head hurts» — голова болит.'},
+        {t:'Since', r:'С (какого-то момента)', u:'Точка начала: «since Monday» — с понедельника. Про длительность — «for».'},
+        {t:'Morning', r:'Утро', rev:true},
+        {t:'Afternoon', r:'День (после полудня)', rev:true},
+        {t:'Evening', r:'Вечер', rev:true},
+        {t:'Thursday', r:'Четверг', rev:true},
+        {t:'Friday', r:'Пятница', rev:true},
+        {t:'Nine', r:'Девять', rev:true},
+        {t:'Ten', r:'Десять', rev:true},
+        {t:'Need', r:'Нуждаться', rev:true},
+        {t:'Like', r:'Нравиться', rev:true}
+      ]},
+      { type:'build', title:'Собери: Тело и здоровье', scene:'clinic', cefr:'A1: Can name parts of the body and say what hurts.', tasks:[
+        {ru:'У меня болит голова.', parts:['My','head','hurts'], answer:'My head hurts', full:'My head hurts.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Мне нужен врач.', parts:['I','need','a','doctor'], answer:'I need a doctor', full:'I need a doctor.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Где больница?', parts:['Where','is','the','hospital'], answer:'Where is the hospital', full:'Where is the hospital?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Моя спина болит со вчера.', parts:['My','back','hurts','since','yesterday'], answer:'My back hurts since yesterday', full:'My back hurts since yesterday.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'У врача', scene:'clinic', cefr:'A1: Can name parts of the body and say what hurts.',
+        intro:'Врач приглашает тебя сесть.',
+        flow: {
+        intro:'Врач приглашает тебя сесть.',
+        start:'prob',
+        opener:{them:'What is the problem?', ru:'Что случилось?'},
+        nodes:{
+          prob:{ task:'Расскажи, что у тебя болит (например: болит голова).', best:'My head hurts.',
+          judge(w){
+                if(chose(w,'head','headache','migraine')) return {br:'head'};
+                if(chose(w,'throat','stomach','back','tooth','ear','leg','arm','cough','flu','fever','temperature','sore','hurt','aches','pain')) return {br:'other'};
+                if(has(w,'no','not','never')||chose(w,'nothing','fine','good','ok','okay','all')) return {br:'none'};
+                if(chose(w,'bye','goodbye','see','later','thanks','thank')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            head:{them:'I see. Since when?',ruThem:'Понятно. С какого времени?',next:'since'},
+            other:{them:'I see. Since when did it start?',ruThem:'Понятно. Когда это началось?',next:'since'},
+            none:{them:'Glad to hear that. Do you have any questions?',ruThem:'Рад это слышать. У вас есть вопросы?',next:'quest'},
+            bye:{them:'Take care!',ruThem:'Берегите себя!',next:null},
+          } },
+          since:{ task:'Ответь, с какого времени (например: со вчерашнего дня).', best:'Since yesterday.',
+          judge(w,mem){ const d=(mem._digits||[]).map(Number);
+                const span=has(w,'day','days','week','weeks','month','months','hour','hours','year','years','ago','morning','night');
+                if(chose(w,'yesterday')) return {br:'yest'};
+                if(chose(w,'today','morning')) return {br:'today'};
+                if(d.length && span) return {br:'days'};
+                if(chose(w,'day','days','week','weeks','month','months','long','time')) return {br:'days'};
+                return {huh:1}; },
+          tr:{
+            yest:{them:'I see. Take this medicine and rest today.',ruThem:'Понятно. Примите лекарство и отдохните сегодня.',next:'rest'},
+            today:{them:'Ok, it started today. Take this and rest.',ruThem:'Хорошо, началось сегодня. Примите это и отдыхайте.',next:'rest'},
+            days:{them:'Ok. Take this medicine and rest.',ruThem:'Хорошо. Примите лекарство и отдыхайте.',next:'rest'},
+          } },
+          rest:{ task:'Поблагодари врача.', best:'Thank you, doctor.',
+          judge(w){
+                if(chose(w,'thanks','thank')) return {br:'ok'};
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'Do you have any questions?',ruThem:'У вас есть вопросы?',next:'quest'},
+            bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
+          } },
+          quest:{ task:'Спроси, когда прийти снова (например: когда мне прийти снова?).', best:'When should I come again?',
+          judge(w){
+                if(chose(w,'when')) return {br:'ask'};
+                if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
+                if(chose(w,'yes','yeah','question','questions','ask')) return {br:'yes'};
+                if(has(w,'no','not')&&!w.includes('none')) return {br:'no'};
+                if(!has(w,'no','not')&&(w.includes('none')||chose(w,'nothing','ok','okay','all','fine'))) return {br:'no'};
+                if(chose(w,'bye','goodbye','see','later','thanks','thank')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ask:{them:'In one week, if it does not get better.',ruThem:'Через неделю, если не станет лучше.',next:'week'},
+            yes:{them:'Of course, go ahead. What is your question?',ruThem:'Конечно, задавайте. Какой у вас вопрос?',next:'qask'},
+            no:{them:'Ok. Then take care of yourself.',ruThem:'Хорошо. Тогда берегите себя.',next:'care'},
+            bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
+          } },
+          qask:{ task:'Спроси, когда прийти снова (например: когда мне прийти снова?).', best:'When should I come again?',
+          judge(w){
+                if(chose(w,'when')) return {br:'ask'};
+                if(chose(w,'again','come','back','next','visit','appointment','week','weeks')) return {br:'ask'};
+                if(chose(w,'medicine','pill','pills','tablet','tablets','how','often','long','eat','drink','work','rest','sleep','should')) return {br:'med'};
+                if(has(w,'no','not')&&!w.includes('none')) return {br:'no'};
+                if(!has(w,'no','not')&&(w.includes('none')||chose(w,'nothing','ok','okay','all','fine'))) return {br:'no'};
+                if(chose(w,'bye','goodbye','see','later','thanks','thank')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ask:{them:'In one week, if it does not get better.',ruThem:'Через неделю, если не станет лучше.',next:'week'},
+            med:{them:'Take the medicine twice a day and rest.',ruThem:'Принимайте лекарство два раза в день и отдыхайте.',next:'care'},
+            no:{them:'Ok. Then take care of yourself.',ruThem:'Хорошо. Тогда берегите себя.',next:'care'},
+            bye:{them:'Take care! Goodbye!',ruThem:'Берегите себя! До свидания!',next:null},
+          } },
+          week:{ task:'Подтверди слова врача (например: неделю, я понял).', best:'One week. I understand.',
+          judge(w,mem){ const d=(mem._digits||[]).map(Number);
+                if(d.length&&(has(w,'week','weeks')||w.includes('7'))) return {br:'ok'};
+                if(chose(w,'week','weeks','understand','clear','ok','okay','yes','right','fine','sure')) return {br:'ok'};
+                if(has(w,'no','not','what','again','repeat','sorry','pardon')||chose(w,'why')) return {br:'again'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'Take care of yourself.',ruThem:'Берегите себя.',next:'care'},
+            again:{them:'In one week. If it does not get better, come back.',ruThem:'Через неделю. Если не станет лучше — приходите снова.',next:'week'},
+          } },
+          care:{ task:'Поблагодари и попрощайся.', best:'Thank you, doctor. Goodbye.',
+          judge(w){ const th=chose(w,'thanks','thank'), by=chose(w,'bye','goodbye','see','later','day');
+                if(th&&by) return {br:'ok'};
+                if(by) return {br:'bye'};
+                if(th) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'Goodbye! Get well soon!',ruThem:'До свидания! Выздоравливайте!',next:null},
+            bye:{them:'Get well soon!',ruThem:'Выздоравливайте!',next:null},
+            th:{them:'You are welcome. Take care!',ruThem:'Пожалуйста. Берегите себя!',next:null},
+          } },  }
+      }
+      },
+      { type:'words', title:'Одежда · 1', scene:'market', cefr:'A1: Can name clothes and ask for a size.', newCount:11, words:[
+        {t:'Clothes', r:'Одежда'},
+        {t:'Shirt', r:'Рубашка'},
+        {t:'T-shirt', r:'Футболка'},
+        {t:'Dress', r:'Платье'},
+        {t:'Skirt', r:'Юбка'},
+        {t:'Trousers', r:'Брюки'},
+        {t:'Jeans', r:'Джинсы'},
+        {t:'Jacket', r:'Куртка'},
+        {t:'Coat', r:'Пальто'},
+        {t:'Sweater', r:'Свитер'},
+        {t:'Shoe', r:'Ботинок'},
+        {t:'Night', r:'Ночь', rev:true},
+        {t:'Midnight', r:'Полночь', rev:true},
+        {t:'Grey', r:'Серый', rev:true},
+        {t:'Pink', r:'Розовый', rev:true},
+        {t:'Year', r:'Год', rev:true},
+        {t:'Old', r:'Старый / лет', rev:true}
+      ]},
+      { type:'words', title:'Одежда · 2', scene:'market', cefr:'A1: Can name clothes and ask for a size.', newCount:11, words:[
+        {t:'Boot', r:'Сапог'},
+        {t:'Hat', r:'Шляпа'},
+        {t:'Pair', r:'Пара'},
+        {t:'Wear', r:'Носить'},
+        {t:'Type', r:'Тип / вид'},
+        {t:'Shop', r:'Магазин'},
+        {t:'Shopping', r:'Покупки'},
+        {t:'Buy', r:'Покупать', u:'Прошедшее — bought. «I want to buy» — хочу купить.'},
+        {t:'Looking', r:'Ищу / смотрю', u:'Форма look. «I am looking for…» — я ищу. В магазине говорят именно так.'},
+        {t:'Much', r:'Много / сколько', u:'«How much?» — сколько стоит. «Much» — с тем, что не считают: much water.'},
+        {t:'Size', r:'Размер', u:'Об одежде и обуви: «What size?» — какой размер.'},
+        {t:'Body', r:'Тело', rev:true},
+        {t:'Head', r:'Голова', rev:true},
+        {t:'Hair', r:'Волосы', rev:true},
+        {t:'Warm', r:'Тепло', rev:true},
+        {t:'Sun', r:'Солнце', rev:true},
+        {t:'Rain', r:'Дождь', rev:true}
+      ]},
+      { type:'build', title:'Собери: Одежда', scene:'market', cefr:'A1: Can name clothes and ask for a size.', tasks:[
+        {ru:'Я ищу чёрную куртку.', parts:['I','am','looking','for','a','black','jacket'], answer:'I am looking for a black jacket', full:'I am looking for a black jacket.',
+         whyT:'Present Continuous: происходит сейчас', why:'am/is/are + глагол с -ing. «I am waiting» — жду прямо сейчас, в отличие от «I wait» — вообще, обычно.'},
+        {ru:'У вас есть эти туфли моего размера?', parts:['Do','you','have','these','shoes','in','my','size'], answer:'Do you have these shoes in my size', full:'Do you have these shoes in my size?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Сколько стоят эти джинсы?', parts:['How','much','are','these','jeans'], answer:'How much are these jeans', full:'How much are these jeans?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Я хочу купить свитер.', parts:['I','want','to','buy','a','sweater'], answer:'I want to buy a sweater', full:'I want to buy a sweater.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Купить куртку', scene:'market', cefr:'A1: Can name clothes and ask for a size.',
+        intro:'Ты в магазине одежды. Продавец подходит к тебе.',
+        flow: {
+        intro:'Ты в магазине одежды. Продавец подходит к тебе.',
+        start:'ask',
+        opener:{them:'Are you looking for something?', ru:'Что-то ищете?'},
+        nodes:{
+          ask:{ task:'Ответь, что тебе нужно (например: я ищу куртку).', best:'Yes, I am looking for a jacket.',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'help')) return {br:'help'};
+                const LUI=[]; w.forEach((x,i)=>{ if(x.startsWith('look')||x.startsWith('brows')) LUI.push(i); });
+                if(has(w,'no','not','never')&&LUI.some(i=>negatedAt(w,i))){
+                  if(w.includes('just')) return {br:'browse'};
+                  return {br:'notb'}; }
+                if(chose(w,'hat','hats','scarf','scarves','shirt','shirts','dress','dresses','shoe','shoes')) return {br:'other'};
+                if(chose(w,'jacket','jackets')) return {br:'jacket'};
+                if(chose(w,'coat','coats')) return {br:'coat'};
+                if(!has(w,'no','not','never')&&LUI.length) return {br:'browse'};
+                if(has(w,'no','not','never')&&(w.includes('nothing')||w.includes('anything'))) return {br:'browse'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Have a good day!',ruThem:'Хорошего дня!',next:null},
+            help:{them:'Of course! I can help you. What size do you wear?',ruThem:'Конечно! Я помогу. Какой размер вы носите?',next:'size'},
+            browse:{them:'Ok. Take your time and look around.',ruThem:'Хорошо. Не спешите, осмотритесь.',next:null},
+            notb:{them:'Oh, I see. Let me know if you need anything.',ruThem:'А, понятно. Дайте знать, если что-то понадобится.',next:null},
+            jacket:{them:'Here are our jackets. What size are you?',ruThem:'Вот наши куртки. Какой у вас размер?',next:'size'},
+            coat:{them:'Coats are over there. What size do you wear?',ruThem:'Куртки вон там. Какой размер вы носите?',next:'size'},
+            other:{them:'Oh, hats and scarves are on the other side. Let me know if you need help.',ruThem:'Головные уборы и шарфы с другой стороны. Обращайтесь, если что.',next:null},
+          } },
+          size:{ task:'Назови размер (например: средний, пожалуйста).', best:'Medium, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                if(has(w,'no','not','never')&&chose(w,'know','idea','size')) return {br:'dk'};
+                if(chose(w,'medium','m')) return {br:'med'};
+                if(chose(w,'large','l','big')) return {br:'l'};
+                if(chose(w,'small','s','little')) return {br:'s'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            dk:{them:'No problem. Try this medium one first.',ruThem:'Ничего страшного. Сначала примерьте средний.',next:'try'},
+            med:{them:'Here you are. Try this one.',ruThem:'Вот. Примерьте эту.',next:'try'},
+            l:{them:'Here is a large one. Try it.',ruThem:'Вот большого размера. Примерьте.',next:'try'},
+            s:{them:'Here is a small one. Try it.',ruThem:'Вот маленького размера. Примерьте.',next:'try'},
+          } },
+          try:{ task:'Скажи, что берёшь (например: спасибо, я возьму её).', best:'Thank you. I will take it.',
+          judge(w){
+                const POSS=['take','buy','like','fit','fits','perfect','good','great','fine','yes','yeah'];
+                const JOB=['small','big','large','tight','loose','short'];
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                let pp=false; for(const x of POSS){ const i=w.indexOf(x); if(i>-1&&!negatedAt(w,i)) pp=true; }
+                if(pp) return {br:'take'};
+                if(has(w,'no','not','never')&&w.includes('enough')) return {br:'bad'};
+                if(w.includes('enough')&&!has(w,'no','not','never')) return {br:'take'};
+                let jb=false,nj=false;
+                for(const x of JOB){ const i=w.indexOf(x); if(i>-1&&!negatedAt(w,i)) jb=true; if(i>-1&&negatedAt(w,i)) nj=true; }
+                if(jb) return {br:'bad'};
+                if(has(w,'no','not','never')&&nj) return {br:'take'};
+                if(has(w,'no','not','never')) return {br:'bad'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Let me know if you change your mind.',ruThem:'Хорошо. Дайте знать, если передумаете.',next:null},
+            take:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
+            bad:{them:'I see. Let me find another one for you.',ruThem:'Понял. Поищу для вас другой вариант.',next:'size2'},
+          } },
+          size2:{ task:'Назови другой размер (например: побольше, пожалуйста).', best:'A large one, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
+                if(has(w,'no','not','never')) return {br:'last'};
+                if(chose(w,'large','l','big','medium','m','small','s','bigger','smaller')) return {br:'try'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Come back anytime!',ruThem:'Хорошо. Заходите ещё!',next:null},
+            last:{them:'I see. We have one more jacket in dark blue. Let me show you.',ruThem:'Понял. У нас есть ещё одна куртка, тёмно-синяя. Сейчас покажу.',next:'last'},
+            try:{them:'Here you are. Try this one.',ruThem:'Вот. Примерьте эту.',next:'try2'},
+          } },
+          last:{ task:'Скажи своё решение (например: да, она мне нравится, я беру её).', best:'Yes, I like it. I will take it.',
+          judge(w){
+                const POSL=['take','buy','like','good','perfect','fit','fits','yes','yeah'];
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                let pp=false; for(const x of POSL){ const i=w.indexOf(x); if(i>-1&&!negatedAt(w,i)) pp=true; }
+                if(pp||chose(w,'thanks','thank')) return {br:'take'};
+                if(has(w,'no','not','never')) return {br:'no'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Come back anytime!',ruThem:'Хорошо. Заходите ещё!',next:null},
+            take:{them:'Great choice! Anything else?',ruThem:'Отличный выбор! Что-нибудь ещё?',next:'more'},
+            no:{them:'No problem. It is not for everyone.',ruThem:'Не проблема. Не всем она подходит.',next:null},
+          } },
+          try2:{ task:'Скажи, что берёшь (например: спасибо, я возьму её).', best:'Thank you. I will take it.',
+          judge(w){
+                const P2=['take','buy','like','fit','fits','perfect','good','great','fine','yes','yeah'];
+                const SML=['small','big','tight','loose','short'];
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                let pp=false; for(const x of P2){ const i=w.indexOf(x); if(i>-1&&!negatedAt(w,i)) pp=true; }
+                if(pp||chose(w,'thanks','thank')) return {br:'take'};
+                if(has(w,'no','not','never')&&w.includes('enough')) return {br:'no'};
+                let sm=false,nj=false;
+                for(const x of SML){ const i=w.indexOf(x); if(i>-1&&!negatedAt(w,i)) sm=true; if(i>-1&&negatedAt(w,i)) nj=true; }
+                if(has(w,'no','not','never')&&nj) return {br:'take'};
+                if(has(w,'no','not','never')) return {br:'no'};
+                if(sm) return {br:'no'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Come back anytime!',ruThem:'Хорошо. Заходите ещё!',next:null},
+            take:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
+            no:{them:'No problem. It was nice to show you.',ruThem:'Ничего страшного. Рад был показать.',next:null},
+          } },
+          more:{ task:'Ответь, нужно ли что-то ещё (например: нет, это всё, спасибо).', best:'No, that is all, thank you.',
+          judge(w,mem){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'hat','hats','scarf','scarves','glove','gloves','shirt','shirts','shoe','shoes','jacket','jackets','coat','coats','more','another','also','other')){
+                  mem._m=(mem._m||0)+1;
+                  if(mem._m>=2) return {br:'add2'};
+                  return {br:'add'}; }
+                if(has(w,'no','not','never')||chose(w,'all','thanks','thank','fine','nothing')) return {br:'all'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            add:{them:'Of course! Anything else?',ruThem:'Конечно! Что-нибудь ещё?',next:'more'},
+            add2:{them:'Ok. Let me wrap it up for you.',ruThem:'Хорошо. Я упакую вам.',next:'pay'},
+            all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'pay'},
+          } },
+          pay:{ task:'Назови способ оплаты (например: картой, пожалуйста).', best:'By card, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','see')) return {br:'bye'};
+                if(chose(w,'card','credit')) return {br:'card'};
+                if(chose(w,'cash','coins')) return {br:'cash'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            card:{them:'Here is your receipt. Thank you. Have a good day!',ruThem:'Ваш чек. Спасибо. Хорошего дня!',next:'wish'},
+            cash:{them:'Sure. Here is your change. Thank you. Have a good day!',ruThem:'Пожалуйста, ваша сдача. Спасибо. Хорошего дня!',next:'wish'},
+          } },
+          wish:{ task:'Пожелай того же.', best:'Thanks, you too!',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'too','same','likewise')) return {br:'ok'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+            ok:{them:'Goodbye! Come again!',ruThem:'До свидания! Заходите ещё!',next:null},
+            th:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null},
+          } },
+        }
+      }
+      },
+      { type:'words', title:'Еда каждый день · 1', scene:'cafe', cefr:'A1: Can name common food and order it.', newCount:11, words:[
+        {t:'Food', r:'Еда'},
+        {t:'Bread', r:'Хлеб'},
+        {t:'Butter', r:'Масло'},
+        {t:'Cheese', r:'Сыр'},
+        {t:'Egg', r:'Яйцо'},
+        {t:'Meat', r:'Мясо'},
+        {t:'Chicken', r:'Курица'},
+        {t:'Fish', r:'Рыба'},
+        {t:'Rice', r:'Рис'},
+        {t:'Soup', r:'Суп'},
+        {t:'Salad', r:'Салат'},
+        {t:'Sport', r:'Спорт', rev:true},
+        {t:'Saturday', r:'Суббота', rev:true},
+        {t:'Sunday', r:'Воскресенье', rev:true},
+        {t:'Baby', r:'Младенец', rev:true},
+        {t:'Husband', r:'Муж', rev:true},
+        {t:'Sunny', r:'Солнечно', u:'О погоде: «It is sunny today». От слова sun — солнце.', rev:true}
+      ]},
+      { type:'words', title:'Еда каждый день · 2', scene:'cafe', cefr:'A1: Can name common food and order it.', newCount:10, words:[
+        {t:'Sandwich', r:'Бутерброд'},
+        {t:'Salt', r:'Соль'},
+        {t:'Pepper', r:'Перец'},
+        {t:'Sugar', r:'Сахар'},
+        {t:'Milk', r:'Молоко'},
+        {t:'Cream', r:'Сливки'},
+        {t:'Meal', r:'Приём пищи'},
+        {t:'Dish', r:'Блюдо'},
+        {t:'Menu', r:'Меню'},
+        {t:'Without', r:'Без', u:'Противоположно with: «coffee without sugar» — кофе без сахара.'},
+        {t:'Clothes', r:'Одежда', rev:true},
+        {t:'Shirt', r:'Рубашка', rev:true},
+        {t:'T-shirt', r:'Футболка', rev:true},
+        {t:'Eye', r:'Глаз', rev:true},
+        {t:'Ear', r:'Ухо', rev:true},
+        {t:'Nose', r:'Нос', rev:true},
+        {t:'Snow', r:'Снег', rev:true}
+      ]},
+      { type:'build', title:'Собери: Еда каждый день', scene:'cafe', cefr:'A1: Can name common food and order it.', tasks:[
+        {ru:'Можно мне меню, пожалуйста?', parts:['Can','I','have','the','menu','please'], answer:'Can I have the menu please', full:'Can I have the menu, please?',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Я буду суп и салат.', parts:['I','will','have','soup','and','salad'], answer:'I will have soup and salad', full:'I will have soup and salad.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Без соли, пожалуйста.', parts:['Without','salt','please'], answer:'Without salt please', full:'Without salt, please.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это блюдо с рыбой?', parts:['Is','this','dish','with','fish'], answer:'Is this dish with fish', full:'Is this dish with fish?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Заказать обед', scene:'cafe', cefr:'A1: Can name common food and order it.',
+        intro:'Ты за столиком в кафе. Официант подходит с меню.',
+        flow: {
+        intro:'Ты за столиком в кафе. Официант подходит с меню.',
+        start:'ready',
+        opener:{them:'Are you ready to order?', ru:'Готовы заказать?'},
+        nodes:{
+          ready:{ task:'Ответь, готов ли заказывать (например: ещё нет, можно меню, пожалуйста?).', best:'Not yet. Could I see the menu, please?',
+          judge(w){
+                const HUR=['time','wait','waiting'];
+                if(chose(w,'menu')) return {br:'menu'};
+                if(chose(w,'soup','bread','salad')) return {br:'yes'};
+                if(chose(w,'ready','yes','yeah','order')) return {br:'yes'};
+                if(chose(w,'bye','goodbye','later','go')) return {br:'bye'};
+                if(has(w,'no','not','never')){
+                  for(const x of HUR){ if(w.includes(x)) return {br:'hurry'}; }
+                  for(const x of ['minute','moment','still']){ const i=w.indexOf(x); if(i>-1&&negatedAt(w,i)) return {huh:1}; }
+                  return {br:'wait'}; }
+                for(const x of ['time','minute','moment','wait','waiting']){ if(w.includes(x)&&!negatedAt(w,w.indexOf(x))) return {br:'wait'}; }
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
+            menu:{them:'Of course. Here you are.',ruThem:'Конечно. Пожалуйста.',next:'order'},
+            yes:{them:'Great! What would you like?',ruThem:'Отлично! Что будете заказывать?',next:'order'},
+            hurry:{them:'No problem. I will be quick. What would you like?',ruThem:'Без проблем. Я быстро. Что будете заказывать?',next:'order'},
+            wait:{them:'No problem. Here is the menu. Take your time.',ruThem:'Без проблем. Вот меню. Не спешите.',next:'order'},
+          } },
+          order:{ task:'Сделай заказ (например: я буду суп и хлеб).', best:'I will have the soup and some bread.',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'soup')&&chose(w,'bread')) return {br:'full'};
+                if(chose(w,'soup','bread','salad')) return {br:'some'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
+            full:{them:'Good choice. Anything to drink?',ruThem:'Хороший выбор. Что-нибудь выпить?',next:'drink'},
+            some:{them:'Of course. Anything to drink?',ruThem:'Конечно. Что-нибудь выпить?',next:'drink'},
+          } },
+          drink:{ task:'Закажи напиток (например: только воду, пожалуйста).', best:'Just water, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'water')) return {br:'water'};
+                if(chose(w,'tea','teas','coffee','coffees','juice','juices','cola','soda','lemonade','milk')) return {br:'drink'};
+                if(has(w,'no','not','never')) return {br:'none'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
+            water:{them:'Certainly. Anything else?',ruThem:'Конечно. Что-нибудь ещё?',next:'more'},
+            drink:{them:'Of course. Anything else?',ruThem:'Конечно. Что-нибудь ещё?',next:'more'},
+            none:{them:'Ok. Anything else?',ruThem:'Хорошо. Что-нибудь ещё?',next:'more'},
+          } },
+          more:{ task:'Ответь, нужно ли что-то ещё (например: нет, спасибо, это всё).', best:'No, thank you. That is all.',
+          judge(w,mem){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'soup','bread','salad','water','tea','coffee','juice','cake','cakes','dessert','more','another','also')){
+                  mem._m=(mem._m||0)+1;
+                  if(mem._m>=2) return {br:'add2'};
+                  return {br:'add'}; }
+                if(has(w,'no','not','never')||chose(w,'all','thanks','thank','fine','nothing')) return {br:'all'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
+            add:{them:'Of course! Anything else?',ruThem:'Конечно! Что-нибудь ещё?',next:'more'},
+            add2:{them:'Ok. I will bring everything in a moment.',ruThem:'Хорошо. Сейчас всё принесу.',next:'bring'},
+            all:{them:'I will bring it in a moment.',ruThem:'Сейчас принесу.',next:'bring'},
+          } },
+          bring:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'ok'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
+            ok:{them:'Here you are. Enjoy!',ruThem:'Пожалуйста. Приятного!',next:'enjoy'},
+          } },
+          enjoy:{ task:'Скажи, что всё хорошо (например: спасибо, выглядит вкусно).', best:'Thank you, it looks delicious.',
+          judge(w){
+                const YUM=['delicious','tasty','good','great','wonderful','love'];
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                let yy=false; for(const x of YUM){ const i=w.indexOf(x); if(i>-1&&!negatedAt(w,i)) yy=true; }
+                if(chose(w,'thanks','thank')&&yy) return {br:'ok'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
+            ok:{them:'You are welcome. Enjoy your meal!',ruThem:'Пожалуйста. Приятного аппетита!',next:null},
+            th:{them:'You are welcome!',ruThem:'Пожалуйста!',next:null},
+          } },
+        }
+      }
+      },
+      { type:'words', title:'Напитки · 1', scene:'cafe', cefr:'A1: Can order drinks.', newCount:8, words:[
+        {t:'Drink', r:'Напиток'},
+        {t:'Water', r:'Вода'},
+        {t:'Coffee', r:'Кофе'},
+        {t:'Tea', r:'Чай'},
+        {t:'Juice', r:'Сок'},
+        {t:'Beer', r:'Пиво'},
+        {t:'Wine', r:'Вино'},
+        {t:'Glass', r:'Стакан'},
+        {t:'Eleven', r:'Одиннадцать', rev:true},
+        {t:'Twelve', r:'Двенадцать', rev:true},
+        {t:'Sick', r:'Больной', rev:true},
+        {t:'Hospital', r:'Больница', rev:true},
+        {t:'Hurts', r:'Болит', u:'Форма hurt для he/she/it: «My head hurts» — голова болит.', rev:true},
+        {t:'Since', r:'С (какого-то момента)', u:'Точка начала: «since Monday» — с понедельника. Про длительность — «for».', rev:true},
+        {t:'Food', r:'Еда', rev:true},
+        {t:'Bread', r:'Хлеб', rev:true}
+      ]},
+      { type:'words', title:'Напитки · 2', scene:'cafe', cefr:'A1: Can order drinks.', newCount:8, words:[
+        {t:'Cup', r:'Чашка'},
+        {t:'Bottle', r:'Бутылка'},
+        {t:'Cold', r:'Холодный'},
+        {t:'Hot', r:'Горячий'},
+        {t:'Ice', r:'Лёд'},
+        {t:'Order', r:'Заказ', u:'Заказ в кафе и глагол «заказывать». «Are you ready to order?»'},
+        {t:'Waiter', r:'Официант'},
+        {t:'Without', r:'Без', u:'Противоположно with: «coffee without sugar» — кофе без сахара.'},
+        {t:'Butter', r:'Масло', rev:true},
+        {t:'Dress', r:'Платье', rev:true},
+        {t:'Skirt', r:'Юбка', rev:true},
+        {t:'Trousers', r:'Брюки', rev:true},
+        {t:'Mouth', r:'Рот', rev:true},
+        {t:'Tooth', r:'Зуб', rev:true},
+        {t:'Early', r:'Рано', rev:true},
+        {t:'Late', r:'Поздно', rev:true}
+      ]},
+      { type:'build', title:'Собери: Напитки', scene:'cafe', cefr:'A1: Can order drinks.', tasks:[
+        {ru:'Чашку кофе, пожалуйста.', parts:['A','cup','of','coffee','please'], answer:'A cup of coffee please', full:'A cup of coffee, please.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Можно стакан воды?', parts:['Can','I','have','a','glass','of','water'], answer:'Can I have a glass of water', full:'Can I have a glass of water?',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Чай без сахара.', parts:['Tea','without','sugar'], answer:'Tea without sugar', full:'Tea without sugar.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Бутылку вина, пожалуйста.', parts:['A','bottle','of','wine','please'], answer:'A bottle of wine please', full:'A bottle of wine, please.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'У барной стойки', scene:'cafe', cefr:'A1: Can order drinks.',
+        intro:'Ты у стойки в кофейне. Бариста ждёт твой заказ.',
+        flow: {
+        intro:'Ты у стойки в кофейне. Бариста ждёт твой заказ.',
+        start:'what',
+        opener:{them:'What can I get you?', ru:'Что вам взять?'},
+        nodes:{
+          what:{ task:'Сделай заказ (например: кофе, пожалуйста).', best:'A coffee, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'coffee','coffees')) return {br:'coffee'};
+                if(chose(w,'tea','teas','cocoa','juice','juices','water','lemonade')) return {br:'other'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
+            coffee:{them:'With milk?',ruThem:'С молоком?',next:'milk'},
+            other:{them:'Sure. Anything else?',ruThem:'Конечно. Что-нибудь ещё?',next:'more'},
+          } },
+          milk:{ task:'Уточни, как сделать кофе (например: без молока, но с сахаром).', best:'No milk, but with sugar, please.',
+          judge(w){
+                const BLCK=['black'];
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                const sug=chose(w,'sugar'), mlk=chose(w,'milk'), neg=has(w,'no','not','never');
+                const bk=BLCK.some(x=>{const i=w.indexOf(x); return i>-1&&!negatedAt(w,i);});
+                if(sug&&(neg||!mlk)) return {br:'dm'};
+                if(mlk&&!sug) return {br:'wm'};
+                if((neg&&!sug&&w.includes('milk'))||bk) return {br:'bl'};
+                if(mlk&&sug) return {br:'wms'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
+            dm:{them:'One coffee without milk, with sugar. Two euros fifty.',ruThem:'Кофе без молока, с сахаром. Два пятьдесят.',next:'price'},
+            wm:{them:'One coffee with milk. Two euros fifty.',ruThem:'Кофе с молоком. Два пятьдесят.',next:'price'},
+            wms:{them:'One coffee with milk and sugar. Two euros fifty.',ruThem:'Кофе с молоком и сахаром. Два пятьдесят.',next:'price'},
+            bl:{them:'One black coffee. Two euros fifty.',ruThem:'Один чёрный кофе. Два пятьдесят.',next:'price'},
+          } },
+          price:{ task:'Скажи, как будешь платить (например: я заплачу картой).', best:'I will pay by card.',
+          judge(w,mem){
+                if(chose(w,'bye','goodbye','see')) return {br:'bye'};
+                if(chose(w,'card','credit')) return {br:'card'};
+                if(chose(w,'cash','coins')) return {br:'cash'};
+                if(((mem._digits||[]).length||numOf(w))&&chose(w,'here','euro','euros','money','give','take')) return {br:'cash'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
+            card:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
+            cash:{them:'Perfect. Anything else?',ruThem:'Отлично. Что-нибудь ещё?',next:'more'},
+          } },
+          more:{ task:'Ответь, нужно ли что-то ещё (например: нет, спасибо, это всё).', best:'No, thank you. That is all.',
+          judge(w,mem){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'coffee','tea','juice','water','cake','cakes','pastry','bun','buns','croissant','cookies','more','another','also')){
+                  mem._m=(mem._m||0)+1;
+                  if(mem._m>=2) return {br:'add2'};
+                  return {br:'add'}; }
+                if(has(w,'no','not','never')||chose(w,'all','thanks','thank','fine','nothing')) return {br:'all'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
+            add:{them:'Of course! Anything else?',ruThem:'Конечно! Что-нибудь ещё?',next:'more'},
+            add2:{them:'Ok. Coming right up.',ruThem:'Хорошо. Сейчас сделаю.',next:'bring'},
+            all:{them:'I will bring it in a moment.',ruThem:'Сейчас принесу.',next:'bring'},
+          } },
+          bring:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'ok'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
+            ok:{them:'Here you are. Enjoy!',ruThem:'Пожалуйста. Приятного!',next:'enjoy'},
+          } },
+          enjoy:{ task:'Скажи, что всё хорошо (например: спасибо, выглядит вкусно).', best:'Thank you, it looks delicious.',
+          judge(w){
+                const YUM=['delicious','tasty','good','great','wonderful','love'];
+                if(chose(w,'bye','goodbye','see','later','go')) return {br:'bye'};
+                let yy=false; for(const x of YUM){ const i=w.indexOf(x); if(i>-1&&!negatedAt(w,i)) yy=true; }
+                if(chose(w,'thanks','thank')&&yy) return {br:'ok'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Have a nice day!',ruThem:'Хорошего дня!',next:null},
+            ok:{them:'You are welcome. Enjoy your coffee!',ruThem:'Пожалуйста. Приятного кофе!',next:null},
+            th:{them:'You are welcome!',ruThem:'Пожалуйста!',next:null},
+          } },
+        }
+      }
+      },
+      { type:'words', title:'Контроль: темы 9–12', scene:'cafe', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Face', r:'Лицо', rev:true},
+        {t:'Hand', r:'Рука (кисть)', rev:true},
+        {t:'Arm', r:'Рука', rev:true},
+        {t:'Leg', r:'Нога', rev:true},
+        {t:'Foot', r:'Ступня', rev:true},
+        {t:'Back', r:'Спина', rev:true},
+        {t:'Health', r:'Здоровье', rev:true},
+        {t:'Healthy', r:'Здоровый', rev:true},
+        {t:'Doctor', r:'Врач', rev:true},
+        {t:'Nurse', r:'Медсестра', rev:true},
+        {t:'Jeans', r:'Джинсы', rev:true},
+        {t:'Jacket', r:'Куртка', rev:true},
+        {t:'Coat', r:'Пальто', rev:true},
+        {t:'Sweater', r:'Свитер', rev:true},
+        {t:'Shoe', r:'Ботинок', rev:true},
+        {t:'Boot', r:'Сапог', rev:true},
+        {t:'Hat', r:'Шляпа', rev:true},
+        {t:'Pair', r:'Пара', rev:true},
+        {t:'Wear', r:'Носить', rev:true},
+        {t:'Type', r:'Тип / вид', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 9–12', scene:'cafe', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'У меня болит голова.', parts:['My','head','hurts'], answer:'My head hurts', full:'My head hurts.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Мне нужен врач.', parts:['I','need','a','doctor'], answer:'I need a doctor', full:'I need a doctor.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Где больница?', parts:['Where','is','the','hospital'], answer:'Where is the hospital', full:'Where is the hospital?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Моя спина болит со вчера.', parts:['My','back','hurts','since','yesterday'], answer:'My back hurts since yesterday', full:'My back hurts since yesterday.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я ищу чёрную куртку.', parts:['I','am','looking','for','a','black','jacket'], answer:'I am looking for a black jacket', full:'I am looking for a black jacket.',
+         whyT:'Present Continuous: происходит сейчас', why:'am/is/are + глагол с -ing. «I am waiting» — жду прямо сейчас, в отличие от «I wait» — вообще, обычно.'},
+        {ru:'У вас есть эти туфли моего размера?', parts:['Do','you','have','these','shoes','in','my','size'], answer:'Do you have these shoes in my size', full:'Do you have these shoes in my size?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'words', title:'Дом и комнаты · 1', scene:'flat', cefr:'A1: Can describe where they live.', newCount:13, words:[
+        {t:'House', r:'Дом'},
+        {t:'Home', r:'Дом (жильё)'},
+        {t:'Flat', r:'Квартира', u:'Квартира по-британски. В США — «apartment».'},
+        {t:'Apartment', r:'Квартира'},
+        {t:'Room', r:'Комната'},
+        {t:'Kitchen', r:'Кухня'},
+        {t:'Bedroom', r:'Спальня'},
+        {t:'Bathroom', r:'Ванная'},
+        {t:'Toilet', r:'Туалет'},
+        {t:'Door', r:'Дверь'},
+        {t:'Window', r:'Окно'},
+        {t:'Floor', r:'Пол / этаж'},
+        {t:'Wall', r:'Стена'},
+        {t:'Sea', r:'Море', rev:true},
+        {t:'Spring', r:'Весна', rev:true},
+        {t:'Purple', r:'Фиолетовый', rev:true},
+        {t:'Orange', r:'Оранжевый', rev:true},
+        {t:'Looking', r:'Ищу / смотрю', u:'Форма look. «I am looking for…» — я ищу. В магазине говорят именно так.', rev:true},
+        {t:'Size', r:'Размер', u:'Об одежде и обуви: «What size?» — какой размер.', rev:true},
+        {t:'Drink', r:'Напиток', rev:true}
+      ]},
+      { type:'words', title:'Дом и комнаты · 2', scene:'flat', cefr:'A1: Can describe where they live.', newCount:13, words:[
+        {t:'Table', r:'Стол'},
+        {t:'Chair', r:'Стул'},
+        {t:'Bed', r:'Кровать'},
+        {t:'Desk', r:'Письменный стол'},
+        {t:'Key', r:'Ключ'},
+        {t:'Garden', r:'Сад'},
+        {t:'Upstairs', r:'Наверху'},
+        {t:'Downstairs', r:'Внизу'},
+        {t:'Under', r:'Под'},
+        {t:'Outside', r:'Снаружи'},
+        {t:'Close', r:'Близко / закрывать', u:'Два смысла: «close to the shop» — рядом; «close the door» — закрой дверь.'},
+        {t:'Live', r:'Жить', u:'«I live in Moscow». Для he/she/it — lives.'},
+        {t:'Next', r:'Следующий / рядом', u:'«next week» — следующая неделя; «next to» — рядом с.'},
+        {t:'Water', r:'Вода', rev:true},
+        {t:'Coffee', r:'Кофе', rev:true},
+        {t:'Cheese', r:'Сыр', rev:true},
+        {t:'Egg', r:'Яйцо', rev:true},
+        {t:'Meat', r:'Мясо', rev:true},
+        {t:'Jeans', r:'Джинсы', rev:true},
+        {t:'Jacket', r:'Куртка', rev:true}
+      ]},
+      { type:'build', title:'Собери: Дом и комнаты', scene:'flat', cefr:'A1: Can describe where they live.', tasks:[
+        {ru:'Я живу в маленькой квартире.', parts:['I','live','in','a','small','flat'], answer:'I live in a small flat', full:'I live in a small flat.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Кухня рядом с ванной.', parts:['The','kitchen','is','next','to','the','bathroom'], answer:'The kitchen is next to the bathroom', full:'The kitchen is next to the bathroom.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Моя спальня наверху.', parts:['My','bedroom','is','upstairs'], answer:'My bedroom is upstairs', full:'My bedroom is upstairs.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Пожалуйста, закройте окно.', parts:['Please','close','the','window'], answer:'Please close the window', full:'Please close the window.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Показать квартиру', scene:'flat', cefr:'A1: Can describe where they live.',
+        intro:'Ты показываешь новую квартиру другу.',
+        flow: {
+        intro:'Ты показываешь новую квартиру другу.',
+        start:'place',
+        opener:{them:'So this is your new place?', ru:'Так вот твоё новое жильё?'},
+        nodes:{
+          place:{ task:'Ответь про квартиру: какая она? (например: маленькая)', best:'Yes, it is a small flat.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'like','love','nice','cosy','cozy','great','beautiful')) return {br:'like'};
+                if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea'))) return {br:'dk'};
+                if(chose(w,'big','large','huge')) return {br:'big'};
+                if(has(w,'no','not','never')) return {br:'not'};
+                if(chose(w,'small','little','tiny','flat','apartment','new','place','yes','yeah','ok','okay','fine','good','alright','so')) return {br:'ok'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            like:{them:'Thanks! I love it too. Come in, I will show you everything.',ruThem:'Спасибо! Мне она тоже нравится. Заходи, я всё покажу.',next:'kitchen'},
+            dk:{them:'Come in and see it for yourself. I will show you everything.',ruThem:'Заходи и сам увидишь. Я всё покажу.',next:'kitchen'},
+            big:{them:'Big? Well, there is enough space for sure. Come in!',ruThem:'Большая? Ну, места точно хватает. Заходи!',next:'kitchen'},
+            not:{them:'Oh, I see. Well, come in anyway — let me show you around.',ruThem:'А, понятно. Ну, всё равно заходи — покажу квартиру.',next:'kitchen'},
+            ok:{them:'Great! Come in, I will show you everything.',ruThem:'Отлично! Заходи, я всё покажу.',next:'kitchen'},
+          } },
+          kitchen:{ task:'Ответь, где кухня (например: рядом с дверью).', best:'The kitchen is next to the door.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'bathroom','bath','toilet')) return {br:'bath'};
+                if(chose(w,'living')) return {br:'living'};
+                if(chose(w,'kitchen')) return {br:'kitchen'};
+                if(chose(w,'door','next','left','right')) return {br:'kitchen'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            bath:{them:'The bathroom is next to the kitchen. And the bedroom is upstairs.',ruThem:'Ванная рядом с кухней. А спальня наверху.',next:'bedroom'},
+            living:{them:'The living room is here, next to the kitchen. And the bedroom is upstairs.',ruThem:'Гостиная вот здесь, рядом с кухней. А спальня наверху.',next:'bedroom'},
+            kitchen:{them:'Right. And the bedroom?',ruThem:'Верно. А спальня?',next:'bedroom'},
+          } },
+          bedroom:{ task:'Ответь, где спальня (например: наверху).', best:'It is upstairs.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'upstairs','up')) return {br:'up'};
+                if(has(w,'no','not','never')) return {br:'nodown'};
+                if(chose(w,'down','downstairs','here')) return {br:'down'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you!',ruThem:'Ладно. До встречи!',next:null},
+            up:{them:'Nice. And is there a balcony?',ruThem:'Отлично. А балкон есть?',next:'balcony'},
+            down:{them:'Oh, really? Ok. And is there a balcony?',ruThem:'Правда? Ладно. А балкон есть?',next:'balcony'},
+            nodown:{them:'Ok, so the bedroom is upstairs. And is there a balcony?',ruThem:'Хорошо, значит спальня наверху. А балкон есть?',next:'balcony'},
+          } },
+          balcony:{ task:'Ответь, есть ли балкон (например: да, есть).', best:'Yes, there is a small balcony.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'yes','yeah','balcony')) return {br:'yes'};
+                if(has(w,'no','not','never')) return {br:'no'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            yes:{them:'That is great. The flat is really nice.',ruThem:'Здорово. Квартира правда отличная.',next:'ok2'},
+            no:{them:'No problem. The flat is still nice.',ruThem:'Ничего страшного. Квартира всё равно хорошая.',next:'ok2'},
+          } },
+          ok2:{ task:'Ответь, всё ли в порядке (например: да, всё хорошо).', best:'Yes, everything else is fine.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'yes','yeah','fine','ok','okay','good','all','everything','right','sure')) return {br:'ok'};
+                if(has(w,'no','not','never')) return {br:'any'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok, thanks for coming! Bye!',ruThem:'Ладно, спасибо, что зашёл! Пока!',next:null},
+            ok:{them:'Good. Call me if you need anything.',ruThem:'Хорошо. Звони, если что-то понадобится.',next:'thanks'},
+            any:{them:'Ok, tell me if something comes up.',ruThem:'Хорошо, скажи, если что-то возникнет.',next:'thanks'},
+          } },
+          thanks:{ task:'Поблагодари.', best:'Thank you, I will.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'yes','yeah','ok','okay','sure','will','call')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a good evening!',ruThem:'Ладно. Хорошего вечера!',next:null},
+            th:{them:'Have a good evening.',ruThem:'Хорошего вечера.',next:'wish'},
+          } },
+          wish:{ task:'Пожелай того же.', best:'You too, good night!',
+          judge(w){
+                if(chose(w,'too','likewise','same','night')) return {br:'ok'};
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Береги себя!',next:null},
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+          } },
+        }
+      }
+      },
+      { type:'words', title:'Вещи в доме · 1', scene:'flat', cefr:'A1: Can name everyday objects at home.', newCount:11, words:[
+        {t:'Television', r:'Телевизор'},
+        {t:'Tv', r:'Телевизор'},
+        {t:'Radio', r:'Радио'},
+        {t:'Computer', r:'Компьютер'},
+        {t:'Camera', r:'Фотоаппарат'},
+        {t:'Machine', r:'Машина / прибор'},
+        {t:'Light', r:'Свет'},
+        {t:'Phone', r:'Телефон'},
+        {t:'Cup', r:'Чашка'},
+        {t:'Glass', r:'Стакан'},
+        {t:'Box', r:'Коробка'},
+        {t:'February', r:'Февраль', rev:true},
+        {t:'See', r:'Видеть', rev:true},
+        {t:'Take', r:'Брать', rev:true},
+        {t:'Cream', r:'Сливки', rev:true},
+        {t:'Meal', r:'Приём пищи', rev:true},
+        {t:'Dish', r:'Блюдо', rev:true},
+        {t:'House', r:'Дом', rev:true},
+        {t:'Home', r:'Дом (жильё)', rev:true}
+      ]},
+      { type:'words', title:'Вещи в доме · 2', scene:'flat', cefr:'A1: Can name everyday objects at home.', newCount:11, words:[
+        {t:'Bag', r:'Сумка'},
+        {t:'Paper', r:'Бумага'},
+        {t:'Pen', r:'Ручка'},
+        {t:'Pencil', r:'Карандаш'},
+        {t:'Book', r:'Книга', u:'Не только книга: «to book» — забронировать. «I booked a table».'},
+        {t:'Picture', r:'Картинка'},
+        {t:'Clock', r:'Часы'},
+        {t:'Photo', r:'Фото'},
+        {t:'Shower', r:'Душ'},
+        {t:'Living', r:'Жилой (о комнате)', u:'«living room» — гостиная. Одним словом комнату так не называют.'},
+        {t:'Put', r:'Класть', u:'Прошедшее тоже put — форма не меняется. «Put it here» — положи сюда.'},
+        {t:'Flat', r:'Квартира', u:'Квартира по-британски. В США — «apartment».', rev:true},
+        {t:'Tea', r:'Чай', rev:true},
+        {t:'Juice', r:'Сок', rev:true},
+        {t:'Beer', r:'Пиво', rev:true},
+        {t:'Chicken', r:'Курица', rev:true},
+        {t:'Fish', r:'Рыба', rev:true},
+        {t:'Face', r:'Лицо', rev:true},
+        {t:'Hand', r:'Рука (кисть)', rev:true},
+        {t:'January', r:'Январь', rev:true}
+      ]},
+      { type:'build', title:'Собери: Вещи в доме', scene:'flat', cefr:'A1: Can name everyday objects at home.', tasks:[
+        {ru:'Свет не работает.', parts:['The','light','does','not','work'], answer:'The light does not work', full:'The light does not work.',
+         whyT:'Отрицание', why:'Частица not идёт после вспомогательного или модального глагола. «I did not get the letter» — смысловой глагол при этом в начальной форме.'},
+        {ru:'Можно мне ручку и бумагу?', parts:['Can','I','have','a','pen','and','paper'], answer:'Can I have a pen and paper', full:'Can I have a pen and paper?',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Телевизор в гостиной.', parts:['The','television','is','in','the','living','room'], answer:'The television is in the living room', full:'The television is in the living room.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Положи книгу на стол.', parts:['Put','the','book','on','the','table'], answer:'Put the book on the table', full:'Put the book on the table.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Что-то сломалось', scene:'flat', cefr:'A1: Can name everyday objects at home.',
+        intro:'Ты звонишь хозяину квартиры.',
+        flow: {
+        intro:'Ты звонишь хозяину квартиры.',
+        start:'call',
+        opener:{them:'Hello, is everything alright?', ru:'Здравствуйте, всё в порядке?'},
+        nodes:{
+          call:{ task:'Расскажи, что случилось (например: не работает свет на кухне).', best:'Hello. The light in the kitchen does not work.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'water')) return {br:'water'};
+                if(chose(w,'heat','heater','heating')) return {br:'heat'};
+                if(chose(w,'door')) return {br:'door'};
+                if(chose(w,'light','lamp')&&!has(w,'no','not','never')&&(has(w,'works','working','fine','ok','okay'))) return {br:'poslight'};
+                if(chose(w,'light','lamp')&&chose(w,'kitchen')) return {br:'light'};
+                if(chose(w,'light','lamp')&&has(w,'no','not','never')) return {br:'nlight'};
+                if(chose(w,'light','lamp')&&has(w,'broken','break','problem','trouble')) return {br:'nlight'};
+                if(chose(w,'light','lamp')) return {br:'poslight'};
+                if(chose(w,'tv','television','fridge','freezer','internet','wifi','window','roof','wall','toilet')) return {br:'otherp'};
+                if(has(w,'no','not','never')&&has(w,'water')) return {br:'nwater'};
+                if(has(w,'no','not','never')&&has(w,'heat','heater','heating')) return {br:'nheat'};
+                if(has(w,'no','not','never')&&has(w,'door')) return {br:'ndoor'};
+                if(has(w,'no','not','never')&&has(w,'light','lamp')) return {br:'nlight'};
+                if(has(w,'no','not','never')&&has(w,'tv','television','fridge','freezer','internet','wifi','window','roof','wall','toilet')) return {br:'notherp'};
+                if(has(w,'no','not','never')&&has(w,'broken','break','works','working','work')&&!has(w,'is','are','was','were','does','do','it','they','just')) return {huh:1};
+                if(has(w,'no','not','never')&&(w.includes('problem')||w.includes('trouble'))&&!has(w,'is','are','there')) return {huh:1};
+                if(has(w,'broken','break','nothing','works','working','work')||(has(w,'problem','trouble')&&!has(w,'fine','ok','okay','good','everything'))) return {br:'otherp'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Call me if you need anything.',ruThem:'Хорошо. Звоните, если что.',next:null},
+            water:{them:'The water? I see. Since when?',ruThem:'Вода? Понятно. С какого времени?',next:'since'},
+            heat:{them:'The heating? I see. Since when?',ruThem:'Отопление? Понятно. С какого времени?',next:'since'},
+            door:{them:'The door? I see. Since when?',ruThem:'Дверь? Понятно. С какого времени?',next:'since'},
+            light:{them:'The light in the kitchen? I see. Since when?',ruThem:'Свет на кухне? Понятно. С какого времени?',next:'since'},
+            poslight:{them:'Sorry, what exactly is the problem?',ruThem:'Простите, а в чём именно проблема?',next:'call'},
+            nwater:{them:'The water? I see. Since when?',ruThem:'Вода? Понятно. С какого времени?',next:'since'},
+            nheat:{them:'The heating? I see. Since when?',ruThem:'Отопление? Понятно. С какого времени?',next:'since'},
+            ndoor:{them:'The door? I see. Since when?',ruThem:'Дверь? Понятно. С какого времени?',next:'since'},
+            nlight:{them:'The light? I see. Since when?',ruThem:'Свет? Понятно. С какого времени?',next:'since'},
+            notherp:{them:'I see there is a problem. Since when?',ruThem:'Понимаю, есть проблема. С какого времени?',next:'since'},
+            otherp:{them:'I see there is a problem. Since when?',ruThem:'Понимаю, есть проблема. С какого времени?',next:'since'},
+          } },
+          since:{ task:'Ответь, с какого времени (например: со вчерашнего вечера).', best:'Since yesterday evening.',
+          judge(w,mem){
+                const d=(mem._digits||[]).map(Number);
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'yesterday')) return {br:'yest'};
+                if(has(w,'no','not','never')&&(w.includes('know')||w.includes('idea'))) return {br:'dk'};
+                if(chose(w,'today','now')) return {br:'today'};
+                if(chose(w,'week','weeks','month','months')) return {br:'long'};
+                if((d.length||w.some(x=>x in NUM))&&(w.includes('day')||w.includes('days'))) return {br:'days'};
+                if(chose(w,'morning','evening','night','afternoon','monday','tuesday','wednesday','thursday','friday','saturday','sunday')) return {br:'yest'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Goodbye!',ruThem:'Хорошо. До свидания!',next:null},
+            yest:{them:'I see. I will come tomorrow morning.',ruThem:'Понятно. Приду завтра утром.',next:'thanks'},
+            dk:{them:'No problem, I will come and check it tomorrow.',ruThem:'Ничего страшного, приду и проверю завтра.',next:'thanks'},
+            today:{them:'Ok, I will come today in the evening.',ruThem:'Хорошо, приду сегодня вечером.',next:'thanks'},
+            long:{them:'That is a long time. I will come tomorrow morning.',ruThem:'Это надолго. Приду завтра утром.',next:'thanks'},
+            days:{them:'Ok. I will come tomorrow morning.',ruThem:'Хорошо. Приду завтра утром.',next:'thanks'},
+          } },
+          thanks:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','sure','fine','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Goodbye!',ruThem:'Хорошо. До свидания!',next:null},
+            th:{them:'You are welcome. Is everything else alright?',ruThem:'Пожалуйста. В остальном всё нормально?',next:'ok2'},
+          } },
+          ok2:{ task:'Ответь, всё ли в порядке (например: да, всё хорошо).', best:'Yes, everything else is fine.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'yes','yeah','fine','ok','okay','good','all','everything','right','sure')) return {br:'ok'};
+                if(has(w,'no','not','never')) return {br:'any'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Goodbye!',ruThem:'Хорошо. До свидания!',next:null},
+            ok:{them:'Good. Call me if you need anything.',ruThem:'Хорошо. Звоните, если что.',next:'thanks2'},
+            any:{them:'Ok, tell me about it when I come.',ruThem:'Хорошо, расскажете, когда приду.',next:'thanks2'},
+          } },
+          thanks2:{ task:'Поблагодари.', best:'Thank you, I will.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','will','call','sure')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a good evening!',ruThem:'Ладно. Хорошего вечера!',next:null},
+            th:{them:'Have a good evening.',ruThem:'Хорошего вечера.',next:'wish'},
+          } },
+          wish:{ task:'Пожелай того же.', best:'You too, good night!',
+          judge(w){
+                if(chose(w,'too','likewise','same','night')) return {br:'ok'};
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                return {huh:1}; },
+          tr:{
+            ok:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+          } },
+        }
+      }
+      },
+      { type:'words', title:'Город вокруг · 1', scene:'street', cefr:'A1: Can name places in a town.', newCount:14, words:[
+        {t:'City', r:'Город'},
+        {t:'Town', r:'Городок'},
+        {t:'Street', r:'Улица'},
+        {t:'Road', r:'Дорога'},
+        {t:'Area', r:'Район'},
+        {t:'Park', r:'Парк'},
+        {t:'Shop', r:'Магазин'},
+        {t:'Market', r:'Рынок'},
+        {t:'Bank', r:'Банк'},
+        {t:'Post', r:'Почта'},
+        {t:'School', r:'Школа'},
+        {t:'University', r:'Университет'},
+        {t:'Library', r:'Библиотека'},
+        {t:'Museum', r:'Музей'},
+        {t:'Coat', r:'Пальто', rev:true},
+        {t:'Sweater', r:'Свитер', rev:true},
+        {t:'Now', r:'Сейчас', rev:true},
+        {t:'Later', r:'Позже', rev:true},
+        {t:'Young', r:'Молодой', rev:true},
+        {t:'Person', r:'Человек', rev:true},
+        {t:'Television', r:'Телевизор', rev:true}
+      ]},
+      { type:'words', title:'Город вокруг · 2', scene:'street', cefr:'A1: Can name places in a town.', newCount:13, words:[
+        {t:'Cinema', r:'Кинотеатр'},
+        {t:'Theatre', r:'Театр'},
+        {t:'Restaurant', r:'Ресторан'},
+        {t:'Hotel', r:'Гостиница'},
+        {t:'Station', r:'Вокзал'},
+        {t:'Airport', r:'Аэропорт'},
+        {t:'Building', r:'Здание'},
+        {t:'Village', r:'Деревня'},
+        {t:'River', r:'Река'},
+        {t:'Centre', r:'Центр'},
+        {t:'Near', r:'Рядом', u:'«near the station» — рядом с вокзалом. Предлог «to» не нужен.'},
+        {t:'Nearest', r:'Ближайший', u:'Превосходная степень от near. «the nearest» — всегда с the.'},
+        {t:'Supermarket', r:'Супермаркет', u:'Большой магазин. Маленький — «shop».'},
+        {t:'Tv', r:'Телевизор', rev:true},
+        {t:'Radio', r:'Радио', rev:true},
+        {t:'Apartment', r:'Квартира', rev:true},
+        {t:'Room', r:'Комната', rev:true},
+        {t:'Kitchen', r:'Кухня', rev:true},
+        {t:'Wine', r:'Вино', rev:true},
+        {t:'Bottle', r:'Бутылка', rev:true}
+      ]},
+      { type:'build', title:'Собери: Город вокруг', scene:'street', cefr:'A1: Can name places in a town.', tasks:[
+        {ru:'Где ближайший банк?', parts:['Where','is','the','nearest','bank'], answer:'Where is the nearest bank', full:'Where is the nearest bank?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Музей находится в центре.', parts:['The','museum','is','in','the','centre'], answer:'The museum is in the centre', full:'The museum is in the centre.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Есть ли рядом супермаркет?', parts:['Is','there','a','supermarket','near','here'], answer:'Is there a supermarket near here', full:'Is there a supermarket near here?',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Я иду на вокзал.', parts:['I','am','going','to','the','station'], answer:'I am going to the station', full:'I am going to the station.',
+         whyT:'Present Continuous: происходит сейчас', why:'am/is/are + глагол с -ing. «I am waiting» — жду прямо сейчас, в отличие от «I wait» — вообще, обычно.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Найти банк', scene:'street', cefr:'A1: Can name places in a town.',
+        intro:'Ты останавливаешь прохожего на улице.',
+        flow: {
+        intro:'Ты останавливаешь прохожего на улице.',
+        start:'where',
+        opener:{them:'Yes? Can I help?', ru:'Да? Помочь?'},
+        nodes:{
+          where:{ task:'Спроси, как найти банк (или другое место).', best:'Excuse me, where is the bank?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'cafe','coffee')) return {br:'cafe0'};
+                if(chose(w,'bank')) return {br:'bank'};
+                if(chose(w,'station','bus','metro','shop','supermarket','museum','hotel','park')) return {br:'other'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            cafe0:{them:'There is a nice cafe just around the corner.',ruThem:'Хорошее кафе есть прямо за углом.',next:'askdir'},
+            bank:{them:'There is one on the next street.',ruThem:'Есть один на соседней улице.',next:'far'},
+            other:{them:'I am not sure about that, but the bank is on the next street.',ruThem:'Не уверен насчёт этого, но банк — на соседней улице.',next:'far'},
+          } },
+          far:{ task:'Уточни, далеко ли идти.', best:'Is it far from here?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'far')) return {br:'far'};
+                if(chose(w,'near','close','walk','foot','minute','minutes')) return {br:'near'};
+                if(chose(w,'bus','car','metro','taxi')) return {br:'bus'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            far:{them:'No, it is quite close. Two minutes on foot.',ruThem:'Нет, довольно близко. Две минуты пешком.',next:'thanks'},
+            near:{them:'Yes, it is very close. Two minutes from here.',ruThem:'Да, совсем рядом. Две минуты отсюда.',next:'thanks'},
+            bus:{them:'You can take the bus, it is two stops. But on foot it is five minutes.',ruThem:'Можно на автобусе, две остановки. Но пешком пять минут.',next:'thanks'},
+          } },
+          thanks:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','sure','fine')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            th:{them:'You are welcome. Do you need anything else?',ruThem:'Пожалуйста. Ещё что-то нужно?',next:'ask2'},
+          } },
+          ask2:{ task:'Спроси про что-нибудь ещё (например: есть ли рядом кафе).', best:'Is there a cafe near here?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(has(w,'no','not','never')&&(w.includes('thanks')||w.includes('thank')||w.includes('nothing')||w.includes('all'))) return {br:'bye'};
+                if(chose(w,'cafe','coffee')) return {br:'cafe'};
+                if(chose(w,'shop','supermarket','bank','station')) return {br:'otherp'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            cafe:{them:'Yes, just around the corner.',ruThem:'Да, прямо за углом.',next:'askdir'},
+            otherp:{them:'Yes, there is one not far from here.',ruThem:'Да, есть одно недалеко отсюда.',next:'askdir'},
+          } },
+          askdir:{ task:'Уточни, куда идти (например: налево или направо?).', best:'Left or right?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'left','right')) return {br:'dir'};
+                if(chose(w,'straight')) return {br:'straight'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            th:{them:'You are welcome! Have a nice day!',ruThem:'Пожалуйста! Хорошего дня!',next:null},
+            dir:{them:'On your right, next to the shop.',ruThem:'Справа, рядом с магазином.',next:'thx2'},
+            straight:{them:'Straight ahead, then on your left.',ruThem:'Прямо, потом налево.',next:'thx2'},
+          } },
+          thx2:{ task:'Поблагодари.', best:'Thank you, that is very helpful.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','great','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            th:{them:'You are welcome. Have a nice day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
+          } },
+        }
+      }
+      },
+      { type:'words', title:'Транспорт · 1', scene:'street', cefr:'A1: Can use public transport and buy tickets.', newCount:10, words:[
+        {t:'Bus', r:'Автобус'},
+        {t:'Train', r:'Поезд'},
+        {t:'Taxi', r:'Такси'},
+        {t:'Car', r:'Машина'},
+        {t:'Bike', r:'Велосипед'},
+        {t:'Bicycle', r:'Велосипед'},
+        {t:'Plane', r:'Самолёт'},
+        {t:'Boat', r:'Лодка'},
+        {t:'Flight', r:'Рейс'},
+        {t:'Ticket', r:'Билет', u:'Билет и штраф — одно слово. «A parking ticket» — это штраф.'},
+        {t:'Parent', r:'Родитель', rev:true},
+        {t:'Key', r:'Ключ', rev:true},
+        {t:'Garden', r:'Сад', rev:true},
+        {t:'Upstairs', r:'Наверху', rev:true},
+        {t:'Downstairs', r:'Внизу', rev:true},
+        {t:'Outside', r:'Снаружи', rev:true},
+        {t:'City', r:'Город', rev:true},
+        {t:'Town', r:'Городок', rev:true},
+        {t:'Street', r:'Улица', rev:true}
+      ]},
+      { type:'words', title:'Транспорт · 2', scene:'street', cefr:'A1: Can use public transport and buy tickets.', newCount:10, words:[
+        {t:'Travel', r:'Путешествовать'},
+        {t:'Trip', r:'Поездка'},
+        {t:'Journey', r:'Поездка / путь'},
+        {t:'Drive', r:'Водить'},
+        {t:'Driver', r:'Водитель'},
+        {t:'Arrive', r:'Прибывать'},
+        {t:'Leave', r:'Уезжать'},
+        {t:'Wait', r:'Ждать'},
+        {t:'Stop', r:'Остановка / останавливаться'},
+        {t:'Way', r:'Путь'},
+        {t:'Computer', r:'Компьютер', rev:true},
+        {t:'Camera', r:'Фотоаппарат', rev:true},
+        {t:'Machine', r:'Машина / прибор', rev:true},
+        {t:'Bedroom', r:'Спальня', rev:true},
+        {t:'Bathroom', r:'Ванная', rev:true},
+        {t:'Rice', r:'Рис', rev:true},
+        {t:'Soup', r:'Суп', rev:true},
+        {t:'Summer', r:'Лето', rev:true},
+        {t:'Autumn', r:'Осень', rev:true},
+        {t:'Wife', r:'Жена', rev:true}
+      ]},
+      { type:'build', title:'Собери: Транспорт', scene:'street', cefr:'A1: Can use public transport and buy tickets.', tasks:[
+        {ru:'Два билета на поезд, пожалуйста.', parts:['Two','train','tickets','please'], answer:'Two train tickets please', full:'Two train tickets, please.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Во сколько уходит автобус?', parts:['What','time','does','the','bus','leave'], answer:'What time does the bus leave', full:'What time does the bus leave?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Я приеду в шесть.', parts:['I','will','arrive','at','six'], answer:'I will arrive at six', full:'I will arrive at six.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Где остановка такси?', parts:['Where','is','the','taxi','stop'], answer:'Where is the taxi stop', full:'Where is the taxi stop?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Купить билет', scene:'street', cefr:'A1: Can use public transport and buy tickets.',
+        intro:'Ты в кассе на вокзале.',
+        flow: {
+        intro:'Ты в кассе на вокзале.',
+        start:'go',
+        opener:{them:'Where are you going?', ru:'Куда едете?'},
+        nodes:{
+          go:{ task:'Ответь, куда едешь (например: в центр).', best:'To the centre, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'centre','center','town','city')) return {br:'centr'};
+                if(chose(w,'airport','station','park','museum','hotel')) return {br:'other'};
+                if(has(w,'no','not','never')&&chose(w,'know','idea')) return {br:'dk'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            centr:{them:'To the centre. Single or return?',ruThem:'В центр. В одну сторону или туда-обратно?',next:'sr'},
+            other:{them:'Ok. Single or return?',ruThem:'Хорошо. В одну сторону или туда-обратно?',next:'sr'},
+            dk:{them:'No problem. Where do you usually go? The centre?',ruThem:'Ничего страшного. Куда вы обычно ездите? В центр?',next:'sr'},
+          } },
+          sr:{ task:'Выбери тип билета (например: туда-обратно).', best:'Return, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'return','back','both','ways')) return {br:'ret'};
+                if(has(w,'no','not','never')&&(w.includes('return')||w.includes('back'))) return {br:'sing'};
+                if(chose(w,'single','one')) return {br:'sing'};
+                if(has(w,'no','not','never')&&(w.includes('single')||w.includes('one'))&&!chose(w,'please','thanks','thank')) return {br:'ret'};
+                if(chose(w,'again','repeat','sorry','pardon')) return {br:'again'};
+                if(has(w,'no','not','never')) return {br:'clar'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            ret:{them:'Return. That is six euros.',ruThem:'Туда-обратно. Шесть евро.',next:'pay'},
+            sing:{them:'Single. That is three euros fifty.',ruThem:'В одну сторону. Три евро пятьдесят.',next:'pay'},
+            again:{them:'Sorry, single or return?',ruThem:'Простите, в одну сторону или туда-обратно?',next:'sr'},
+            clar:{them:'Single or return?',ruThem:'В одну сторону или туда-обратно?',next:'sr'},
+          } },
+          pay:{ task:'Спроси про поезд (например: во сколько отходит).', best:'Thank you. What time does the train leave?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'when','time','leave','leaves','depart')) return {br:'when'};
+                if(chose(w,'expensive','cheap','price','cost')) return {br:'price'};
+                if(chose(w,'cash','card','pay','here','euro','euros','money')) return {br:'cash'};
+                if(chose(w,'thanks','thank','ok','okay','yes','sure')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            when:{them:'The train leaves at half past three, platform two.',ruThem:'Поезд отходит в половине четвёртого, вторая платформа.',next:'th2'},
+            price:{them:'It is the standard price for this route.',ruThem:'Это стандартная цена на этом маршруте.',next:'pay'},
+            cash:{them:'Here is your ticket. The train leaves at half past three.',ruThem:'Вот ваш билет. Поезд отходит в половине четвёртого.',next:'th2'},
+            th:{them:'Here is your ticket. Have a good trip!',ruThem:'Вот ваш билет. Хорошей поездки!',next:'th2'},
+          } },
+          th2:{ task:'Поблагодари и попрощайся.', best:'Thank you very much. Goodbye!',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','sure','fine','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye! Have a nice trip!',ruThem:'До свидания! Хорошей поездки!',next:null},
+            th:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null},
+          } },
+        }
+      }
+      },
+      { type:'words', title:'Контроль: темы 13–16', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Toilet', r:'Туалет', rev:true},
+        {t:'Door', r:'Дверь', rev:true},
+        {t:'Window', r:'Окно', rev:true},
+        {t:'Floor', r:'Пол / этаж', rev:true},
+        {t:'Wall', r:'Стена', rev:true},
+        {t:'Table', r:'Стол', rev:true},
+        {t:'Chair', r:'Стул', rev:true},
+        {t:'Bed', r:'Кровать', rev:true},
+        {t:'Desk', r:'Письменный стол', rev:true},
+        {t:'Under', r:'Под', rev:true},
+        {t:'Close', r:'Близко / закрывать', u:'Два смысла: «close to the shop» — рядом; «close the door» — закрой дверь.', rev:true},
+        {t:'Live', r:'Жить', u:'«I live in Moscow». Для he/she/it — lives.', rev:true},
+        {t:'Next', r:'Следующий / рядом', u:'«next week» — следующая неделя; «next to» — рядом с.', rev:true},
+        {t:'Light', r:'Свет', rev:true},
+        {t:'Box', r:'Коробка', rev:true},
+        {t:'Bag', r:'Сумка', rev:true},
+        {t:'Paper', r:'Бумага', rev:true},
+        {t:'Pen', r:'Ручка', rev:true},
+        {t:'Pencil', r:'Карандаш', rev:true},
+        {t:'Book', r:'Книга', u:'Не только книга: «to book» — забронировать. «I booked a table».', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 13–16', scene:'street', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Я живу в маленькой квартире.', parts:['I','live','in','a','small','flat'], answer:'I live in a small flat', full:'I live in a small flat.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Кухня рядом с ванной.', parts:['The','kitchen','is','next','to','the','bathroom'], answer:'The kitchen is next to the bathroom', full:'The kitchen is next to the bathroom.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Моя спальня наверху.', parts:['My','bedroom','is','upstairs'], answer:'My bedroom is upstairs', full:'My bedroom is upstairs.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Пожалуйста, закройте окно.', parts:['Please','close','the','window'], answer:'Please close the window', full:'Please close the window.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Свет не работает.', parts:['The','light','does','not','work'], answer:'The light does not work', full:'The light does not work.',
+         whyT:'Отрицание', why:'Частица not идёт после вспомогательного или модального глагола. «I did not get the letter» — смысловой глагол при этом в начальной форме.'},
+        {ru:'Можно мне ручку и бумагу?', parts:['Can','I','have','a','pen','and','paper'], answer:'Can I have a pen and paper', full:'Can I have a pen and paper?',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'words', title:'Дорога и направление · 1', scene:'street', cefr:'A1: Can ask for and give simple directions.', newCount:11, words:[
+        {t:'Left', r:'Налево'},
+        {t:'Right', r:'Направо'},
+        {t:'Long', r:'Длинный'},
+        {t:'Near', r:'Рядом', u:'«near the station» — рядом с вокзалом. Предлог «to» не нужен.'},
+        {t:'Far', r:'Далеко'},
+        {t:'North', r:'Север'},
+        {t:'South', r:'Юг'},
+        {t:'East', r:'Восток'},
+        {t:'West', r:'Запад'},
+        {t:'Map', r:'Карта'},
+        {t:'Place', r:'Место'},
+        {t:'Order', r:'Заказ', u:'Заказ в кафе и глагол «заказывать». «Are you ready to order?»', rev:true},
+        {t:'Waiter', r:'Официант', rev:true},
+        {t:'Arm', r:'Рука', rev:true},
+        {t:'Leg', r:'Нога', rev:true},
+        {t:'Fifteen', r:'Пятнадцать', rev:true},
+        {t:'Thirty', r:'Тридцать', rev:true},
+        {t:'Bus', r:'Автобус', rev:true}
+      ]},
+      { type:'words', title:'Дорога и направление · 2', scene:'street', cefr:'A1: Can ask for and give simple directions.', newCount:11, words:[
+        {t:'Front', r:'Перед'},
+        {t:'Behind', r:'Позади'},
+        {t:'Between', r:'Между'},
+        {t:'Opposite', r:'Напротив'},
+        {t:'Walk', r:'Идти пешком'},
+        {t:'Turn', r:'Поворачивать'},
+        {t:'Follow', r:'Следовать'},
+        {t:'Across', r:'Через'},
+        {t:'Metre', r:'Метр'},
+        {t:'Pharmacy', r:'Аптека', u:'В Британии чаще «chemist’s», в США — «pharmacy» или «drugstore».'},
+        {t:'Straight', r:'Прямо', u:'О дороге: «go straight» — идите прямо.'},
+        {t:'Train', r:'Поезд', rev:true},
+        {t:'Taxi', r:'Такси', rev:true},
+        {t:'Road', r:'Дорога', rev:true},
+        {t:'Area', r:'Район', rev:true},
+        {t:'Park', r:'Парк', rev:true},
+        {t:'Light', r:'Свет', rev:true},
+        {t:'Box', r:'Коробка', rev:true}
+      ]},
+      { type:'build', title:'Собери: Дорога и направление', scene:'street', cefr:'A1: Can ask for and give simple directions.', tasks:[
+        {ru:'Идите прямо и поверните налево.', parts:['Go','straight','and','turn','left'], answer:'Go straight and turn left', full:'Go straight and turn left.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Это напротив банка.', parts:['It','is','opposite','the','bank'], answer:'It is opposite the bank', full:'It is opposite the bank.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Аптека между школой и парком.', parts:['The','pharmacy','is','between','the','school','and','the','park'], answer:'The pharmacy is between the school and the park', full:'The pharmacy is between the school and the park.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Это далеко пешком?', parts:['Is','it','far','on','foot'], answer:'Is it far on foot', full:'Is it far on foot?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Объяснить дорогу', scene:'street', cefr:'A1: Can ask for and give simple directions.',
+        intro:'Турист останавливает тебя на улице.',
+        flow: {
+        intro:'Турист останавливает тебя на улице.',
+        start:'st',
+        opener:{them:'Excuse me, where is the station?', ru:'Простите, где вокзал?'},
+        nodes:{
+          st:{ task:'Объясни дорогу (например: прямо, потом направо).', best:'Go straight, then turn right.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'sorry','pardon','what','again','repeat')) return {br:'again'};
+                if(chose(w,'far','near','close','walk','minute','minutes')) return {br:'far'};
+                if(chose(w,'bus','car','taxi','metro','train')) return {br:'bus'};
+                if(chose(w,'straight','right','left','turn','then','ahead','station')) return {br:'dir'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            again:{them:'Go straight, then turn right. It is very simple.',ruThem:'Прямо, потом направо. Всё очень просто.',next:'walk'},
+            far:{them:'It is not far. About five minutes on foot.',ruThem:'Недалеко. Около пяти минут пешком.',next:'walk'},
+            bus:{them:'You can walk, it is five minutes. Or take the bus, two stops.',ruThem:'Можно пешком, пять минут. Или на автобусе, две остановки.',next:'walk'},
+            dir:{them:'Great, thank you! And is it far?',ruThem:'Отлично, спасибо! А это далеко?',next:'walk'},
+          } },
+          walk:{ task:'Ответь, сколько идти (например: около пяти минут пешком).', best:'About five minutes on foot.',
+          judge(w,mem){
+                const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(has(w,'no','not','never')&&has(w,'bus','taxi','car','metro')&&!has(w,'take','will','i','by')) return {huh:1};
+                if(has(w,'bus','taxi','car','metro')) return {br:'bus5'};
+                if(has(w,'minute','minutes','foot','walk')&&!has(w,'no','not','never')){
+                  if(n===5) return {br:'ok5'};
+                  if(n!==null) return {br:'other5'};
+                  if(w.includes('few')||w.includes('little')) return {br:'other5'};
+                  return {br:'ok5'}; }
+                if(has(w,'no','not','never')) return {br:'not5'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            ok5:{them:'That is very close. Thank you so much!',ruThem:'Это совсем рядом. Большое спасибо!',next:'thx'},
+            bus5:{them:'Oh, by bus it is even shorter. Two stops. Thank you!',ruThem:'На автобусе ещё короче. Две остановки. Спасибо!',next:'thx'},
+            not5:{them:'I see. Well, thank you for your help!',ruThem:'Понятно. Ну, спасибо за помощь!',next:'thx'},
+            other5:{them:'Well, I would say about five minutes on foot.',ruThem:'Ну, я бы сказал, около пяти минут пешком.',next:'thx'},
+          } },
+          thx:{ task:'Ответь на «спасибо» (например: не за что).', best:'You are welcome.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'welcome','problem','nothing','ok','okay','fine','sure','yes','yeah','thanks','thank')) return {br:'wc'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            wc:{them:'Do you need anything else?',ruThem:'Вам ещё что-нибудь нужно?',next:'any'},
+          } },
+          any:{ task:'Спроси про что-нибудь ещё (например: есть ли рядом кафе).', best:'Is there a cafe near here?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(has(w,'no','not','never')&&(w.includes('thanks')||w.includes('thank')||w.includes('nothing')||w.includes('all'))) return {br:'bye'};
+                if(chose(w,'cafe','coffee')) return {br:'cafe'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            cafe:{them:'Yes, there is a good cafe on the left, next to the shop.',ruThem:'Да, хорошее кафе слева, рядом с магазином.',next:'th2'},
+          } },
+          th2:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','great','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            th:{them:'You are welcome. Enjoy your day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
+          } },
+        }
+      }
+      },
+      { type:'words', title:'Работа и профессии · 1', scene:'office', cefr:'A1: Can say what they do for a living.', newCount:12, words:[
+        {t:'Work', r:'Работа / работать'},
+        {t:'Job', r:'Работа (должность)'},
+        {t:'Worker', r:'Работник'},
+        {t:'Office', r:'Офис'},
+        {t:'Business', r:'Дело / бизнес'},
+        {t:'Company', r:'Компания'},
+        {t:'Teacher', r:'Учитель'},
+        {t:'Doctor', r:'Врач'},
+        {t:'Nurse', r:'Медсестра'},
+        {t:'Driver', r:'Водитель'},
+        {t:'Waiter', r:'Официант'},
+        {t:'Farmer', r:'Фермер'},
+        {t:'Boot', r:'Сапог', rev:true},
+        {t:'Big', r:'Большой', rev:true},
+        {t:'Small', r:'Маленький', rev:true},
+        {t:'Building', r:'Здание', rev:true},
+        {t:'Village', r:'Деревня', rev:true},
+        {t:'Centre', r:'Центр', rev:true},
+        {t:'Left', r:'Налево', rev:true},
+        {t:'Right', r:'Направо', rev:true}
+      ]},
+      { type:'words', title:'Работа и профессии · 2', scene:'office', cefr:'A1: Can say what they do for a living.', newCount:12, words:[
+        {t:'Artist', r:'Художник'},
+        {t:'Actor', r:'Актёр'},
+        {t:'Actress', r:'Актриса'},
+        {t:'Singer', r:'Певец'},
+        {t:'Writer', r:'Писатель'},
+        {t:'Scientist', r:'Учёный'},
+        {t:'Policeman', r:'Полицейский'},
+        {t:'Student', r:'Студент'},
+        {t:'Teach', r:'Учить'},
+        {t:'Career', r:'Карьера'},
+        {t:'Meeting', r:'Встреча / совещание'},
+        {t:'Busy', r:'Занятый'},
+        {t:'Long', r:'Длинный', rev:true},
+        {t:'Car', r:'Машина', rev:true},
+        {t:'Bike', r:'Велосипед', rev:true},
+        {t:'Bicycle', r:'Велосипед', rev:true},
+        {t:'Market', r:'Рынок', rev:true},
+        {t:'Bank', r:'Банк', rev:true},
+        {t:'Toilet', r:'Туалет', rev:true},
+        {t:'Door', r:'Дверь', rev:true},
+        {t:'Shoe', r:'Ботинок', rev:true}
+      ]},
+      { type:'build', title:'Собери: Работа и профессии', scene:'office', cefr:'A1: Can say what they do for a living.', tasks:[
+        {ru:'Я работаю в маленькой компании.', parts:['I','work','in','a','small','company'], answer:'I work in a small company', full:'I work in a small company.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Моя сестра — учительница.', parts:['My','sister','is','a','teacher'], answer:'My sister is a teacher', full:'My sister is a teacher.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Кем вы работаете?', parts:['What','is','your','job'], answer:'What is your job', full:'What is your job?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Сегодня я очень занят.', parts:['I','am','very','busy','today'], answer:'I am very busy today', full:'I am very busy today.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Рассказать о работе', scene:'office', cefr:'A1: Can say what they do for a living.',
+        intro:'На вечеринке кто-то спрашивает о работе.',
+        flow: {
+        intro:'На вечеринке кто-то спрашивает о работе.',
+        start:'job',
+        opener:{them:'So, what do you do?', ru:'Чем занимаешься?'},
+        nodes:{
+          job:{ task:'Ответь, чем занимаешься (например: работаю в небольшой компании).', best:'I work in a small company.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'work','company','office','job')) return {br:'work'};
+                if(chose(w,'student','school','study','studies')) return {br:'student'};
+                if(has(w,'no','not','never')&&(w.includes('work')||w.includes('job'))) return {br:'nowork'};
+                if(chose(w,'doctor','teacher','engineer','driver','shop','bank')) return {br:'spec'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            work:{them:'Interesting. Do you like it?',ruThem:'Интересно. Нравится?',next:'like'},
+            student:{them:'Oh, are you a student? And what do you study?',ruThem:'О, вы студент? И что вы изучаете?',next:'like'},
+            nowork:{them:'I see. Are you looking for a job?',ruThem:'Понятно. Ищете работу?',next:'like'},
+            spec:{them:'That sounds interesting. Do you like it?',ruThem:'Звучит интересно. Нравится?',next:'like'},
+          } },
+          like:{ task:'Ответь, нравится ли работа (например: да, но её много).', best:'Yes, but there is a lot of work.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'yes','yeah','like','love','enjoy')) return {br:'yes'};
+                if(chose(w,'lot','much','many','busy')) return {br:'busy'};
+                if(has(w,'no','not','never')&&(w.includes('boring')||w.includes('bored')||w.includes('hate')||w.includes('hates')||w.includes('tired')||w.includes('difficult')||w.includes('stress')||w.includes('stressful')||w.includes('bad')||w.includes('awful')||w.includes('terrible')||w.includes('hard'))) return {huh:1};
+                if(has(w,'no','not','never')) return {br:'no'};
+                if(chose(w,'boring','bored','hate','hates','tired','difficult','stress','stressful','bad','awful','terrible','hard')) return {br:'no'};
+                if(chose(w,'ok','okay','fine','sure','so')) return {br:'yes'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            yes:{them:'A lot of work, I know that feeling.',ruThem:'Много работы, я знаю это чувство.',next:'you'},
+            no:{them:'That is a pity. But it is good that you have a job.',ruThem:'Жаль. Но хорошо, что работа есть.',next:'you'},
+            busy:{them:'A lot of work, I know that feeling.',ruThem:'Много работы, я знаю это чувство.',next:'you'},
+          } },
+          you:{ task:'Спроси про собеседника (например: а ты чем занимаешься?).', best:'And what about you?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'you','your','and')) return {br:'ask'};
+                if(chose(w,'work','job','doctor','teacher','engineer')) return {br:'ask'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            ask:{them:'I work in a bank. It is fine, but I am busy too.',ruThem:'Я работаю в банке. Нормально, но я тоже занят.',next:'drink'},
+          } },
+          drink:{ task:'Предложи собеседнику что-нибудь выпить.', best:'Would you like something to drink?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'drink','coffee','tea','water','juice','would','like','something')) return {br:'offer'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Nice to meet you!',ruThem:'Пока! Приятно было познакомиться!',next:null},
+            offer:{them:'Yes, coffee would be great, thank you!',ruThem:'Да, кофе было бы отлично, спасибо!',next:'wish'},
+            th:{them:'It was nice talking to you!',ruThem:'Было приятно поболтать!',next:'wish'},
+          } },
+          wish:{ task:'Попрощайся вежливо.', best:'Nice to meet you. Goodbye!',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'nice','meet','see','too','likewise','thanks','thank')) return {br:'ok'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+            ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Берегите себя!',next:null},
+          } },
+        }
+      }
+      },
+      { type:'words', title:'Учёба · 1', scene:'office', cefr:'A1: Can talk about school and studying.', newCount:14, words:[
+        {t:'School', r:'Школа'},
+        {t:'University', r:'Университет'},
+        {t:'College', r:'Колледж'},
+        {t:'Class', r:'Класс / занятие'},
+        {t:'Classroom', r:'Аудитория'},
+        {t:'Lesson', r:'Урок'},
+        {t:'Student', r:'Ученик'},
+        {t:'Study', r:'Учиться'},
+        {t:'Learn', r:'Учить'},
+        {t:'Exam', r:'Экзамен'},
+        {t:'Test', r:'Тест'},
+        {t:'Homework', r:'Домашняя работа'},
+        {t:'Book', r:'Книга', u:'Не только книга: «to book» — забронировать. «I booked a table».'},
+        {t:'Dictionary', r:'Словарь'},
+        {t:'Paper', r:'Бумага', rev:true},
+        {t:'Salad', r:'Салат', rev:true},
+        {t:'Sandwich', r:'Бутерброд', rev:true},
+        {t:'March', r:'Март', rev:true},
+        {t:'May', r:'Май', rev:true},
+        {t:'Way', r:'Путь', rev:true},
+        {t:'Job', r:'Работа (должность)', rev:true}
+      ]},
+      { type:'words', title:'Учёба · 2', scene:'office', cefr:'A1: Can talk about school and studying.', newCount:14, words:[
+        {t:'Page', r:'Страница'},
+        {t:'Word', r:'Слово'},
+        {t:'Sentence', r:'Предложение'},
+        {t:'Question', r:'Вопрос'},
+        {t:'Answer', r:'Ответ'},
+        {t:'Subject', r:'Предмет'},
+        {t:'Science', r:'Наука'},
+        {t:'History', r:'История'},
+        {t:'Geography', r:'География'},
+        {t:'Read', r:'Читать'},
+        {t:'Write', r:'Писать'},
+        {t:'English', r:'Английский', u:'Язык и национальность пишут с большой буквы: English.'},
+        {t:'Repeat', r:'Повторить', u:'«Could you repeat?» — вежливая просьба повторить.'},
+        {t:'Spell', r:'Произнести по буквам', u:'«How do you spell it?» — как пишется. Спрашивают про имя и адрес.'},
+        {t:'Worker', r:'Работник', rev:true},
+        {t:'Office', r:'Офис', rev:true},
+        {t:'Far', r:'Далеко', rev:true},
+        {t:'North', r:'Север', rev:true},
+        {t:'South', r:'Юг', rev:true},
+        {t:'Plane', r:'Самолёт', rev:true},
+        {t:'Boat', r:'Лодка', rev:true},
+        {t:'Bag', r:'Сумка', rev:true}
+      ]},
+      { type:'build', title:'Собери: Учёба', scene:'office', cefr:'A1: Can talk about school and studying.', tasks:[
+        {ru:'Я учу английский два года.', parts:['I','have','studied','English','for','two','years'], answer:'I have studied English for two years', full:'I have studied English for two years.',
+         whyT:'Present Perfect: have + третья форма', why:'Действие в прошлом, но важен результат сейчас. «I have lost my bag» — потерял и до сих пор нет. Через for и since: «for three years».'},
+        {ru:'У меня завтра экзамен.', parts:['I','have','an','exam','tomorrow'], answer:'I have an exam tomorrow', full:'I have an exam tomorrow.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Как пишется это слово?', parts:['How','do','you','spell','this','word'], answer:'How do you spell this word', full:'How do you spell this word?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Можно повторить вопрос?', parts:['Can','you','repeat','the','question'], answer:'Can you repeat the question', full:'Can you repeat the question?',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', title:'На языковых курсах', scene:'office', cefr:'A1: Can talk about school and studying.',
+        intro:'Первое занятие, преподаватель знакомится с группой.',
+        turns:[
+          {who:'them', text:'How long have you studied English?', ru:'Как долго вы учите английский?'},
+          {who:'you', ru:'Скажи: два года.', best:1,
+            options:['Two year study me.','For two years.','English two year have me.']},
+          {who:'them', text:'What is difficult for you?', ru:'Что для вас сложно?'},
+          {who:'you', ru:'Скажи, что сложно говорить.', best:0,
+            options:['Speaking is difficult for me.','Talk hard is me have.','Difficult speak yes much.']},
+          {who:'them', text:'We will practise a lot.', ru:'Мы будем много практиковаться.'},
+          {who:'you', ru:'Скажи «хорошо, спасибо».', best:2,
+            options:['Ok practice much good.','Practice yes need me.','Good, thank you.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
+        ]},
+      { type:'words', title:'Деньги и оплата · 1', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.', newCount:11, words:[
+        {t:'Money', r:'Деньги'},
+        {t:'Price', r:'Цена'},
+        {t:'Cost', r:'Стоить'},
+        {t:'Pay', r:'Платить'},
+        {t:'Buy', r:'Покупать', u:'Прошедшее — bought. «I want to buy» — хочу купить.'},
+        {t:'Sell', r:'Продавать'},
+        {t:'Cheap', r:'Дешёвый'},
+        {t:'Expensive', r:'Дорогой'},
+        {t:'Bill', r:'Счёт', u:'Счёт в кафе. В США чаще говорят «check».'},
+        {t:'Card', r:'Карта'},
+        {t:'Spend', r:'Тратить'},
+        {t:'Library', r:'Библиотека', rev:true},
+        {t:'Drink', r:'Напиток', rev:true},
+        {t:'Water', r:'Вода', rev:true},
+        {t:'Soon', r:'Скоро', rev:true},
+        {t:'Tomorrow', r:'Завтра', rev:true},
+        {t:'Metre', r:'Метр', rev:true},
+        {t:'College', r:'Колледж', rev:true}
+      ]},
+      { type:'words', title:'Деньги и оплата · 2', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.', newCount:10, words:[
+        {t:'Euro', r:'Евро'},
+        {t:'Dollar', r:'Доллар'},
+        {t:'Pound', r:'Фунт'},
+        {t:'Cent', r:'Цент'},
+        {t:'Bank', r:'Банк'},
+        {t:'Change', r:'Сдача / менять', u:'Сдача и мелочь. «Keep the change» — сдачи не надо.'},
+        {t:'Free', r:'Бесплатный', u:'Два смысла: «Are you free?» — свободен ли ты; «It is free» — бесплатно.'},
+        {t:'Note', r:'Купюра'},
+        {t:'Rich', r:'Богатый'},
+        {t:'Much', r:'Много / сколько', u:'«How much?» — сколько стоит. «Much» — с тем, что не считают: much water.'},
+        {t:'Class', r:'Класс / занятие', rev:true},
+        {t:'Classroom', r:'Аудитория', rev:true},
+        {t:'Business', r:'Дело / бизнес', rev:true},
+        {t:'Company', r:'Компания', rev:true},
+        {t:'Teacher', r:'Учитель', rev:true},
+        {t:'East', r:'Восток', rev:true},
+        {t:'West', r:'Запад', rev:true},
+        {t:'Post', r:'Почта', rev:true}
+      ]},
+      { type:'build', title:'Собери: Деньги и оплата', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.', tasks:[
+        {ru:'Сколько это стоит?', parts:['How','much','does','it','cost'], answer:'How much does it cost', full:'How much does it cost?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Можно заплатить картой?', parts:['Can','I','pay','by','card'], answer:'Can I pay by card', full:'Can I pay by card?',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Это слишком дорого.', parts:['It','is','too','expensive'], answer:'It is too expensive', full:'It is too expensive.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Вот ваша сдача.', parts:['Here','is','your','change'], answer:'Here is your change', full:'Here is your change.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'Оплата на кассе', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.',
+        intro:'Кассир пробивает покупки.',
+        turns:[
+          {who:'them', text:'That is twenty-two euros.', ru:'Двадцать два евро.'},
+          {who:'you', ru:'Спроси, можно ли картой.', best:2,
+            options:['Card ok pay me?','Money card take you?','Can I pay by card?']},
+          {who:'them', text:'Yes, of course.', ru:'Да, конечно.'},
+          {who:'you', ru:'Скажи «вот, пожалуйста».', best:0,
+            options:['Here you are.','Take card here.','Card give you now.']},
+          {who:'them', text:'Do you need a receipt?', ru:'Чек нужен?'},
+          {who:'you', ru:'Скажи: да, пожалуйста.', best:1,
+            options:['Paper yes give.','Yes, please.','Receipt want me have.']},
+          {who:'them', text:'Do you have any other questions?', ru:'Ещё вопросы есть?'},
+          {who:'you', ru:'Спроси, когда всё будет готово.', best:1,
+            options:['Ready when is?','When will it be ready?','Time ready what say?']},
+          {who:'them', text:'In about five working days.', ru:'Примерно пять рабочих дней.'},
+          {who:'you', ru:'Спроси, позвонят ли тебе.', best:0,
+            options:['Will you call me?','Phone me you can?','Call have me yes no?']},
+          {who:'them', text:'Yes, we will send a message.', ru:'Да, отправим сообщение.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok message wait.','Good send yes me.','Thank you very much for your help.']}
+        ]},
+      { type:'words', title:'Контроль: темы 17–20', scene:'bank', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Map', r:'Карта', rev:true},
+        {t:'Place', r:'Место', rev:true},
+        {t:'Front', r:'Перед', rev:true},
+        {t:'Behind', r:'Позади', rev:true},
+        {t:'Between', r:'Между', rev:true},
+        {t:'Opposite', r:'Напротив', rev:true},
+        {t:'Walk', r:'Идти пешком', rev:true},
+        {t:'Turn', r:'Поворачивать', rev:true},
+        {t:'Follow', r:'Следовать', rev:true},
+        {t:'Across', r:'Через', rev:true},
+        {t:'Pharmacy', r:'Аптека', u:'В Британии чаще «chemist’s», в США — «pharmacy» или «drugstore».', rev:true},
+        {t:'Straight', r:'Прямо', u:'О дороге: «go straight» — идите прямо.', rev:true},
+        {t:'Farmer', r:'Фермер', rev:true},
+        {t:'Artist', r:'Художник', rev:true},
+        {t:'Actor', r:'Актёр', rev:true},
+        {t:'Actress', r:'Актриса', rev:true},
+        {t:'Singer', r:'Певец', rev:true},
+        {t:'Writer', r:'Писатель', rev:true},
+        {t:'Scientist', r:'Учёный', rev:true},
+        {t:'Policeman', r:'Полицейский', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 17–20', scene:'bank', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Идите прямо и поверните налево.', parts:['Go','straight','and','turn','left'], answer:'Go straight and turn left', full:'Go straight and turn left.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Это напротив банка.', parts:['It','is','opposite','the','bank'], answer:'It is opposite the bank', full:'It is opposite the bank.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Аптека между школой и парком.', parts:['The','pharmacy','is','between','the','school','and','the','park'], answer:'The pharmacy is between the school and the park', full:'The pharmacy is between the school and the park.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Это далеко пешком?', parts:['Is','it','far','on','foot'], answer:'Is it far on foot', full:'Is it far on foot?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я работаю в маленькой компании.', parts:['I','work','in','a','small','company'], answer:'I work in a small company', full:'I work in a small company.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Моя сестра — учительница.', parts:['My','sister','is','a','teacher'], answer:'My sister is a teacher', full:'My sister is a teacher.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'words', title:'В банке · 1', scene:'bank', cefr:'A1: Can carry out simple bank transactions.', newCount:12, words:[
+        {t:'Customer', r:'Клиент'},
+        {t:'Open', r:'Открыть'},
+        {t:'Close', r:'Закрыть', u:'Два смысла: «close to the shop» — рядом; «close the door» — закрой дверь.'},
+        {t:'Form', r:'Бланк'},
+        {t:'Write', r:'Писать'},
+        {t:'Name', r:'Имя', u:'Спросят: «What is your name?» Ответ: «My name is…».'},
+        {t:'Address', r:'Адрес'},
+        {t:'Letter', r:'Письмо'},
+        {t:'Passport', r:'Паспорт'},
+        {t:'Number', r:'Номер', u:'Номер телефона, дома, рейса. «What is your number?» — просят телефон.'},
+        {t:'Help', r:'Помощь'},
+        {t:'Need', r:'Нуждаться'},
+        {t:'Flight', r:'Рейс', rev:true},
+        {t:'Ticket', r:'Билет', u:'Билет и штраф — одно слово. «A parking ticket» — это штраф.', rev:true},
+        {t:'Window', r:'Окно', rev:true},
+        {t:'Floor', r:'Пол / этаж', rev:true},
+        {t:'Winter', r:'Зима', rev:true},
+        {t:'Umbrella', r:'Зонт', rev:true},
+        {t:'Money', r:'Деньги', rev:true}
+      ]},
+      { type:'words', title:'В банке · 2', scene:'bank', cefr:'A1: Can carry out simple bank transactions.', newCount:11, words:[
+        {t:'Want', r:'Хотеть'},
+        {t:'Wait', r:'Ждать'},
+        {t:'Minute', r:'Минута'},
+        {t:'Problem', r:'Проблема'},
+        {t:'Ready', r:'Готов'},
+        {t:'Send', r:'Отправить'},
+        {t:'Return', r:'Возвращать'},
+        {t:'Check', r:'Проверить'},
+        {t:'Account', r:'Счёт (в банке)', u:'«bank account». Счёт в кафе — другое слово: «bill».'},
+        {t:'Documents', r:'Документы', u:'Множественное от document. В банке и госоргане просят «your documents».'},
+        {t:'Sign', r:'Подписать / знак', u:'«Sign here» — подпишите здесь. Ещё «знак, табличка».'},
+        {t:'Price', r:'Цена', rev:true},
+        {t:'Cost', r:'Стоить', rev:true},
+        {t:'Lesson', r:'Урок', rev:true},
+        {t:'Study', r:'Учиться', rev:true},
+        {t:'Learn', r:'Учить', rev:true},
+        {t:'Farmer', r:'Фермер', rev:true},
+        {t:'Artist', r:'Художник', rev:true}
+      ]},
+      { type:'build', title:'Собери: В банке', scene:'bank', cefr:'A1: Can carry out simple bank transactions.', tasks:[
+        {ru:'Я хочу открыть счёт.', parts:['I','want','to','open','an','account'], answer:'I want to open an account', full:'I want to open an account.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Какие документы нужны?', parts:['What','documents','do','I','need'], answer:'What documents do I need', full:'What documents do I need?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Подпишите здесь, пожалуйста.', parts:['Please','sign','here'], answer:'Please sign here', full:'Please sign here.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Сколько времени это займёт?', parts:['How','long','does','it','take'], answer:'How long does it take', full:'How long does it take?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'}
+      ]},
+      { type:'dialog', title:'Открыть счёт', scene:'bank', cefr:'A1: Can carry out simple bank transactions.',
+        intro:'Ты в отделении банка.',
+        turns:[
+          {who:'them', text:'Good morning. How can I help?', ru:'Доброе утро. Чем могу помочь?'},
+          {who:'you', ru:'Скажи, что хочешь открыть счёт.', best:1,
+            options:['Account open want me.','Good morning. I want to open an account.','Bank money put me new.']},
+          {who:'them', text:'Do you have your passport?', ru:'Паспорт есть?'},
+          {who:'you', ru:'Скажи «да, вот он».', best:0,
+            options:['Yes, here it is.','Passport have me yes give.','Here passport take you.']},
+          {who:'them', text:'Please fill in this form.', ru:'Заполните эту форму.'},
+          {who:'you', ru:'Спроси, где подписать.', best:2,
+            options:['Sign where is me?','Paper write where say.','Where do I sign?']},
+          {who:'them', text:'Do you have any other questions?', ru:'Ещё вопросы есть?'},
+          {who:'you', ru:'Спроси, когда всё будет готово.', best:1,
+            options:['Ready when is?','When will it be ready?','Time ready what say?']},
+          {who:'them', text:'In about five working days.', ru:'Примерно пять рабочих дней.'},
+          {who:'you', ru:'Спроси, позвонят ли тебе.', best:0,
+            options:['Will you call me?','Phone me you can?','Call have me yes no?']},
+          {who:'them', text:'Yes, we will send a message.', ru:'Да, отправим сообщение.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok message wait.','Good send yes me.','Thank you very much for your help.']}
+        ]},
+      { type:'words', title:'Покупки в супермаркете · 1', scene:'market', cefr:'A1: Can make simple purchases.', newCount:11, words:[
+        {t:'Supermarket', r:'Супермаркет', u:'Большой магазин. Маленький — «shop».'},
+        {t:'Shopping', r:'Покупки'},
+        {t:'List', r:'Список'},
+        {t:'Apple', r:'Яблоко'},
+        {t:'Banana', r:'Банан'},
+        {t:'Potato', r:'Картофель'},
+        {t:'Tomato', r:'Помидор'},
+        {t:'Onion', r:'Лук'},
+        {t:'Carrot', r:'Морковь'},
+        {t:'Fruit', r:'Фрукт'},
+        {t:'Vegetable', r:'Овощ'},
+        {t:'Foot', r:'Ступня', rev:true},
+        {t:'Back', r:'Спина', rev:true},
+        {t:'Give', r:'Давать', rev:true},
+        {t:'Know', r:'Знать', rev:true},
+        {t:'History', r:'История', rev:true},
+        {t:'Geography', r:'География', rev:true},
+        {t:'Customer', r:'Клиент', rev:true},
+        {t:'Open', r:'Открыть', rev:true},
+        {t:'Form', r:'Бланк', rev:true}
+      ]},
+      { type:'words', title:'Покупки в супермаркете · 2', scene:'market', cefr:'A1: Can make simple purchases.', newCount:10, words:[
+        {t:'Cake', r:'Торт'},
+        {t:'Chocolate', r:'Шоколад'},
+        {t:'Ice cream', r:'Мороженое'},
+        {t:'Bottle', r:'Бутылка'},
+        {t:'Box', r:'Коробка'},
+        {t:'Bag', r:'Пакет'},
+        {t:'Piece', r:'Кусок'},
+        {t:'Kilometre', r:'Километр'},
+        {t:'Extra', r:'Дополнительный'},
+        {t:'Kilo', r:'Килограмм', u:'На рынке и в магазине: «half a kilo» — полкило.'},
+        {t:'Pay', r:'Платить', rev:true},
+        {t:'Sell', r:'Продавать', rev:true},
+        {t:'Cheap', r:'Дешёвый', rev:true},
+        {t:'Exam', r:'Экзамен', rev:true},
+        {t:'Test', r:'Тест', rev:true},
+        {t:'Map', r:'Карта', rev:true},
+        {t:'Place', r:'Место', rev:true},
+        {t:'Pen', r:'Ручка', rev:true},
+        {t:'Pencil', r:'Карандаш', rev:true}
+      ]},
+      { type:'build', title:'Собери: Покупки в супермаркете', scene:'market', cefr:'A1: Can make simple purchases.', tasks:[
+        {ru:'Мне нужны хлеб и молоко.', parts:['I','need','bread','and','milk'], answer:'I need bread and milk', full:'I need bread and milk.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Килограмм яблок, пожалуйста.', parts:['A','kilo','of','apples','please'], answer:'A kilo of apples please', full:'A kilo of apples, please.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Где овощи?', parts:['Where','are','the','vegetables'], answer:'Where are the vegetables', full:'Where are the vegetables?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Можно пакет?', parts:['Can','I','have','a','bag'], answer:'Can I have a bag', full:'Can I have a bag?',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'dialog', title:'В овощном отделе', scene:'market', cefr:'A1: Can make simple purchases.',
+        intro:'Продавец за прилавком.',
+        turns:[
+          {who:'them', text:'What would you like?', ru:'Что желаете?'},
+          {who:'you', ru:'Попроси килограмм помидоров.', best:0,
+            options:['A kilo of tomatoes, please.','Tomato kilo one give.','Give me tomato much.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Попроси лук и морковь.', best:2,
+            options:['Onion carrot too give.','Also this and this.','And some onions and carrots, please.']},
+          {who:'them', text:'That is four euros.', ru:'Четыре евро.'},
+          {who:'you', ru:'Попроси пакет.', best:1,
+            options:['Bag give me.','Could I have a bag, please?','Paper bag want yes.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
+        ]},
+      { type:'words', title:'В ресторане · 1', scene:'cafe', cefr:'A1: Can order a meal and ask for the bill.', newCount:9, words:[
+        {t:'Restaurant', r:'Ресторан'},
+        {t:'Table', r:'Столик'},
+        {t:'Menu', r:'Меню'},
+        {t:'Order', r:'Заказать', u:'Заказ в кафе и глагол «заказывать». «Are you ready to order?»'},
+        {t:'Breakfast', r:'Завтрак'},
+        {t:'Lunch', r:'Обед'},
+        {t:'Dinner', r:'Ужин'},
+        {t:'Waiter', r:'Официант'},
+        {t:'Bill', r:'Счёт', u:'Счёт в кафе. В США чаще говорят «check».'},
+        {t:'Museum', r:'Музей', rev:true},
+        {t:'Cinema', r:'Кинотеатр', rev:true},
+        {t:'Hat', r:'Шляпа', rev:true},
+        {t:'Pair', r:'Пара', rev:true},
+        {t:'Adult', r:'Взрослый', rev:true},
+        {t:'Email', r:'Электронная почта', rev:true},
+        {t:'List', r:'Список', rev:true},
+        {t:'Apple', r:'Яблоко', rev:true}
+      ]},
+      { type:'words', title:'В ресторане · 2', scene:'cafe', cefr:'A1: Can order a meal and ask for the bill.', newCount:9, words:[
+        {t:'Customer', r:'Посетитель'},
+        {t:'Delicious', r:'Очень вкусно'},
+        {t:'Hungry', r:'Голодный'},
+        {t:'Thirsty', r:'Жаждущий'},
+        {t:'Eat', r:'Есть'},
+        {t:'Drink', r:'Пить'},
+        {t:'Choose', r:'Выбирать'},
+        {t:'Book', r:'Забронировать', u:'Не только книга: «to book» — забронировать. «I booked a table».'},
+        {t:'Ready', r:'Готов'},
+        {t:'Banana', r:'Банан', rev:true},
+        {t:'Letter', r:'Письмо', rev:true},
+        {t:'Problem', r:'Проблема', rev:true},
+        {t:'Send', r:'Отправить', rev:true},
+        {t:'Expensive', r:'Дорогой', rev:true},
+        {t:'Card', r:'Карта', rev:true},
+        {t:'Actor', r:'Актёр', rev:true},
+        {t:'Actress', r:'Актриса', rev:true}
+      ]},
+      { type:'build', title:'Собери: В ресторане', scene:'cafe', cefr:'A1: Can order a meal and ask for the bill.', tasks:[
+        {ru:'Столик на двоих, пожалуйста.', parts:['A','table','for','two','please'], answer:'A table for two please', full:'A table for two, please.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Я готов заказать.', parts:['I','am','ready','to','order'], answer:'I am ready to order', full:'I am ready to order.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это было очень вкусно.', parts:['That','was','delicious'], answer:'That was delicious', full:'That was delicious.',
+         whyT:'Прошедшее время глагола be', why:'I/he/she/it → was, you/we/they → were. «That was delicious», «They were here».'},
+        {ru:'Счёт, пожалуйста.', parts:['The','bill','please'], answer:'The bill please', full:'The bill, please.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', title:'Ужин вдвоём', scene:'cafe', cefr:'A1: Can order a meal and ask for the bill.',
+        intro:'Официант встречает у входа.',
+        turns:[
+          {who:'them', text:'Good evening. Do you have a booking?', ru:'Добрый вечер. У вас бронь?'},
+          {who:'you', ru:'Скажи, что брони нет, нужен столик на двоих.', best:1,
+            options:['No book. Two people sit.','No, we do not. A table for two, please.','Table two want me now.']},
+          {who:'them', text:'This way, please.', ru:'Прошу за мной.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you.','Ok go we.','Good yes follow.']},
+          {who:'them', text:'Are you ready to order?', ru:'Готовы заказать?'},
+          {who:'you', ru:'Попроси пару минут.', best:2,
+            options:['Wait small time.','Minute two more give.','Could we have a few minutes, please?']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
+        ]},
+      { type:'words', title:'Свободное время · 1', scene:'street', cefr:'A1: Can talk about hobbies and free time.', newCount:14, words:[
+        {t:'Free', r:'Свободный', u:'Два смысла: «Are you free?» — свободен ли ты; «It is free» — бесплатно.'},
+        {t:'Hobby', r:'Хобби'},
+        {t:'Music', r:'Музыка'},
+        {t:'Song', r:'Песня'},
+        {t:'Sing', r:'Петь'},
+        {t:'Dance', r:'Танцевать'},
+        {t:'Dancing', r:'Танцы'},
+        {t:'Play', r:'Играть'},
+        {t:'Game', r:'Игра'},
+        {t:'Football', r:'Футбол'},
+        {t:'Tennis', r:'Теннис'},
+        {t:'Swim', r:'Плавать'},
+        {t:'Swimming', r:'Плавание'},
+        {t:'Run', r:'Бегать'},
+        {t:'Travel', r:'Путешествовать', rev:true},
+        {t:'Trip', r:'Поездка', rev:true},
+        {t:'Salt', r:'Соль', rev:true},
+        {t:'Pepper', r:'Перец', rev:true},
+        {t:'Aunt', r:'Тётя', rev:true},
+        {t:'Uncle', r:'Дядя', rev:true},
+        {t:'Breakfast', r:'Завтрак', rev:true},
+        {t:'Lunch', r:'Обед', rev:true}
+      ]},
+      { type:'words', title:'Свободное время · 2', scene:'street', cefr:'A1: Can talk about hobbies and free time.', newCount:14, words:[
+        {t:'Walk', r:'Гулять'},
+        {t:'Read', r:'Читать'},
+        {t:'Film', r:'Фильм'},
+        {t:'Movie', r:'Кино'},
+        {t:'Cinema', r:'Кинотеатр'},
+        {t:'Concert', r:'Концерт'},
+        {t:'Party', r:'Вечеринка'},
+        {t:'Guitar', r:'Гитара'},
+        {t:'Piano', r:'Пианино'},
+        {t:'Photo', r:'Фото'},
+        {t:'Relax', r:'Отдыхать'},
+        {t:'Listening', r:'Слушаю', u:'Форма listen. «I am listening to music». После listen нужен «to».'},
+        {t:'Shall', r:'Давай (предложение)', u:'«Shall we go?» — пойдём? Вежливое предложение, только с I и we.'},
+        {t:'Tonight', r:'Сегодня вечером', u:'Одно слово, не «this night».'},
+        {t:'Dinner', r:'Ужин', rev:true},
+        {t:'Potato', r:'Картофель', rev:true},
+        {t:'Tomato', r:'Помидор', rev:true},
+        {t:'Onion', r:'Лук', rev:true},
+        {t:'Return', r:'Возвращать', rev:true},
+        {t:'Check', r:'Проверить', rev:true},
+        {t:'Homework', r:'Домашняя работа', rev:true},
+        {t:'Dictionary', r:'Словарь', rev:true}
+      ]},
+      { type:'build', title:'Собери: Свободное время', scene:'street', cefr:'A1: Can talk about hobbies and free time.', tasks:[
+        {ru:'Я люблю слушать музыку.', parts:['I','like','listening','to','music'], answer:'I like listening to music', full:'I like listening to music.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'По выходным я играю в футбол.', parts:['At','the','weekend','I','play','football'], answer:'At the weekend I play football', full:'At the weekend I play football.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Пойдём в кино вечером?', parts:['Shall','we','go','to','the','cinema','tonight'], answer:'Shall we go to the cinema tonight', full:'Shall we go to the cinema tonight?',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Я играю на гитаре.', parts:['I','play','the','guitar'], answer:'I play the guitar', full:'I play the guitar.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', title:'Позвать в кино', scene:'street', cefr:'A1: Can talk about hobbies and free time.',
+        intro:'Друг пишет тебе вечером.',
+        turns:[
+          {who:'them', text:'Are you free tonight?', ru:'Ты свободен вечером?'},
+          {who:'you', ru:'Скажи, что да.', best:0,
+            options:['Yes, I am free.','Free yes me have.','Tonight ok me.']},
+          {who:'them', text:'Do you want to see a film?', ru:'Хочешь посмотреть фильм?'},
+          {who:'you', ru:'Согласись и спроси, во сколько.', best:2,
+            options:['Film yes what time?','Time say me go.','Sure! What time?']},
+          {who:'them', text:'At eight, at the cinema in the centre.', ru:'В восемь, в кинотеатре в центре.'},
+          {who:'you', ru:'Подтверди.', best:1,
+            options:['Ok eight go there.','See you at eight then.','Eight centre yes come me.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Контроль: темы 21–24', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Account', r:'Счёт (в банке)', u:'«bank account». Счёт в кафе — другое слово: «bill».', rev:true},
+        {t:'Documents', r:'Документы', u:'Множественное от document. В банке и госоргане просят «your documents».', rev:true},
+        {t:'Sign', r:'Подписать / знак', u:'«Sign here» — подпишите здесь. Ещё «знак, табличка».', rev:true},
+        {t:'Carrot', r:'Морковь', rev:true},
+        {t:'Fruit', r:'Фрукт', rev:true},
+        {t:'Vegetable', r:'Овощ', rev:true},
+        {t:'Cake', r:'Торт', rev:true},
+        {t:'Chocolate', r:'Шоколад', rev:true},
+        {t:'Ice cream', r:'Мороженое', rev:true},
+        {t:'Piece', r:'Кусок', rev:true},
+        {t:'Kilometre', r:'Километр', rev:true},
+        {t:'Extra', r:'Дополнительный', rev:true},
+        {t:'Delicious', r:'Очень вкусно', rev:true},
+        {t:'Hungry', r:'Голодный', rev:true},
+        {t:'Thirsty', r:'Жаждущий', rev:true},
+        {t:'Eat', r:'Есть', rev:true},
+        {t:'Choose', r:'Выбирать', rev:true},
+        {t:'Hobby', r:'Хобби', rev:true},
+        {t:'Music', r:'Музыка', rev:true},
+        {t:'Song', r:'Песня', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 21–24', scene:'street', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Я хочу открыть счёт.', parts:['I','want','to','open','an','account'], answer:'I want to open an account', full:'I want to open an account.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Какие документы нужны?', parts:['What','documents','do','I','need'], answer:'What documents do I need', full:'What documents do I need?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Подпишите здесь, пожалуйста.', parts:['Please','sign','here'], answer:'Please sign here', full:'Please sign here.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Сколько времени это займёт?', parts:['How','long','does','it','take'], answer:'How long does it take', full:'How long does it take?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Мне нужны хлеб и молоко.', parts:['I','need','bread','and','milk'], answer:'I need bread and milk', full:'I need bread and milk.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Килограмм яблок, пожалуйста.', parts:['A','kilo','of','apples','please'], answer:'A kilo of apples please', full:'A kilo of apples, please.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'words', title:'Спорт и движение · 1', scene:'street', cefr:'A1: Can talk about sport and physical activity.', newCount:11, words:[
+        {t:'Sport', r:'Спорт'},
+        {t:'Team', r:'Команда'},
+        {t:'Player', r:'Игрок'},
+        {t:'Ball', r:'Мяч'},
+        {t:'Win', r:'Выигрывать'},
+        {t:'Lose', r:'Проигрывать'},
+        {t:'Match', r:'Матч'},
+        {t:'Club', r:'Клуб'},
+        {t:'Gym', r:'Спортзал'},
+        {t:'Pool', r:'Бассейн'},
+        {t:'Exercise', r:'Упражнение'},
+        {t:'Front', r:'Перед', rev:true},
+        {t:'Behind', r:'Позади', rev:true},
+        {t:'Coffee', r:'Кофе', rev:true},
+        {t:'Tea', r:'Чай', rev:true},
+        {t:'Fifty', r:'Пятьдесят', rev:true},
+        {t:'Hundred', r:'Сто', rev:true},
+        {t:'Hobby', r:'Хобби', rev:true},
+        {t:'Music', r:'Музыка', rev:true}
+      ]},
+      { type:'words', title:'Спорт и движение · 2', scene:'street', cefr:'A1: Can talk about sport and physical activity.', newCount:11, words:[
+        {t:'Strong', r:'Сильный'},
+        {t:'Fast', r:'Быстрый'},
+        {t:'Slow', r:'Медленный'},
+        {t:'Climb', r:'Лазить'},
+        {t:'Ride', r:'Ездить верхом / кататься'},
+        {t:'Start', r:'Начинать'},
+        {t:'Finish', r:'Заканчивать'},
+        {t:'Practice', r:'Практика'},
+        {t:'Practise', r:'Практиковаться'},
+        {t:'Twice', r:'Дважды', u:'«twice a week» — два раза в неделю. Один раз — «once».'},
+        {t:'Won', r:'Выиграл', u:'Прошедшее от win. «Our team won» — наша команда выиграла.'},
+        {t:'Song', r:'Песня', rev:true},
+        {t:'Delicious', r:'Очень вкусно', rev:true},
+        {t:'Hungry', r:'Голодный', rev:true},
+        {t:'Thirsty', r:'Жаждущий', rev:true},
+        {t:'Carrot', r:'Морковь', rev:true},
+        {t:'Fruit', r:'Фрукт', rev:true},
+        {t:'Spend', r:'Тратить', rev:true},
+        {t:'Euro', r:'Евро', rev:true}
+      ]},
+      { type:'build', title:'Собери: Спорт и движение', scene:'street', cefr:'A1: Can talk about sport and physical activity.', tasks:[
+        {ru:'Наша команда вчера выиграла.', parts:['Our','team','won','yesterday'], answer:'Our team won yesterday', full:'Our team won yesterday.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Я хожу в спортзал по утрам.', parts:['I','go','to','the','gym','in','the','mornings'], answer:'I go to the gym in the mornings', full:'I go to the gym in the mornings.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Матч начинается в семь.', parts:['The','match','starts','at','seven'], answer:'The match starts at seven', full:'The match starts at seven.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Я плаваю в бассейне два раза в неделю.', parts:['I','swim','in','the','pool','twice','a','week'], answer:'I swim in the pool twice a week', full:'I swim in the pool twice a week.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'dialog', title:'Записаться в зал', scene:'street', cefr:'A1: Can talk about sport and physical activity.',
+        intro:'Ты на стойке спортзала.',
+        turns:[
+          {who:'them', text:'Hello, are you a member?', ru:'Здравствуйте, вы член клуба?'},
+          {who:'you', ru:'Скажи, что нет, и хочешь записаться.', best:1,
+            options:['Member no me want yes.','No, I am not. I want to join.','Club new me be please.']},
+          {who:'them', text:'It is thirty euros a month.', ru:'Тридцать евро в месяц.'},
+          {who:'you', ru:'Спроси, есть ли бассейн.', best:0,
+            options:['Is there a pool?','Pool have you here?','Swim place is inside?']},
+          {who:'them', text:'Yes, downstairs.', ru:'Да, внизу.'},
+          {who:'you', ru:'Скажи, что берёшь.', best:2,
+            options:['Ok take month one.','Good pool yes want.','Great, I will join.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Животные · 1', scene:'street', cefr:'A1: Can name common animals.', newCount:11, words:[
+        {t:'Animal', r:'Животное'},
+        {t:'Dog', r:'Собака'},
+        {t:'Cat', r:'Кошка'},
+        {t:'Bird', r:'Птица'},
+        {t:'Fish', r:'Рыба'},
+        {t:'Horse', r:'Лошадь'},
+        {t:'Cow', r:'Корова'},
+        {t:'Pig', r:'Свинья'},
+        {t:'Sheep', r:'Овца'},
+        {t:'Mouse', r:'Мышь'},
+        {t:'Lion', r:'Лев'},
+        {t:'Singer', r:'Певец', rev:true},
+        {t:'Writer', r:'Писатель', rev:true},
+        {t:'Wall', r:'Стена', rev:true},
+        {t:'Chair', r:'Стул', rev:true},
+        {t:'Large', r:'Крупный', rev:true},
+        {t:'Short', r:'Короткий', rev:true},
+        {t:'Team', r:'Команда', rev:true},
+        {t:'Player', r:'Игрок', rev:true}
+      ]},
+      { type:'words', title:'Животные · 2', scene:'street', cefr:'A1: Can name common animals.', newCount:10, words:[
+        {t:'Elephant', r:'Слон'},
+        {t:'Snake', r:'Змея'},
+        {t:'Farm', r:'Ферма'},
+        {t:'Tree', r:'Дерево'},
+        {t:'Flower', r:'Цветок'},
+        {t:'Plant', r:'Растение'},
+        {t:'Grow', r:'Расти'},
+        {t:'Land', r:'Земля'},
+        {t:'Mountain', r:'Гора'},
+        {t:'Beautiful', r:'Красивый', u:'О людях, местах, вещах. О мужчине чаще «handsome».'},
+        {t:'Ball', r:'Мяч', rev:true},
+        {t:'Sing', r:'Петь', rev:true},
+        {t:'Dance', r:'Танцевать', rev:true},
+        {t:'Dancing', r:'Танцы', rev:true},
+        {t:'Eat', r:'Есть', rev:true},
+        {t:'Choose', r:'Выбирать', rev:true},
+        {t:'Account', r:'Счёт (в банке)', u:'«bank account». Счёт в кафе — другое слово: «bill».', rev:true},
+        {t:'Documents', r:'Документы', u:'Множественное от document. В банке и госоргане просят «your documents».', rev:true}
+      ]},
+      { type:'build', title:'Собери: Животные', scene:'street', cefr:'A1: Can name common animals.', tasks:[
+        {ru:'У меня есть собака и кошка.', parts:['I','have','a','dog','and','a','cat'], answer:'I have a dog and a cat', full:'I have a dog and a cat.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'На ферме есть коровы и овцы.', parts:['There','are','cows','and','sheep','on','the','farm'], answer:'There are cows and sheep on the farm', full:'There are cows and sheep on the farm.',
+         whyT:'Оборот there is / there are', why:'Так говорят о наличии: «There is a problem». Один предмет → there is, несколько → there are.'},
+        {ru:'Эти цветы очень красивые.', parts:['These','flowers','are','very','beautiful'], answer:'These flowers are very beautiful', full:'These flowers are very beautiful.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Птицы поют утром.', parts:['The','birds','sing','in','the','morning'], answer:'The birds sing in the morning', full:'The birds sing in the morning.',
+         whyT:'Предлоги времени', why:'at — точное время (at six), on — день (on Monday), in — часть суток и период (in the morning, in a week). Ошибка «in Monday» — типичная.'}
+      ]},
+      { type:'dialog', title:'Разговор о питомце', scene:'street', cefr:'A1: Can name common animals.',
+        intro:'Сосед выгуливает собаку.',
+        turns:[
+          {who:'them', text:'What a nice dog! Is it yours?', ru:'Какая хорошая собака! Ваша?'},
+          {who:'you', ru:'Скажи «да, её зовут Белла».', best:2,
+            options:['Dog me have Bella.','Yes name Bella is dog.','Yes, her name is Bella.']},
+          {who:'them', text:'Do you have other animals?', ru:'Есть другие животные?'},
+          {who:'you', ru:'Скажи, что есть кошка.', best:0,
+            options:['Yes, I also have a cat.','Cat have me too yes.','Also cat in home is.']},
+          {who:'them', text:'Nice. Have a good walk!', ru:'Здорово. Хорошей прогулки!'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok walk go now.','Thanks, you too!','Walk good you have.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Чувства и настроение · 1', scene:'flat', cefr:'A1: Can express how they feel using basic expressions.', newCount:12, words:[
+        {t:'Happy', r:'Счастливый'},
+        {t:'Sad', r:'Грустный'},
+        {t:'Angry', r:'Сердитый'},
+        {t:'Tired', r:'Усталый'},
+        {t:'Afraid', r:'Испуганный'},
+        {t:'Excited', r:'Взволнованный'},
+        {t:'Bored', r:'Скучающий'},
+        {t:'Feel', r:'Чувствовать'},
+        {t:'Feeling', r:'Чувство'},
+        {t:'Love', r:'Любить'},
+        {t:'Hate', r:'Ненавидеть'},
+        {t:'Like', r:'Нравиться'},
+        {t:'June', r:'Июнь', rev:true},
+        {t:'July', r:'Июль', rev:true},
+        {t:'Piano', r:'Пианино', rev:true},
+        {t:'Relax', r:'Отдыхать', rev:true},
+        {t:'Listening', r:'Слушаю', u:'Форма listen. «I am listening to music». После listen нужен «to».', rev:true},
+        {t:'Shall', r:'Давай (предложение)', u:'«Shall we go?» — пойдём? Вежливое предложение, только с I и we.', rev:true},
+        {t:'Animal', r:'Животное', rev:true},
+        {t:'Dog', r:'Собака', rev:true},
+        {t:'Cat', r:'Кошка', rev:true},
+        {t:'Win', r:'Выигрывать', rev:true}
+      ]},
+      { type:'words', title:'Чувства и настроение · 2', scene:'flat', cefr:'A1: Can express how they feel using basic expressions.', newCount:11, words:[
+        {t:'Prefer', r:'Предпочитать'},
+        {t:'Hope', r:'Надеяться'},
+        {t:'Sure', r:'Уверенный'},
+        {t:'Miss', r:'Скучать'},
+        {t:'Enjoy', r:'Радоваться'},
+        {t:'Laugh', r:'Смеяться'},
+        {t:'Die', r:'Умирать'},
+        {t:'Fine', r:'Нормально'},
+        {t:'Everything', r:'Всё', u:'Одно слово. Глагол после него — в единственном числе: «Everything is fine».'},
+        {t:'New', r:'Новый', u:'Противоположно old. «a new phone».'},
+        {t:'Worry', r:'Волноваться', u:'«Do not worry» — не волнуйся. Частая поддержка в разговоре.'},
+        {t:'Lose', r:'Проигрывать', rev:true},
+        {t:'Match', r:'Матч', rev:true},
+        {t:'Play', r:'Играть', rev:true},
+        {t:'Game', r:'Игра', rev:true},
+        {t:'Vegetable', r:'Овощ', rev:true},
+        {t:'Cake', r:'Торт', rev:true},
+        {t:'Page', r:'Страница', rev:true},
+        {t:'Word', r:'Слово', rev:true},
+        {t:'Picture', r:'Картинка', rev:true},
+        {t:'Shower', r:'Душ', rev:true}
+      ]},
+      { type:'build', title:'Собери: Чувства и настроение', scene:'flat', cefr:'A1: Can express how they feel using basic expressions.', tasks:[
+        {ru:'Я очень устал сегодня.', parts:['I','am','very','tired','today'], answer:'I am very tired today', full:'I am very tired today.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Она счастлива на новой работе.', parts:['She','is','happy','in','her','new','job'], answer:'She is happy in her new job', full:'She is happy in her new job.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я надеюсь, всё будет хорошо.', parts:['I','hope','everything','will','be','fine'], answer:'I hope everything will be fine', full:'I hope everything will be fine.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Не волнуйся.', parts:['Do','not','worry'], answer:'Do not worry', full:'Do not worry.',
+         whyT:'Отрицание', why:'Частица not идёт после вспомогательного или модального глагола. «I did not get the letter» — смысловой глагол при этом в начальной форме.'}
+      ]},
+      { type:'dialog', title:'Поддержать друга', scene:'flat', cefr:'A1: Can express how they feel using basic expressions.',
+        intro:'Друг выглядит расстроенным.',
+        turns:[
+          {who:'them', text:'I had a really bad day.', ru:'У меня был очень плохой день.'},
+          {who:'you', ru:'Спроси, что случилось.', best:0,
+            options:['What happened?','Bad what is say me?','Day bad why you?']},
+          {who:'them', text:'I had a problem at work.', ru:'У меня проблема на работе.'},
+          {who:'you', ru:'Скажи, что понимаешь и что всё будет хорошо.', best:2,
+            options:['Work bad yes ok soon.','Problem no big be happy.','I understand. I hope it will be fine.']},
+          {who:'them', text:'Thanks for listening.', ru:'Спасибо, что выслушал.'},
+          {who:'you', ru:'Скажи «всегда пожалуйста».', best:1,
+            options:['Ok listen me always.','Any time.','Listen you me always yes.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
+        ]},
+      { type:'words', title:'Внешность и люди · 1', scene:'street', cefr:'A1: Can describe people simply.', newCount:12, words:[
+        {t:'Man', r:'Мужчина'},
+        {t:'Woman', r:'Женщина'},
+        {t:'Boy', r:'Мальчик'},
+        {t:'Girl', r:'Девочка'},
+        {t:'People', r:'Люди'},
+        {t:'Friend', r:'Друг'},
+        {t:'Friendly', r:'Дружелюбный'},
+        {t:'Neighbour', r:'Сосед'},
+        {t:'Partner', r:'Партнёр'},
+        {t:'Member', r:'Участник'},
+        {t:'Teenager', r:'Подросток'},
+        {t:'Young', r:'Молодой'},
+        {t:'Theatre', r:'Театр', rev:true},
+        {t:'Hotel', r:'Гостиница', rev:true},
+        {t:'Yesterday', r:'Вчера', rev:true},
+        {t:'Quarter', r:'Четверть', rev:true},
+        {t:'Practise', r:'Практиковаться', rev:true},
+        {t:'Won', r:'Выиграл', u:'Прошедшее от win. «Our team won» — наша команда выиграла.', rev:true},
+        {t:'Happy', r:'Счастливый', rev:true},
+        {t:'Sad', r:'Грустный', rev:true},
+        {t:'Angry', r:'Сердитый', rev:true}
+      ]},
+      { type:'words', title:'Внешность и люди · 2', scene:'street', cefr:'A1: Can describe people simply.', newCount:11, words:[
+        {t:'Old', r:'Старый'},
+        {t:'Tall', r:'Высокий'},
+        {t:'Beautiful', r:'Красивый', u:'О людях, местах, вещах. О мужчине чаще «handsome».'},
+        {t:'Pretty', r:'Симпатичный'},
+        {t:'Nice', r:'Приятный', u:'В знакомстве: «Nice to meet you» — приятно познакомиться.'},
+        {t:'Kind', r:'Добрый'},
+        {t:'Blonde', r:'Светловолосый'},
+        {t:'Dark', r:'Тёмный'},
+        {t:'Good', r:'Хороший', u:'О качестве. «Well» — о том, как делают: «speak well».'},
+        {t:'Lot', r:'Много', u:'Только в связке «a lot of»: «a lot of people». Без «a» не говорят.'},
+        {t:'Mine', r:'Мой (без существительного)', u:'«This is mine» — это моё. Если дальше есть предмет — «my bag».'},
+        {t:'Bird', r:'Птица', rev:true},
+        {t:'Horse', r:'Лошадь', rev:true},
+        {t:'Cow', r:'Корова', rev:true},
+        {t:'Club', r:'Клуб', rev:true},
+        {t:'Gym', r:'Спортзал', rev:true},
+        {t:'Restaurant', r:'Ресторан', rev:true},
+        {t:'Table', r:'Столик', rev:true},
+        {t:'Dollar', r:'Доллар', rev:true},
+        {t:'Pound', r:'Фунт', rev:true}
+      ]},
+      { type:'build', title:'Собери: Внешность и люди', scene:'street', cefr:'A1: Can describe people simply.', tasks:[
+        {ru:'Мой сосед очень дружелюбный.', parts:['My','neighbour','is','very','friendly'], answer:'My neighbour is very friendly', full:'My neighbour is very friendly.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Она высокая, со светлыми волосами.', parts:['She','is','tall','with','blonde','hair'], answer:'She is tall with blonde hair', full:'She is tall with blonde hair.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Здесь много людей.', parts:['There','are','a','lot','of','people','here'], answer:'There are a lot of people here', full:'There are a lot of people here.',
+         whyT:'Оборот there is / there are', why:'Так говорят о наличии: «There is a problem». Один предмет → there is, несколько → there are.'},
+        {ru:'Он мой хороший друг.', parts:['He','is','a','good','friend','of','mine'], answer:'He is a good friend of mine', full:'He is a good friend of mine.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'dialog', title:'Найти человека', scene:'street', cefr:'A1: Can describe people simply.',
+        intro:'Ты ищешь коллегу в холле.',
+        turns:[
+          {who:'them', text:'Who are you looking for?', ru:'Кого ищете?'},
+          {who:'you', ru:'Скажи: коллегу по имени Марк.', best:1,
+            options:['Mark man where is?','A colleague. His name is Mark.','Man Mark find me want.']},
+          {who:'them', text:'What does he look like?', ru:'Как он выглядит?'},
+          {who:'you', ru:'Скажи: высокий, тёмные волосы.', best:0,
+            options:['He is tall with dark hair.','Tall dark hair man is.','Hair dark tall he have.']},
+          {who:'them', text:'I think he is upstairs.', ru:'Кажется, он наверху.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Up go me now.','Ok find him there.','Thank you, I will go up.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Контроль: темы 25–28', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Pool', r:'Бассейн', rev:true},
+        {t:'Exercise', r:'Упражнение', rev:true},
+        {t:'Strong', r:'Сильный', rev:true},
+        {t:'Fast', r:'Быстрый', rev:true},
+        {t:'Slow', r:'Медленный', rev:true},
+        {t:'Climb', r:'Лазить', rev:true},
+        {t:'Ride', r:'Ездить верхом / кататься', rev:true},
+        {t:'Start', r:'Начинать', rev:true},
+        {t:'Finish', r:'Заканчивать', rev:true},
+        {t:'Practice', r:'Практика', rev:true},
+        {t:'Twice', r:'Дважды', u:'«twice a week» — два раза в неделю. Один раз — «once».', rev:true},
+        {t:'Pig', r:'Свинья', rev:true},
+        {t:'Sheep', r:'Овца', rev:true},
+        {t:'Mouse', r:'Мышь', rev:true},
+        {t:'Lion', r:'Лев', rev:true},
+        {t:'Elephant', r:'Слон', rev:true},
+        {t:'Snake', r:'Змея', rev:true},
+        {t:'Farm', r:'Ферма', rev:true},
+        {t:'Tree', r:'Дерево', rev:true},
+        {t:'Flower', r:'Цветок', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 25–28', scene:'street', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Наша команда вчера выиграла.', parts:['Our','team','won','yesterday'], answer:'Our team won yesterday', full:'Our team won yesterday.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Я хожу в спортзал по утрам.', parts:['I','go','to','the','gym','in','the','mornings'], answer:'I go to the gym in the mornings', full:'I go to the gym in the mornings.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Матч начинается в семь.', parts:['The','match','starts','at','seven'], answer:'The match starts at seven', full:'The match starts at seven.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Я плаваю в бассейне два раза в неделю.', parts:['I','swim','in','the','pool','twice','a','week'], answer:'I swim in the pool twice a week', full:'I swim in the pool twice a week.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'У меня есть собака и кошка.', parts:['I','have','a','dog','and','a','cat'], answer:'I have a dog and a cat', full:'I have a dog and a cat.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'На ферме есть коровы и овцы.', parts:['There','are','cows','and','sheep','on','the','farm'], answer:'There are cows and sheep on the farm', full:'There are cows and sheep on the farm.',
+         whyT:'Оборот there is / there are', why:'Так говорят о наличии: «There is a problem». Один предмет → there is, несколько → there are.'}
+      ]},
+      { type:'words', title:'Дни и планы · 1', scene:'office', cefr:'A1: Can make simple arrangements.', newCount:10, words:[
+        {t:'Plan', r:'План'},
+        {t:'Meeting', r:'Встреча'},
+        {t:'Join', r:'Присоединяться'},
+        {t:'Come', r:'Приходить'},
+        {t:'Go', r:'Идти'},
+        {t:'Bring', r:'Приносить'},
+        {t:'Take', r:'Брать'},
+        {t:'Give', r:'Давать'},
+        {t:'Call', r:'Звонить'},
+        {t:'Telephone', r:'Телефон'},
+        {t:'Journey', r:'Поездка / путь', rev:true},
+        {t:'Drive', r:'Водить', rev:true},
+        {t:'Cool', r:'Прохладно', rev:true},
+        {t:'Holiday', r:'Отпуск / праздник', rev:true},
+        {t:'Grow', r:'Расти', rev:true},
+        {t:'Land', r:'Земля', rev:true},
+        {t:'Man', r:'Мужчина', rev:true},
+        {t:'Woman', r:'Женщина', rev:true},
+        {t:'Boy', r:'Мальчик', rev:true}
+      ]},
+      { type:'words', title:'Дни и планы · 2', scene:'office', cefr:'A1: Can make simple arrangements.', newCount:10, words:[
+        {t:'Message', r:'Сообщение'},
+        {t:'Answer', r:'Отвечать'},
+        {t:'Ask', r:'Спрашивать'},
+        {t:'Tell', r:'Говорить'},
+        {t:'Say', r:'Сказать'},
+        {t:'Speak', r:'Говорить'},
+        {t:'Talk', r:'Разговаривать'},
+        {t:'Meet', r:'Встречаться', u:'О знакомстве и о встрече: «Let us meet at six».'},
+        {t:'Visit', r:'Навещать'},
+        {t:'Stay', r:'Оставаться'},
+        {t:'Tired', r:'Усталый', rev:true},
+        {t:'Afraid', r:'Испуганный', rev:true},
+        {t:'Excited', r:'Взволнованный', rev:true},
+        {t:'Pig', r:'Свинья', rev:true},
+        {t:'Sheep', r:'Овца', rev:true},
+        {t:'Football', r:'Футбол', rev:true},
+        {t:'Tennis', r:'Теннис', rev:true},
+        {t:'Sign', r:'Подписать / знак', u:'«Sign here» — подпишите здесь. Ещё «знак, табличка».', rev:true},
+        {t:'Open', r:'Открыть', rev:true}
+      ]},
+      { type:'build', title:'Собери: Дни и планы', scene:'office', cefr:'A1: Can make simple arrangements.', tasks:[
+        {ru:'Позвони мне завтра.', parts:['Call','me','tomorrow'], answer:'Call me tomorrow', full:'Call me tomorrow.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я приду в семь.', parts:['I','will','come','at','seven'], answer:'I will come at seven', full:'I will come at seven.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Можешь принести книгу?', parts:['Can','you','bring','the','book'], answer:'Can you bring the book', full:'Can you bring the book?',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Я оставлю сообщение.', parts:['I','will','leave','a','message'], answer:'I will leave a message', full:'I will leave a message.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'}
+      ]},
+      { type:'dialog', title:'Договориться о встрече', scene:'office', cefr:'A1: Can make simple arrangements.',
+        intro:'Коллега пишет по работе.',
+        turns:[
+          {who:'them', text:'Can we meet tomorrow?', ru:'Можем встретиться завтра?'},
+          {who:'you', ru:'Спроси, во сколько.', best:2,
+            options:['Time what meet we?','Meet when say me.','Sure. What time?']},
+          {who:'them', text:'Ten in the morning?', ru:'В десять утра?'},
+          {who:'you', ru:'Согласись.', best:0,
+            options:['Ten is fine for me.','Ten ok yes come.','Morning ten good me have.']},
+          {who:'them', text:'Great, see you then.', ru:'Отлично, до встречи.'},
+          {who:'you', ru:'Скажи, что принесёшь документы.', best:1,
+            options:['Paper bring me yes.','I will bring the documents.','Document take me come.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
+        ]},
+      { type:'words', title:'Праздники и события · 1', scene:'street', cefr:'A1: Can talk about celebrations.', newCount:11, words:[
+        {t:'Birthday', r:'День рождения'},
+        {t:'Party', r:'Вечеринка'},
+        {t:'Festival', r:'Фестиваль'},
+        {t:'Holiday', r:'Праздник / отпуск'},
+        {t:'Vacation', r:'Отпуск'},
+        {t:'Event', r:'Событие'},
+        {t:'Present', r:'Подарок'},
+        {t:'Card', r:'Открытка'},
+        {t:'Welcome', r:'Приветствовать', u:'Тебе говорят при входе. В ответ на «спасибо» — «You are welcome».'},
+        {t:'Become', r:'Становиться'},
+        {t:'Happy', r:'Счастливый'},
+        {t:'Chocolate', r:'Шоколад', rev:true},
+        {t:'Ice cream', r:'Мороженое', rev:true},
+        {t:'Between', r:'Между', rev:true},
+        {t:'Opposite', r:'Напротив', rev:true},
+        {t:'Health', r:'Здоровье', rev:true},
+        {t:'Healthy', r:'Здоровый', rev:true},
+        {t:'Plan', r:'План', rev:true},
+        {t:'Join', r:'Присоединяться', rev:true}
+      ]},
+      { type:'words', title:'Праздники и события · 2', scene:'street', cefr:'A1: Can talk about celebrations.', newCount:11, words:[
+        {t:'Enjoy', r:'Наслаждаться'},
+        {t:'Fun', r:'Веселье'},
+        {t:'Funny', r:'Смешной'},
+        {t:'Music', r:'Музыка'},
+        {t:'Dance', r:'Танцевать'},
+        {t:'Friend', r:'Друг'},
+        {t:'Together', r:'Вместе'},
+        {t:'Year', r:'Год'},
+        {t:'Special', r:'Особенный'},
+        {t:'Celebrate', r:'Праздновать', u:'«celebrate a birthday». Существительное — celebration.'},
+        {t:'Thank', r:'Благодарить', u:'«Thank you» — спасибо. «Thanks» — короче и проще.'},
+        {t:'Bring', r:'Приносить', rev:true},
+        {t:'Girl', r:'Девочка', rev:true},
+        {t:'People', r:'Люди', rev:true},
+        {t:'Friendly', r:'Дружелюбный', rev:true},
+        {t:'Bored', r:'Скучающий', rev:true},
+        {t:'Feel', r:'Чувствовать', rev:true},
+        {t:'Pool', r:'Бассейн', rev:true},
+        {t:'Exercise', r:'Упражнение', rev:true}
+      ]},
+      { type:'build', title:'Собери: Праздники и события', scene:'street', cefr:'A1: Can talk about celebrations.', tasks:[
+        {ru:'У меня день рождения в мае.', parts:['My','birthday','is','in','May'], answer:'My birthday is in May', full:'My birthday is in May.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Спасибо за подарок!', parts:['Thank','you','for','the','present'], answer:'Thank you for the present', full:'Thank you for the present!',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Мы отмечаем вместе.', parts:['We','celebrate','together'], answer:'We celebrate together', full:'We celebrate together.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это был очень весёлый вечер.', parts:['It','was','a','very','fun','evening'], answer:'It was a very fun evening', full:'It was a very fun evening.',
+         whyT:'Прошедшее время глагола be', why:'I/he/she/it → was, you/we/they → were. «That was delicious», «They were here».'}
+      ]},
+      { type:'dialog', title:'Пригласить на праздник', scene:'street', cefr:'A1: Can talk about celebrations.',
+        intro:'Ты зовёшь соседа на день рождения.',
+        turns:[
+          {who:'them', text:'You look happy today!', ru:'Ты сегодня радостный!'},
+          {who:'you', ru:'Скажи, что у тебя день рождения в субботу.', best:1,
+            options:['Birthday Saturday me have.','Yes! It is my birthday on Saturday.','Saturday born day is me.']},
+          {who:'them', text:'Happy birthday in advance!', ru:'С днём рождения заранее!'},
+          {who:'you', ru:'Пригласи на вечеринку.', best:0,
+            options:['Thank you! Come to my party.','Party you come yes.','Come house party me have.']},
+          {who:'them', text:'I would love to. What time?', ru:'С удовольствием. Во сколько?'},
+          {who:'you', ru:'Скажи: в семь вечера.', best:2,
+            options:['Seven night come you.','Time seven have party.','At seven in the evening.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Проблемы и помощь · 1', scene:'street', cefr:'A1: Can ask for help in simple situations.', newCount:11, words:[
+        {t:'Help', r:'Помощь'},
+        {t:'Problem', r:'Проблема'},
+        {t:'Police', r:'Полиция'},
+        {t:'Forget', r:'Забывать'},
+        {t:'Find', r:'Находить'},
+        {t:'Lose', r:'Терять'},
+        {t:'Wrong', r:'Неправильный'},
+        {t:'Mistake', r:'Ошибка'},
+        {t:'Sorry', r:'Извините', u:'Извинение за поступок: толкнул, опоздал, перебил. Чтобы обратиться к незнакомцу — «Excuse me».'},
+        {t:'Quiet', r:'Тихий'},
+        {t:'Traffic', r:'Движение (транспорт)'},
+        {t:'Menu', r:'Меню', rev:true},
+        {t:'Breakfast', r:'Завтрак', rev:true},
+        {t:'Scientist', r:'Учёный', rev:true},
+        {t:'Policeman', r:'Полицейский', rev:true},
+        {t:'Wear', r:'Носить', rev:true},
+        {t:'Type', r:'Тип / вид', rev:true},
+        {t:'Birthday', r:'День рождения', rev:true},
+        {t:'Festival', r:'Фестиваль', rev:true}
+      ]},
+      { type:'words', title:'Проблемы и помощь · 2', scene:'street', cefr:'A1: Can ask for help in simple situations.', newCount:10, words:[
+        {t:'Dangerous', r:'Опасный'},
+        {t:'Fire', r:'Пожар'},
+        {t:'Happen', r:'Случаться'},
+        {t:'Call', r:'Звонить'},
+        {t:'Quick', r:'Быстрый'},
+        {t:'Quickly', r:'Быстро'},
+        {t:'Stop', r:'Остановить'},
+        {t:'Wait', r:'Подождать'},
+        {t:'Understand', r:'Понимать'},
+        {t:'Lost', r:'Потерял', u:'Прошедшее от lose. «I have lost my bag» — я потерял сумку.'},
+        {t:'Vacation', r:'Отпуск', rev:true},
+        {t:'Telephone', r:'Телефон', rev:true},
+        {t:'Message', r:'Сообщение', rev:true},
+        {t:'Ask', r:'Спрашивать', rev:true},
+        {t:'Neighbour', r:'Сосед', rev:true},
+        {t:'Partner', r:'Партнёр', rev:true},
+        {t:'Mouse', r:'Мышь', rev:true},
+        {t:'Lion', r:'Лев', rev:true}
+      ]},
+      { type:'build', title:'Собери: Проблемы и помощь', scene:'street', cefr:'A1: Can ask for help in simple situations.', tasks:[
+        {ru:'Помогите, пожалуйста!', parts:['Help','me','please'], answer:'Help me please', full:'Help me, please!',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я потерял телефон.', parts:['I','have','lost','my','phone'], answer:'I have lost my phone', full:'I have lost my phone.',
+         whyT:'Present Perfect: have + третья форма', why:'Действие в прошлом, но важен результат сейчас. «I have lost my bag» — потерял и до сих пор нет. Через for и since: «for three years».'},
+        {ru:'Вызовите полицию.', parts:['Call','the','police'], answer:'Call the police', full:'Call the police.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Извините, я не понимаю.', parts:['Sorry','I','do','not','understand'], answer:'Sorry I do not understand', full:'Sorry, I do not understand.',
+         whyT:'Отрицание', why:'Частица not идёт после вспомогательного или модального глагола. «I did not get the letter» — смысловой глагол при этом в начальной форме.'}
+      ]},
+      { type:'dialog', variant:'lost', title:'Потерял вещь', scene:'street', cefr:'A1: Can ask for help in simple situations.',
+        intro:'Ты подходишь к сотруднику вокзала: потерял что-то — телефон, сумку, кошелёк, ключи. Что именно — решаешь ты.',
+        lost:{
+          ruThings:{phone:'телефон',bag:'сумку',wallet:'кошелёк',keys:'ключи',passport:'паспорт',ticket:'билет',laptop:'ноутбук',suitcase:'чемодан',camera:'камеру',card:'карту',money:'деньги',documents:'документы',glasses:'очки',watch:'часы',charger:'зарядку',jacket:'куртку',umbrella:'зонт',luggage:'багаж'},
+          alias:{telephone:'phone',mobile:'phone',cellphone:'phone',cell:'phone',smartphone:'phone',iphone:'phone',
+                 purse:'wallet',billfold:'wallet',case:'suitcase',baggage:'luggage',bags:'luggage',backpack:'bag',rucksack:'bag',handbag:'bag',
+                 key:'keys',notebook:'laptop',computer:'laptop',pc:'laptop',macbook:'laptop',
+                 papers:'documents',document:'documents',id:'documents',licence:'documents',license:'documents',
+                 tickets:'ticket',cards:'card',creditcard:'card',banknote:'money',cash:'money',wallets:'wallet',
+                 spectacles:'glasses',sunglasses:'glasses',coat:'jacket',raincoat:'jacket',
+                 brolly:'umbrella',charging:'charger',cable:'charger',watches:'watch',clock:'watch',camara:'camera',phones:'phone'},
+          lose:['lost','lose','losing','missing','gone','stolen','left','forgot','forgotten','disappeared'],
+          places:['train','bus','taxi','car','cafe','restaurant','shop','store','station','airport','hotel','room','building','street','park','bank','toilet','bar','market','office','home','house','platform','school','work','outside','here','there'],
+          colors:['black','white','red','blue','green','brown','grey','gray','yellow','dark','light','orange','pink','purple'],
+          sizes:['small','big','large','little','medium','tiny','huge','heavy','light'],
+          greet:['hi','hello','hey','morning','afternoon','evening'],
+          bye:['bye','goodbye','see','later','day','night'],
+          thanks:['thank','thanks','cheers','appreciate'],
+          nodes:[
+            {id:'greet', kind:'greet', task:'Поздоровайся и назови себя.', them:'Hello! Can I help you?', ruThem:'Здравствуйте! Могу помочь?', best:'Hi, my name is Anna.', opts:['Hi, my name is Anna.','Hello, I am Anna.']},
+            {id:'what', kind:'what', task:'Скажи, что случилось.', them:'What happened?', ruThem:'Что случилось?', best:'I have lost my phone.', opts:['I have lost my phone.','I have lost my bag.','I have lost my wallet.']},
+            {id:'whatthing', kind:'whatthing', task:'Назови предмет: phone, bag, wallet, keys, passport.', them:'What exactly did you lose?', ruThem:'Что именно потеряли?', best:'My phone.', opts:['My phone.','My wallet.']},
+            {id:'where', kind:'where', task:'Ответь: где это было.', them:'Where did you last see it?', ruThem:'Где вы её видели в последний раз?', best:'On the train.', opts:['On the train.','In the cafe.','At the airport.']},
+            {id:'callplace', kind:'desc', task:'Опиши вещь: цвет или размер.', them:'I will call the place now. Can you describe it?', ruThem:'Я сейчас туда позвоню. Сможете описать вещь?', best:'It is small and black.', opts:['It is small and black.','It is black.','It is small.']},
+            {id:'search', kind:'agree', task:'Согласись.', them:'Maybe it is still here. Let us look together.', ruThem:'Может, она ещё здесь. Поищем вместе?', best:'Yes, please.', opts:['Yes, please.']},
+            {id:'end', kind:'end', task:'Попрощайся.', them:'Alright, I will call you. Have a good day!', ruThem:'Хорошо, я вам позвоню. Хорошего дня!', best:'Thank you, goodbye!', opts:['Thank you, goodbye!','Thanks, goodbye!','Have a good day!']}
+          ]
+        }},
+      { type:'words', title:'Интернет и связь · 1', scene:'office', cefr:'A1: Can use simple digital vocabulary.', newCount:11, words:[
+        {t:'Internet', r:'Интернет'},
+        {t:'Online', r:'Онлайн'},
+        {t:'Website', r:'Сайт'},
+        {t:'Email', r:'Электронная почта'},
+        {t:'Phone', r:'Телефон'},
+        {t:'Computer', r:'Компьютер'},
+        {t:'Message', r:'Сообщение'},
+        {t:'Video', r:'Видео'},
+        {t:'Photograph', r:'Фотография'},
+        {t:'Blog', r:'Блог'},
+        {t:'Information', r:'Информация'},
+        {t:'Swim', r:'Плавать', rev:true},
+        {t:'Swimming', r:'Плавание', rev:true},
+        {t:'Sentence', r:'Предложение', rev:true},
+        {t:'Question', r:'Вопрос', rev:true},
+        {t:'Sugar', r:'Сахар', rev:true},
+        {t:'Milk', r:'Молоко', rev:true},
+        {t:'Police', r:'Полиция', rev:true},
+        {t:'Forget', r:'Забывать', rev:true}
+      ]},
+      { type:'words', title:'Интернет и связь · 2', scene:'office', cefr:'A1: Can use simple digital vocabulary.', newCount:10, words:[
+        {t:'News', r:'Новости'},
+        {t:'Send', r:'Отправлять'},
+        {t:'Share', r:'Делиться'},
+        {t:'Open', r:'Открыть'},
+        {t:'Check', r:'Проверить'},
+        {t:'Write', r:'Писать'},
+        {t:'Read', r:'Читать'},
+        {t:'Call', r:'Звонок'},
+        {t:'Answer', r:'Отвечать'},
+        {t:'Password', r:'Пароль', u:'От Wi-Fi и от счёта. «What is the password?»'},
+        {t:'Find', r:'Находить', rev:true},
+        {t:'Event', r:'Событие', rev:true},
+        {t:'Present', r:'Подарок', rev:true},
+        {t:'Become', r:'Становиться', rev:true},
+        {t:'Tell', r:'Говорить', rev:true},
+        {t:'Speak', r:'Говорить', rev:true},
+        {t:'Feeling', r:'Чувство', rev:true},
+        {t:'Love', r:'Любить', rev:true}
+      ]},
+      { type:'build', title:'Собери: Интернет и связь', scene:'office', cefr:'A1: Can use simple digital vocabulary.', tasks:[
+        {ru:'Я отправлю тебе письмо.', parts:['I','will','send','you','an','email'], answer:'I will send you an email', full:'I will send you an email.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Какой пароль от интернета?', parts:['What','is','the','internet','password'], answer:'What is the internet password', full:'What is the internet password?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Я прочитал это на сайте.', parts:['I','read','it','on','the','website'], answer:'I read it on the website', full:'I read it on the website.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Позвони мне по видео.', parts:['Call','me','on','video'], answer:'Call me on video', full:'Call me on video.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'Проблема с интернетом', scene:'office', cefr:'A1: Can use simple digital vocabulary.',
+        intro:'Ты звонишь хозяину квартиры.',
+        turns:[
+          {who:'them', text:'Hello, what is the matter?', ru:'Здравствуйте, что случилось?'},
+          {who:'you', ru:'Скажи, что интернет не работает.', best:1,
+            options:['Internet no go bad.','The internet does not work.','No internet have me now.']},
+          {who:'them', text:'Did you check the router?', ru:'Роутер проверяли?'},
+          {who:'you', ru:'Скажи «да, я проверил».', best:0,
+            options:['Yes, I checked it.','Check yes me do.','Look it me yes have.']},
+          {who:'them', text:'I will send someone today.', ru:'Пришлю кого-нибудь сегодня.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok today come man.','Send yes good today.','Thank you very much.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
+        ]},
+      { type:'words', title:'Контроль: темы 29–32', scene:'office', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Talk', r:'Разговаривать', rev:true},
+        {t:'Visit', r:'Навещать', rev:true},
+        {t:'Stay', r:'Оставаться', rev:true},
+        {t:'Fun', r:'Веселье', rev:true},
+        {t:'Funny', r:'Смешной', rev:true},
+        {t:'Together', r:'Вместе', rev:true},
+        {t:'Special', r:'Особенный', rev:true},
+        {t:'Celebrate', r:'Праздновать', u:'«celebrate a birthday». Существительное — celebration.', rev:true},
+        {t:'Thank', r:'Благодарить', u:'«Thank you» — спасибо. «Thanks» — короче и проще.', rev:true},
+        {t:'Wrong', r:'Неправильный', rev:true},
+        {t:'Mistake', r:'Ошибка', rev:true},
+        {t:'Quiet', r:'Тихий', rev:true},
+        {t:'Traffic', r:'Движение (транспорт)', rev:true},
+        {t:'Dangerous', r:'Опасный', rev:true},
+        {t:'Fire', r:'Пожар', rev:true},
+        {t:'Happen', r:'Случаться', rev:true},
+        {t:'Quick', r:'Быстрый', rev:true},
+        {t:'Quickly', r:'Быстро', rev:true},
+        {t:'Understand', r:'Понимать', rev:true},
+        {t:'Lost', r:'Потерял', u:'Прошедшее от lose. «I have lost my bag» — я потерял сумку.', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 29–32', scene:'office', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Позвони мне завтра.', parts:['Call','me','tomorrow'], answer:'Call me tomorrow', full:'Call me tomorrow.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я приду в семь.', parts:['I','will','come','at','seven'], answer:'I will come at seven', full:'I will come at seven.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Можешь принести книгу?', parts:['Can','you','bring','the','book'], answer:'Can you bring the book', full:'Can you bring the book?',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Я оставлю сообщение.', parts:['I','will','leave','a','message'], answer:'I will leave a message', full:'I will leave a message.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'У меня день рождения в мае.', parts:['My','birthday','is','in','May'], answer:'My birthday is in May', full:'My birthday is in May.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Спасибо за подарок!', parts:['Thank','you','for','the','present'], answer:'Thank you for the present', full:'Thank you for the present!',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'}
+      ]},
+      { type:'words', title:'Описать вещь · 1', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.', newCount:11, words:[
+        {t:'New', r:'Новый', u:'Противоположно old. «a new phone».'},
+        {t:'Old', r:'Старый'},
+        {t:'Good', r:'Хороший', u:'О качестве. «Well» — о том, как делают: «speak well».'},
+        {t:'Bad', r:'Плохой'},
+        {t:'Great', r:'Отличный'},
+        {t:'Terrible', r:'Ужасный'},
+        {t:'Easy', r:'Лёгкий'},
+        {t:'Difficult', r:'Трудный'},
+        {t:'Hard', r:'Твёрдый / трудный'},
+        {t:'Clean', r:'Чистый'},
+        {t:'Dirty', r:'Грязный'},
+        {t:'Strong', r:'Сильный', rev:true},
+        {t:'Fast', r:'Быстрый', rev:true},
+        {t:'Cent', r:'Цент', rev:true},
+        {t:'Change', r:'Сдача / менять', u:'Сдача и мелочь. «Keep the change» — сдачи не надо.', rev:true},
+        {t:'Juice', r:'Сок', rev:true},
+        {t:'Beer', r:'Пиво', rev:true},
+        {t:'Internet', r:'Интернет', rev:true},
+        {t:'Online', r:'Онлайн', rev:true}
+      ]},
+      { type:'words', title:'Описать вещь · 2', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.', newCount:11, words:[
+        {t:'Full', r:'Полный'},
+        {t:'High', r:'Высокий'},
+        {t:'Open', r:'Открытый'},
+        {t:'Common', r:'Обычный'},
+        {t:'Poor', r:'Плохой / бедный'},
+        {t:'Ready', r:'Готовый'},
+        {t:'Same', r:'Такой же'},
+        {t:'Different', r:'Другой'},
+        {t:'Similar', r:'Похожий'},
+        {t:'Broken', r:'Сломан', u:'Третья форма от break. «It is broken» — оно сломано.'},
+        {t:'Exactly', r:'Точно', u:'Подтверждение: «Exactly» — именно так. Ещё «ровно»: exactly ten.'},
+        {t:'Website', r:'Сайт', rev:true},
+        {t:'Wrong', r:'Неправильный', rev:true},
+        {t:'Mistake', r:'Ошибка', rev:true},
+        {t:'Quiet', r:'Тихий', rev:true},
+        {t:'Fun', r:'Веселье', rev:true},
+        {t:'Funny', r:'Смешной', rev:true},
+        {t:'Member', r:'Участник', rev:true},
+        {t:'Teenager', r:'Подросток', rev:true}
+      ]},
+      { type:'build', title:'Собери: Описать вещь', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.', tasks:[
+        {ru:'Эта вещь сломана.', parts:['This','thing','is','broken'], answer:'This thing is broken', full:'This thing is broken.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Комната очень чистая.', parts:['The','room','is','very','clean'], answer:'The room is very clean', full:'The room is very clean.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Магазин закрыт.', parts:['The','shop','is','closed'], answer:'The shop is closed', full:'The shop is closed.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Это точно такое же.', parts:['This','is','exactly','the','same'], answer:'This is exactly the same', full:'This is exactly the same.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', title:'Вернуть товар', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.',
+        intro:'Ты возвращаешь покупку в магазин.',
+        turns:[
+          {who:'them', text:'Hello, how can I help?', ru:'Здравствуйте, чем помочь?'},
+          {who:'you', ru:'Скажи, что вещь сломана.', best:2,
+            options:['Broken this is bad.','Thing no good bad have.','Hello. This is broken.']},
+          {who:'them', text:'When did you buy it?', ru:'Когда покупали?'},
+          {who:'you', ru:'Скажи: вчера.', best:0,
+            options:['Yesterday.','Day before buy me.','Buy me one day past.']},
+          {who:'them', text:'Do you have the receipt?', ru:'Чек есть?'},
+          {who:'you', ru:'Скажи «да, вот он».', best:1,
+            options:['Paper here take yes.','Yes, here it is.','Receipt have me give you.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
+        ]},
+      { type:'words', title:'Простые действия · 1', scene:'flat', cefr:'A1: Can describe daily actions.', newCount:11, words:[
+        {t:'Wake', r:'Просыпаться'},
+        {t:'Sleep', r:'Спать'},
+        {t:'Wash', r:'Мыть'},
+        {t:'Shower', r:'Душ'},
+        {t:'Dress', r:'Одеваться'},
+        {t:'Cook', r:'Готовить'},
+        {t:'Cooking', r:'Готовка'},
+        {t:'Clean', r:'Убирать'},
+        {t:'Sit', r:'Сидеть'},
+        {t:'Stand', r:'Стоять'},
+        {t:'Put', r:'Класть', u:'Прошедшее тоже put — форма не меняется. «Put it here» — положи сюда.'},
+        {t:'Elephant', r:'Слон', rev:true},
+        {t:'Snake', r:'Змея', rev:true},
+        {t:'Form', r:'Бланк', rev:true},
+        {t:'Name', r:'Имя', u:'Спросят: «What is your name?» Ответ: «My name is…».', rev:true},
+        {t:'Bed', r:'Кровать', rev:true},
+        {t:'Desk', r:'Письменный стол', rev:true},
+        {t:'Bad', r:'Плохой', rev:true},
+        {t:'Great', r:'Отличный', rev:true}
+      ]},
+      { type:'words', title:'Простые действия · 2', scene:'flat', cefr:'A1: Can describe daily actions.', newCount:11, words:[
+        {t:'Carry', r:'Нести'},
+        {t:'Cut', r:'Резать'},
+        {t:'Fill', r:'Наполнять'},
+        {t:'Move', r:'Двигать'},
+        {t:'Turn', r:'Поворачивать'},
+        {t:'Close', r:'Закрывать', u:'Два смысла: «close to the shop» — рядом; «close the door» — закрой дверь.'},
+        {t:'Break', r:'Ломать'},
+        {t:'Build', r:'Строить'},
+        {t:'Try', r:'Пробовать'},
+        {t:'Every', r:'Каждый', u:'Дальше существительное в единственном числе: «every day».'},
+        {t:'Up', r:'Вверх / встать', u:'«get up» — вставать, «go up» — подниматься. Меняет смысл глагола.'},
+        {t:'Terrible', r:'Ужасный', rev:true},
+        {t:'Video', r:'Видео', rev:true},
+        {t:'Photograph', r:'Фотография', rev:true},
+        {t:'Blog', r:'Блог', rev:true},
+        {t:'Traffic', r:'Движение (транспорт)', rev:true},
+        {t:'Dangerous', r:'Опасный', rev:true},
+        {t:'Talk', r:'Разговаривать', rev:true},
+        {t:'Visit', r:'Навещать', rev:true}
+      ]},
+      { type:'build', title:'Собери: Простые действия', scene:'flat', cefr:'A1: Can describe daily actions.', tasks:[
+        {ru:'Я просыпаюсь в семь утра.', parts:['I','wake','up','at','seven','in','the','morning'], answer:'I wake up at seven in the morning', full:'I wake up at seven in the morning.',
+         whyT:'Предлоги времени', why:'at — точное время (at six), on — день (on Monday), in — часть суток и период (in the morning, in a week). Ошибка «in Monday» — типичная.'},
+        {ru:'Он готовит ужин каждый вечер.', parts:['He','cooks','dinner','every','evening'], answer:'He cooks dinner every evening', full:'He cooks dinner every evening.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Закройте дверь, пожалуйста.', parts:['Please','close','the','door'], answer:'Please close the door', full:'Please close the door.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Я попробую это сделать.', parts:['I','will','try','to','do','it'], answer:'I will try to do it', full:'I will try to do it.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'}
+      ]},
+      { type:'dialog', title:'Утро в общей кухне', scene:'flat', cefr:'A1: Can describe daily actions.',
+        intro:'Сосед по квартире на кухне.',
+        turns:[
+          {who:'them', text:'You are up early today.', ru:'Ты сегодня рано встал.'},
+          {who:'you', ru:'Скажи, что просыпаешься в шесть.', best:0,
+            options:['Yes, I wake up at six.','Six wake me every day.','Early yes six get me.']},
+          {who:'them', text:'Do you want some coffee?', ru:'Кофе хочешь?'},
+          {who:'you', ru:'Согласись и поблагодари.', best:1,
+            options:['Coffee yes want me.','Yes, please. Thank you.','Give coffee thanks have.']},
+          {who:'them', text:'I am cooking eggs too.', ru:'Я ещё яйца готовлю.'},
+          {who:'you', ru:'Скажи, что тоже будешь.', best:2,
+            options:['Egg me want also.','Also eggs give me yes.','Eggs sound great, thanks.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
+        ]},
+      { type:'words', title:'Мнение и согласие · 1', scene:'cafe', cefr:'A1: Can express simple opinions and agree or disagree.', newCount:10, words:[
+        {t:'Think', r:'Думать'},
+        {t:'Know', r:'Знать'},
+        {t:'Believe', r:'Верить'},
+        {t:'Agree', r:'Соглашаться'},
+        {t:'Opinion', r:'Мнение'},
+        {t:'Idea', r:'Идея'},
+        {t:'Right', r:'Правильный'},
+        {t:'Wrong', r:'Неправильный'},
+        {t:'True', r:'Правда'},
+        {t:'False', r:'Неправда'},
+        {t:'Hate', r:'Ненавидеть', rev:true},
+        {t:'Prefer', r:'Предпочитать', rev:true},
+        {t:'Piece', r:'Кусок', rev:true},
+        {t:'Kilometre', r:'Километр', rev:true},
+        {t:'Living', r:'Жилой (о комнате)', u:'«living room» — гостиная. Одним словом комнату так не называют.', rev:true},
+        {t:'Television', r:'Телевизор', rev:true},
+        {t:'Wake', r:'Просыпаться', rev:true},
+        {t:'Sleep', r:'Спать', rev:true}
+      ]},
+      { type:'words', title:'Мнение и согласие · 2', scene:'cafe', cefr:'A1: Can express simple opinions and agree or disagree.', newCount:10, words:[
+        {t:'Maybe', r:'Может быть'},
+        {t:'Sure', r:'Конечно'},
+        {t:'Course', r:'Конечно (of course)'},
+        {t:'Reason', r:'Причина'},
+        {t:'Because', r:'Потому что'},
+        {t:'Important', r:'Важный'},
+        {t:'Interesting', r:'Интересный'},
+        {t:'Boring', r:'Скучный'},
+        {t:'Favourite', r:'Любимый'},
+        {t:'Best', r:'Лучший'},
+        {t:'Wash', r:'Мыть', rev:true},
+        {t:'Easy', r:'Лёгкий', rev:true},
+        {t:'Difficult', r:'Трудный', rev:true},
+        {t:'Hard', r:'Твёрдый / трудный', rev:true},
+        {t:'Information', r:'Информация', rev:true},
+        {t:'News', r:'Новости', rev:true},
+        {t:'Together', r:'Вместе', rev:true},
+        {t:'Special', r:'Особенный', rev:true}
+      ]},
+      { type:'build', title:'Собери: Мнение и согласие', scene:'cafe', cefr:'A1: Can express simple opinions and agree or disagree.', tasks:[
+        {ru:'Я думаю, это хорошая идея.', parts:['I','think','it','is','a','good','idea'], answer:'I think it is a good idea', full:'I think it is a good idea.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Я согласен с тобой.', parts:['I','agree','with','you'], answer:'I agree with you', full:'I agree with you.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это мой любимый фильм.', parts:['It','is','my','favourite','film'], answer:'It is my favourite film', full:'It is my favourite film.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Может быть, ты прав.', parts:['Maybe','you','are','right'], answer:'Maybe you are right', full:'Maybe you are right.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'Обсудить фильм', scene:'cafe', cefr:'A1: Can express simple opinions and agree or disagree.',
+        intro:'После кино друг спрашивает мнение.',
+        turns:[
+          {who:'them', text:'So, did you like the film?', ru:'Ну как, понравился фильм?'},
+          {who:'you', ru:'Скажи, что да, очень интересный.', best:1,
+            options:['Film good yes much.','Yes, I liked it. Very interesting.','Interest have film me like.']},
+          {who:'them', text:'I thought it was a bit boring.', ru:'А мне показался скучноватым.'},
+          {who:'you', ru:'Не согласись вежливо.', best:0,
+            options:['Really? I do not agree. I think it was good.','No boring is bad you say.','Wrong you. Film good is.']},
+          {who:'them', text:'Well, everyone is different.', ru:'Ну, все разные.'},
+          {who:'you', ru:'Согласись.', best:2,
+            options:['Different yes people all.','People all not same is.','That is true.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
+        ]},
+      { type:'words', title:'Большие числа и даты · 1', scene:'bank', cefr:'A1: Can handle larger numbers and dates.', newCount:10, words:[
+        {t:'Thirteen', r:'Тринадцать'},
+        {t:'Fourteen', r:'Четырнадцать'},
+        {t:'Sixteen', r:'Шестнадцать'},
+        {t:'Seventeen', r:'Семнадцать'},
+        {t:'Eighteen', r:'Восемнадцать'},
+        {t:'Nineteen', r:'Девятнадцать'},
+        {t:'Forty', r:'Сорок'},
+        {t:'Sixty', r:'Шестьдесят'},
+        {t:'Seventy', r:'Семьдесят'},
+        {t:'Eighty', r:'Восемьдесят'},
+        {t:'Pretty', r:'Симпатичный', rev:true},
+        {t:'Kind', r:'Добрый', rev:true},
+        {t:'Lunch', r:'Обед', rev:true},
+        {t:'Dinner', r:'Ужин', rev:true},
+        {t:'Station', r:'Вокзал', rev:true},
+        {t:'Airport', r:'Аэропорт', rev:true},
+        {t:'Think', r:'Думать', rev:true},
+        {t:'Believe', r:'Верить', rev:true}
+      ]},
+      { type:'words', title:'Большие числа и даты · 2', scene:'bank', cefr:'A1: Can handle larger numbers and dates.', newCount:10, words:[
+        {t:'Ninety', r:'Девяносто'},
+        {t:'Thousand', r:'Тысяча'},
+        {t:'Million', r:'Миллион'},
+        {t:'Second', r:'Второй'},
+        {t:'Third', r:'Третий'},
+        {t:'Fourth', r:'Четвёртый'},
+        {t:'Fifth', r:'Пятый'},
+        {t:'Twice', r:'Дважды', u:'«twice a week» — два раза в неделю. Один раз — «once».'},
+        {t:'April', r:'Апрель'},
+        {t:'November', r:'Ноябрь'},
+        {t:'Agree', r:'Соглашаться', rev:true},
+        {t:'Cook', r:'Готовить', rev:true},
+        {t:'Cooking', r:'Готовка', rev:true},
+        {t:'Sit', r:'Сидеть', rev:true},
+        {t:'Dirty', r:'Грязный', rev:true},
+        {t:'Full', r:'Полный', rev:true},
+        {t:'Fire', r:'Пожар', rev:true},
+        {t:'Happen', r:'Случаться', rev:true}
+      ]},
+      { type:'build', title:'Собери: Большие числа и даты', scene:'bank', cefr:'A1: Can handle larger numbers and dates.', tasks:[
+        {ru:'Мне нужно тысяча евро.', parts:['I','need','a','thousand','euros'], answer:'I need a thousand euros', full:'I need a thousand euros.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Это мой второй визит.', parts:['This','is','my','second','visit'], answer:'This is my second visit', full:'This is my second visit.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я был здесь дважды.', parts:['I','have','been','here','twice'], answer:'I have been here twice', full:'I have been here twice.',
+         whyT:'Present Perfect: have + третья форма', why:'Действие в прошлом, но важен результат сейчас. «I have lost my bag» — потерял и до сих пор нет. Через for и since: «for three years».'},
+        {ru:'В апреле я уезжаю.', parts:['In','April','I','am','leaving'], answer:'In April I am leaving', full:'In April I am leaving.',
+         whyT:'Present Continuous: происходит сейчас', why:'am/is/are + глагол с -ing. «I am waiting» — жду прямо сейчас, в отличие от «I wait» — вообще, обычно.'}
+      ]},
+      { type:'dialog', title:'Перевод денег', scene:'bank', cefr:'A1: Can handle larger numbers and dates.',
+        intro:'Ты в банке оформляешь перевод.',
+        turns:[
+          {who:'them', text:'How much would you like to send?', ru:'Сколько хотите отправить?'},
+          {who:'you', ru:'Скажи: тысяча триста евро.', best:1,
+            options:['Money thousand three hundred.','One thousand three hundred euros.','Send big money me want.']},
+          {who:'them', text:'And when do you need it there?', ru:'И когда должно прийти?'},
+          {who:'you', ru:'Скажи: до девятнадцатого ноября.', best:0,
+            options:['Before the nineteenth of November.','November nineteen day before.','Time November go fast.']},
+          {who:'them', text:'That is fine.', ru:'Хорошо.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok money go now.','Send yes good time.','Thank you very much.']},
+          {who:'them', text:'Do you have any other questions?', ru:'Ещё вопросы есть?'},
+          {who:'you', ru:'Спроси, когда всё будет готово.', best:1,
+            options:['Ready when is?','When will it be ready?','Time ready what say?']},
+          {who:'them', text:'In about five working days.', ru:'Примерно пять рабочих дней.'},
+          {who:'you', ru:'Спроси, позвонят ли тебе.', best:0,
+            options:['Will you call me?','Phone me you can?','Call have me yes no?']},
+          {who:'them', text:'Yes, we will send a message.', ru:'Да, отправим сообщение.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok message wait.','Good send yes me.','Thank you very much for your help.']}
+        ]},
+      { type:'words', title:'Контроль: темы 33–36', scene:'bank', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'High', r:'Высокий', rev:true},
+        {t:'Common', r:'Обычный', rev:true},
+        {t:'Poor', r:'Плохой / бедный', rev:true},
+        {t:'Same', r:'Такой же', rev:true},
+        {t:'Different', r:'Другой', rev:true},
+        {t:'Similar', r:'Похожий', rev:true},
+        {t:'Broken', r:'Сломан', u:'Третья форма от break. «It is broken» — оно сломано.', rev:true},
+        {t:'Exactly', r:'Точно', u:'Подтверждение: «Exactly» — именно так. Ещё «ровно»: exactly ten.', rev:true},
+        {t:'Stand', r:'Стоять', rev:true},
+        {t:'Carry', r:'Нести', rev:true},
+        {t:'Cut', r:'Резать', rev:true},
+        {t:'Fill', r:'Наполнять', rev:true},
+        {t:'Move', r:'Двигать', rev:true},
+        {t:'Break', r:'Ломать', rev:true},
+        {t:'Build', r:'Строить', rev:true},
+        {t:'Try', r:'Пробовать', rev:true},
+        {t:'Every', r:'Каждый', u:'Дальше существительное в единственном числе: «every day».', rev:true},
+        {t:'Up', r:'Вверх / встать', u:'«get up» — вставать, «go up» — подниматься. Меняет смысл глагола.', rev:true},
+        {t:'Opinion', r:'Мнение', rev:true},
+        {t:'Idea', r:'Идея', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 33–36', scene:'bank', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Эта вещь сломана.', parts:['This','thing','is','broken'], answer:'This thing is broken', full:'This thing is broken.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Комната очень чистая.', parts:['The','room','is','very','clean'], answer:'The room is very clean', full:'The room is very clean.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Магазин закрыт.', parts:['The','shop','is','closed'], answer:'The shop is closed', full:'The shop is closed.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Это точно такое же.', parts:['This','is','exactly','the','same'], answer:'This is exactly the same', full:'This is exactly the same.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Я просыпаюсь в семь утра.', parts:['I','wake','up','at','seven','in','the','morning'], answer:'I wake up at seven in the morning', full:'I wake up at seven in the morning.',
+         whyT:'Предлоги времени', why:'at — точное время (at six), on — день (on Monday), in — часть суток и период (in the morning, in a week). Ошибка «in Monday» — типичная.'},
+        {ru:'Он готовит ужин каждый вечер.', parts:['He','cooks','dinner','every','evening'], answer:'He cooks dinner every evening', full:'He cooks dinner every evening.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'words', title:'Рассказать о себе · 1', scene:'office', cefr:'A1: Can introduce themselves at length.', newCount:11, words:[
+        {t:'Be', r:'Быть'},
+        {t:'Live', r:'Жить', u:'«I live in Moscow». Для he/she/it — lives.'},
+        {t:'Born', r:'Рождённый'},
+        {t:'Come', r:'Приезжать'},
+        {t:'Country', r:'Страна'},
+        {t:'Language', r:'Язык'},
+        {t:'Married', r:'Женат / замужем'},
+        {t:'Girlfriend', r:'Девушка'},
+        {t:'Boyfriend', r:'Парень'},
+        {t:'Life', r:'Жизнь'},
+        {t:'Year', r:'Год'},
+        {t:'Stay', r:'Оставаться', rev:true},
+        {t:'Plan', r:'План', rev:true},
+        {t:'Run', r:'Бегать', rev:true},
+        {t:'Film', r:'Фильм', rev:true},
+        {t:'Arrive', r:'Прибывать', rev:true},
+        {t:'Leave', r:'Уезжать', rev:true},
+        {t:'Thirteen', r:'Тринадцать', rev:true},
+        {t:'Fourteen', r:'Четырнадцать', rev:true}
+      ]},
+      { type:'words', title:'Рассказать о себе · 2', scene:'office', cefr:'A1: Can introduce themselves at length.', newCount:10, words:[
+        {t:'Local', r:'Местный'},
+        {t:'Island', r:'Остров'},
+        {t:'Capital', r:'Столица'},
+        {t:'World', r:'Мир'},
+        {t:'Interview', r:'Собеседование'},
+        {t:'Introduce', r:'Представлять'},
+        {t:'Interested', r:'Заинтересованный'},
+        {t:'Interest', r:'Интерес'},
+        {t:'Skill', r:'Навык'},
+        {t:'Russia', r:'Россия', u:'Страны с большой буквы. Житель — Russian.'},
+        {t:'Sixteen', r:'Шестнадцать', rev:true},
+        {t:'Opinion', r:'Мнение', rev:true},
+        {t:'Idea', r:'Идея', rev:true},
+        {t:'True', r:'Правда', rev:true},
+        {t:'Stand', r:'Стоять', rev:true},
+        {t:'Carry', r:'Нести', rev:true},
+        {t:'Share', r:'Делиться', rev:true},
+        {t:'Password', r:'Пароль', u:'От Wi-Fi и от счёта. «What is the password?»', rev:true}
+      ]},
+      { type:'build', title:'Собери: Рассказать о себе', scene:'office', cefr:'A1: Can introduce themselves at length.', tasks:[
+        {ru:'Я родился в России.', parts:['I','was','born','in','Russia'], answer:'I was born in Russia', full:'I was born in Russia.',
+         whyT:'Прошедшее время глагола be', why:'I/he/she/it → was, you/we/they → were. «That was delicious», «They were here».'},
+        {ru:'Я живу здесь два года.', parts:['I','have','lived','here','for','two','years'], answer:'I have lived here for two years', full:'I have lived here for two years.',
+         whyT:'Present Perfect: have + третья форма', why:'Действие в прошлом, но важен результат сейчас. «I have lost my bag» — потерял и до сих пор нет. Через for и since: «for three years».'},
+        {ru:'Я говорю на двух языках.', parts:['I','speak','two','languages'], answer:'I speak two languages', full:'I speak two languages.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я женат, у меня один ребёнок.', parts:['I','am','married','and','I','have','one','child'], answer:'I am married and I have one child', full:'I am married and I have one child.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'}
+      ]},
+      { type:'dialog', title:'Собеседование', scene:'office', cefr:'A1: Can introduce themselves at length.',
+        intro:'Первый вопрос на собеседовании.',
+        turns:[
+          {who:'them', text:'Tell me a little about yourself.', ru:'Расскажите немного о себе.'},
+          {who:'you', ru:'Скажи, откуда ты и сколько живёшь здесь.', best:2,
+            options:['Russia me from two year.','Born Russia live here now.','I am from Russia, and I have lived here for two years.']},
+          {who:'them', text:'What languages do you speak?', ru:'На каких языках говорите?'},
+          {who:'you', ru:'Скажи: русский и английский.', best:0,
+            options:['Russian and English.','Two language me speak have.','Language Russia England yes.']},
+          {who:'them', text:'Good. Why are you interested in this job?', ru:'Хорошо. Почему вас интересует эта работа?'},
+          {who:'you', ru:'Скажи, что нравится компания.', best:1,
+            options:['Company good money have.','I like this company and the work.','Job want me need money.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
+        ]},
+      { type:'words', title:'Понять и переспросить · 1', scene:'street', cefr:'A1: Can ask for repetition and clarification.', newCount:11, words:[
+        {t:'Understand', r:'Понимать'},
+        {t:'Repeat', r:'Повторить', u:'«Could you repeat?» — вежливая просьба повторить.'},
+        {t:'Slow', r:'Медленный'},
+        {t:'Again', r:'Снова'},
+        {t:'Mean', r:'Значить'},
+        {t:'Meaning', r:'Значение'},
+        {t:'Word', r:'Слово'},
+        {t:'Spell', r:'Произносить по буквам', u:'«How do you spell it?» — как пишется. Спрашивают про имя и адрес.'},
+        {t:'Spelling', r:'Написание'},
+        {t:'Say', r:'Сказать'},
+        {t:'Hear', r:'Слышать'},
+        {t:'Celebrate', r:'Праздновать', u:'«celebrate a birthday». Существительное — celebration.', rev:true},
+        {t:'Thank', r:'Благодарить', u:'«Thank you» — спасибо. «Thanks» — короче и проще.', rev:true},
+        {t:'Climb', r:'Лазить', rev:true},
+        {t:'Ride', r:'Ездить верхом / кататься', rev:true},
+        {t:'Follow', r:'Следовать', rev:true},
+        {t:'Across', r:'Через', rev:true},
+        {t:'Be', r:'Быть', rev:true},
+        {t:'Born', r:'Рождённый', rev:true}
+      ]},
+      { type:'words', title:'Понять и переспросить · 2', scene:'street', cefr:'A1: Can ask for repetition and clarification.', newCount:11, words:[
+        {t:'Listen', r:'Слушать'},
+        {t:'Speak', r:'Говорить'},
+        {t:'Explain', r:'Объяснять'},
+        {t:'Example', r:'Пример'},
+        {t:'Phrase', r:'Фраза'},
+        {t:'Dictionary', r:'Словарь'},
+        {t:'Conversation', r:'Разговор'},
+        {t:'Know', r:'Знать'},
+        {t:'Sorry', r:'Извините', u:'Извинение за поступок: толкнул, опоздал, перебил. Чтобы обратиться к незнакомцу — «Excuse me».'},
+        {t:'More', r:'Больше / ещё', u:'«more slowly» — помедленнее; «one more» — ещё один.'},
+        {t:'Slowly', r:'Медленно', u:'От slow. «Speak more slowly, please» — очень нужная просьба.'},
+        {t:'Country', r:'Страна', rev:true},
+        {t:'Seventeen', r:'Семнадцать', rev:true},
+        {t:'Eighteen', r:'Восемнадцать', rev:true},
+        {t:'Nineteen', r:'Девятнадцать', rev:true},
+        {t:'False', r:'Неправда', rev:true},
+        {t:'Maybe', r:'Может быть', rev:true},
+        {t:'High', r:'Высокий', rev:true},
+        {t:'Common', r:'Обычный', rev:true}
+      ]},
+      { type:'build', title:'Собери: Понять и переспросить', scene:'street', cefr:'A1: Can ask for repetition and clarification.', tasks:[
+        {ru:'Извините, я не понимаю.', parts:['Sorry','I','do','not','understand'], answer:'Sorry I do not understand', full:'Sorry, I do not understand.',
+         whyT:'Отрицание', why:'Частица not идёт после вспомогательного или модального глагола. «I did not get the letter» — смысловой глагол при этом в начальной форме.'},
+        {ru:'Можете повторить, пожалуйста?', parts:['Can','you','repeat','that','please'], answer:'Can you repeat that please', full:'Can you repeat that, please?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Говорите медленнее, пожалуйста.', parts:['Please','speak','more','slowly'], answer:'Please speak more slowly', full:'Please speak more slowly.',
+         whyT:'Сравнение', why:'Короткие слова: cheap → cheaper. Длинные: expensive → more expensive. После сравнения ставят than: «cheaper than this one».'},
+        {ru:'Что означает это слово?', parts:['What','does','this','word','mean'], answer:'What does this word mean', full:'What does this word mean?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'}
+      ]},
+      { type:'dialog', title:'Не расслышал', scene:'street', cefr:'A1: Can ask for repetition and clarification.',
+        intro:'Тебе быстро объясняют, ты теряешь нить.',
+        turns:[
+          {who:'them', text:'So you take the second left after the lights.', ru:'Значит, второй поворот налево после светофора.'},
+          {who:'you', ru:'Попроси повторить медленнее.', best:1,
+            options:['Again slow say you.','Sorry, could you repeat that more slowly?','Repeat me not understand fast.']},
+          {who:'them', text:'Of course. Second left, after the traffic lights.', ru:'Конечно. Второй налево, после светофора.'},
+          {who:'you', ru:'Переспроси: второй налево?', best:0,
+            options:['The second left, right?','Two left yes is?','Left second you say me?']},
+          {who:'them', text:'Exactly.', ru:'Именно.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok understand now go.','Good know me now.','Now I understand. Thank you.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Отпуск и путешествие · 1', scene:'airport', cefr:'A1: Can talk about travel and holidays.', newCount:10, words:[
+        {t:'Holiday', r:'Отпуск'},
+        {t:'Vacation', r:'Отпуск'},
+        {t:'Tourist', r:'Турист'},
+        {t:'Visitor', r:'Посетитель'},
+        {t:'Visit', r:'Посещать'},
+        {t:'Beach', r:'Пляж'},
+        {t:'Sea', r:'Море'},
+        {t:'Mountain', r:'Гора'},
+        {t:'River', r:'Река'},
+        {t:'Island', r:'Остров'},
+        {t:'Tree', r:'Дерево', rev:true},
+        {t:'Teach', r:'Учить', rev:true},
+        {t:'Career', r:'Карьера', rev:true},
+        {t:'Fifth', r:'Пятый', rev:true},
+        {t:'April', r:'Апрель', rev:true},
+        {t:'November', r:'Ноябрь', rev:true},
+        {t:'Again', r:'Снова', rev:true},
+        {t:'Mean', r:'Значить', rev:true},
+        {t:'Meaning', r:'Значение', rev:true}
+      ]},
+      { type:'words', title:'Отпуск и путешествие · 2', scene:'airport', cefr:'A1: Can talk about travel and holidays.', newCount:10, words:[
+        {t:'Hotel', r:'Отель'},
+        {t:'Book', r:'Бронировать', u:'Не только книга: «to book» — забронировать. «I booked a table».'},
+        {t:'Stay', r:'Останавливаться'},
+        {t:'Night', r:'Ночь'},
+        {t:'Room', r:'Номер'},
+        {t:'Bath', r:'Ванна'},
+        {t:'Trip', r:'Поездка'},
+        {t:'Travel', r:'Путешествовать'},
+        {t:'Camera', r:'Фотоаппарат'},
+        {t:'Photo', r:'Фото'},
+        {t:'Language', r:'Язык', rev:true},
+        {t:'Married', r:'Женат / замужем', rev:true},
+        {t:'Girlfriend', r:'Девушка', rev:true},
+        {t:'Forty', r:'Сорок', rev:true},
+        {t:'Sixty', r:'Шестьдесят', rev:true},
+        {t:'Cut', r:'Резать', rev:true},
+        {t:'Fill', r:'Наполнять', rev:true},
+        {t:'Quick', r:'Быстрый', rev:true},
+        {t:'Quickly', r:'Быстро', rev:true},
+        {t:'Farm', r:'Ферма', rev:true}
+      ]},
+      { type:'build', title:'Собери: Отпуск и путешествие', scene:'airport', cefr:'A1: Can talk about travel and holidays.', tasks:[
+        {ru:'Я забронировал номер на две ночи.', parts:['I','booked','a','room','for','two','nights'], answer:'I booked a room for two nights', full:'I booked a room for two nights.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Мы едем на море летом.', parts:['We','go','to','the','sea','in','summer'], answer:'We go to the sea in summer', full:'We go to the sea in summer.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Это мой первый визит сюда.', parts:['This','is','my','first','visit','here'], answer:'This is my first visit here', full:'This is my first visit here.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Можно сделать фото?', parts:['Can','I','take','a','photo'], answer:'Can I take a photo', full:'Can I take a photo?',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'dialog', title:'Заселение в отель', scene:'airport', cefr:'A1: Can talk about travel and holidays.',
+        intro:'Ты приехал в отель поздно вечером.',
+        turns:[
+          {who:'them', text:'Good evening. Do you have a booking?', ru:'Добрый вечер. У вас бронь?'},
+          {who:'you', ru:'Скажи, что да, на две ночи.', best:0,
+            options:['Yes, for two nights.','Book two night have me.','Two night stay me yes book.']},
+          {who:'them', text:'Your name, please?', ru:'Ваше имя?'},
+          {who:'you', ru:'Назови имя и подай паспорт.', best:2,
+            options:['Anna. Passport here.','Name Anna give passport take.','Anna Petrova. Here is my passport.']},
+          {who:'them', text:'Room twelve, second floor.', ru:'Номер двенадцать, второй этаж.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok room go up.','Thank you very much.','Floor two room twelve yes.']},
+          {who:'them', text:'Do you have any hand luggage?', ru:'Ручная кладь есть?'},
+          {who:'you', ru:'Скажи: только маленькая сумка.', best:0,
+            options:['Just a small bag.','Bag small one have.','One small bag me yes.']},
+          {who:'them', text:'That is fine. Here is your ticket.', ru:'Хорошо. Вот ваш билет.'},
+          {who:'you', ru:'Спроси, где выход на посадку.', best:2,
+            options:['Gate where is?','Where go me now?','Where is the gate, please?']},
+          {who:'them', text:'Straight ahead, then left.', ru:'Прямо, потом налево.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok go there.','Thank you very much.','Left yes see me go.']}
+        ]},
+      { type:'words', title:'Искусство и культура · 1', scene:'street', cefr:'A1: Can talk about films, books and music simply.', newCount:13, words:[
+        {t:'Art', r:'Искусство'},
+        {t:'Artist', r:'Художник'},
+        {t:'Paint', r:'Рисовать'},
+        {t:'Painting', r:'Картина'},
+        {t:'Draw', r:'Рисовать'},
+        {t:'Design', r:'Дизайн'},
+        {t:'Culture', r:'Культура'},
+        {t:'Museum', r:'Музей'},
+        {t:'Theatre', r:'Театр'},
+        {t:'Concert', r:'Концерт'},
+        {t:'Band', r:'Группа'},
+        {t:'Star', r:'Звезда'},
+        {t:'Film', r:'Фильм'},
+        {t:'Online', r:'Онлайн', rev:true},
+        {t:'Hope', r:'Надеяться', rev:true},
+        {t:'Miss', r:'Скучать', rev:true},
+        {t:'Subject', r:'Предмет', rev:true},
+        {t:'Science', r:'Наука', rev:true},
+        {t:'Russia', r:'Россия', u:'Страны с большой буквы. Житель — Russian.', rev:true},
+        {t:'Tourist', r:'Турист', rev:true},
+        {t:'Visitor', r:'Посетитель', rev:true}
+      ]},
+      { type:'words', title:'Искусство и культура · 2', scene:'street', cefr:'A1: Can talk about films, books and music simply.', newCount:13, words:[
+        {t:'Story', r:'История'},
+        {t:'Book', r:'Книга', u:'Не только книга: «to book» — забронировать. «I booked a table».'},
+        {t:'Magazine', r:'Журнал'},
+        {t:'Newspaper', r:'Газета'},
+        {t:'Article', r:'Статья'},
+        {t:'Reader', r:'Читатель'},
+        {t:'Reading', r:'Чтение'},
+        {t:'Writer', r:'Писатель'},
+        {t:'Writing', r:'Письмо / творчество'},
+        {t:'Title', r:'Название'},
+        {t:'Famous', r:'Знаменитый'},
+        {t:'Modern', r:'Современный'},
+        {t:'Every', r:'Каждый', u:'Дальше существительное в единственном числе: «every day».'},
+        {t:'Beach', r:'Пляж', rev:true},
+        {t:'Spelling', r:'Написание', rev:true},
+        {t:'Hear', r:'Слышать', rev:true},
+        {t:'Listen', r:'Слушать', rev:true},
+        {t:'Boyfriend', r:'Парень', rev:true},
+        {t:'Life', r:'Жизнь', rev:true},
+        {t:'Course', r:'Конечно (of course)', rev:true},
+        {t:'Reason', r:'Причина', rev:true},
+        {t:'Internet', r:'Интернет', rev:true}
+      ]},
+      { type:'build', title:'Собери: Искусство и культура', scene:'street', cefr:'A1: Can talk about films, books and music simply.', tasks:[
+        {ru:'Я хочу пойти в музей.', parts:['I','want','to','go','to','the','museum'], answer:'I want to go to the museum', full:'I want to go to the museum.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Это очень известная картина.', parts:['It','is','a','very','famous','painting'], answer:'It is a very famous painting', full:'It is a very famous painting.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Я читаю газету каждое утро.', parts:['I','read','the','newspaper','every','morning'], answer:'I read the newspaper every morning', full:'I read the newspaper every morning.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Мне нравится современное искусство.', parts:['I','like','modern','art'], answer:'I like modern art', full:'I like modern art.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'В музее', scene:'street', cefr:'A1: Can talk about films, books and music simply.',
+        intro:'Сотрудник музея у входа.',
+        turns:[
+          {who:'them', text:'Hello, one ticket?', ru:'Здравствуйте, один билет?'},
+          {who:'you', ru:'Скажи: два, пожалуйста.', best:1,
+            options:['Two ticket give me.','Two, please.','Ticket two want have me.']},
+          {who:'them', text:'That is sixteen euros.', ru:'Шестнадцать евро.'},
+          {who:'you', ru:'Спроси, есть ли современное искусство.', best:0,
+            options:['Do you have modern art here?','Modern art have you?','Art new is inside here?']},
+          {who:'them', text:'Yes, on the second floor.', ru:'Да, на втором этаже.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Floor two go me.','Ok second up yes.','Thank you very much.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Контроль: темы 37–40', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Local', r:'Местный', rev:true},
+        {t:'Capital', r:'Столица', rev:true},
+        {t:'World', r:'Мир', rev:true},
+        {t:'Interview', r:'Собеседование', rev:true},
+        {t:'Introduce', r:'Представлять', rev:true},
+        {t:'Interested', r:'Заинтересованный', rev:true},
+        {t:'Interest', r:'Интерес', rev:true},
+        {t:'Skill', r:'Навык', rev:true},
+        {t:'Explain', r:'Объяснять', rev:true},
+        {t:'Example', r:'Пример', rev:true},
+        {t:'Phrase', r:'Фраза', rev:true},
+        {t:'Conversation', r:'Разговор', rev:true},
+        {t:'More', r:'Больше / ещё', u:'«more slowly» — помедленнее; «one more» — ещё один.', rev:true},
+        {t:'Slowly', r:'Медленно', u:'От slow. «Speak more slowly, please» — очень нужная просьба.', rev:true},
+        {t:'Bath', r:'Ванна', rev:true},
+        {t:'Art', r:'Искусство', rev:true},
+        {t:'Paint', r:'Рисовать', rev:true},
+        {t:'Painting', r:'Картина', rev:true},
+        {t:'Draw', r:'Рисовать', rev:true},
+        {t:'Design', r:'Дизайн', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 37–40', scene:'street', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Я родился в России.', parts:['I','was','born','in','Russia'], answer:'I was born in Russia', full:'I was born in Russia.',
+         whyT:'Прошедшее время глагола be', why:'I/he/she/it → was, you/we/they → were. «That was delicious», «They were here».'},
+        {ru:'Я живу здесь два года.', parts:['I','have','lived','here','for','two','years'], answer:'I have lived here for two years', full:'I have lived here for two years.',
+         whyT:'Present Perfect: have + третья форма', why:'Действие в прошлом, но важен результат сейчас. «I have lost my bag» — потерял и до сих пор нет. Через for и since: «for three years».'},
+        {ru:'Я говорю на двух языках.', parts:['I','speak','two','languages'], answer:'I speak two languages', full:'I speak two languages.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я женат, у меня один ребёнок.', parts:['I','am','married','and','I','have','one','child'], answer:'I am married and I have one child', full:'I am married and I have one child.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Извините, я не понимаю.', parts:['Sorry','I','do','not','understand'], answer:'Sorry I do not understand', full:'Sorry, I do not understand.',
+         whyT:'Отрицание', why:'Частица not идёт после вспомогательного или модального глагола. «I did not get the letter» — смысловой глагол при этом в начальной форме.'},
+        {ru:'Можете повторить, пожалуйста?', parts:['Can','you','repeat','that','please'], answer:'Can you repeat that please', full:'Can you repeat that, please?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'words', title:'Планы на будущее · 1', scene:'cafe', cefr:'A1: Can talk about simple future plans.', newCount:11, words:[
+        {t:'Future', r:'Будущее'},
+        {t:'Will', r:'Будет'},
+        {t:'Plan', r:'Планировать'},
+        {t:'Hope', r:'Надеяться'},
+        {t:'Want', r:'Хотеть'},
+        {t:'Would', r:'Бы'},
+        {t:'Decide', r:'Решать'},
+        {t:'Prepare', r:'Готовиться'},
+        {t:'Project', r:'Проект'},
+        {t:'Programme', r:'Программа'},
+        {t:'Start', r:'Начинать'},
+        {t:'Poor', r:'Плохой / бедный', rev:true},
+        {t:'Same', r:'Такой же', rev:true},
+        {t:'Blonde', r:'Светловолосый', rev:true},
+        {t:'Dark', r:'Тёмный', rev:true},
+        {t:'Note', r:'Купюра', rev:true},
+        {t:'Rich', r:'Богатый', rev:true},
+        {t:'Art', r:'Искусство', rev:true},
+        {t:'Paint', r:'Рисовать', rev:true}
+      ]},
+      { type:'words', title:'Планы на будущее · 2', scene:'cafe', cefr:'A1: Can talk about simple future plans.', newCount:10, words:[
+        {t:'Begin', r:'Начинать'},
+        {t:'Beginning', r:'Начало'},
+        {t:'End', r:'Конец'},
+        {t:'Final', r:'Финальный'},
+        {t:'Next', r:'Следующий', u:'«next week» — следующая неделя; «next to» — рядом с.'},
+        {t:'Soon', r:'Скоро'},
+        {t:'Later', r:'Позже'},
+        {t:'Become', r:'Становиться'},
+        {t:'Improve', r:'Улучшать'},
+        {t:'English', r:'Английский', u:'Язык и национальность пишут с большой буквы: English.'},
+        {t:'Painting', r:'Картина', rev:true},
+        {t:'Bath', r:'Ванна', rev:true},
+        {t:'Tourist', r:'Турист', rev:true},
+        {t:'Visitor', r:'Посетитель', rev:true},
+        {t:'Explain', r:'Объяснять', rev:true},
+        {t:'Example', r:'Пример', rev:true},
+        {t:'Seventy', r:'Семьдесят', rev:true},
+        {t:'Eighty', r:'Восемьдесят', rev:true}
+      ]},
+      { type:'build', title:'Собери: Планы на будущее', scene:'cafe', cefr:'A1: Can talk about simple future plans.', tasks:[
+        {ru:'Я планирую переехать в мае.', parts:['I','plan','to','move','in','May'], answer:'I plan to move in May', full:'I plan to move in May.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Надеюсь, скоро найду работу.', parts:['I','hope','I','will','find','a','job','soon'], answer:'I hope I will find a job soon', full:'I hope I will find a job soon.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Я хочу улучшить свой английский.', parts:['I','want','to','improve','my','English'], answer:'I want to improve my English', full:'I want to improve my English.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Проект начинается на следующей неделе.', parts:['The','project','starts','next','week'], answer:'The project starts next week', full:'The project starts next week.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', title:'О планах', scene:'cafe', cefr:'A1: Can talk about simple future plans.',
+        intro:'Друг спрашивает про твои планы.',
+        turns:[
+          {who:'them', text:'What are your plans for this year?', ru:'Какие планы на этот год?'},
+          {who:'you', ru:'Скажи, что хочешь улучшить английский.', best:2,
+            options:['English better want me.','Plan English study have me.','I want to improve my English.']},
+          {who:'them', text:'That is a good plan. How?', ru:'Хороший план. Как?'},
+          {who:'you', ru:'Скажи, что занимаешься каждый день.', best:0,
+            options:['I study a little every day.','Every day study me do.','Day all learn me have.']},
+          {who:'them', text:'I hope it goes well.', ru:'Надеюсь, получится.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok hope me too.','Thank you, I hope so too.','Hope yes good be.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
+        ]},
+      { type:'words', title:'Сравнение и выбор · 1', scene:'market', cefr:'A1: Can compare simple options.', newCount:11, words:[
+        {t:'Better', r:'Лучше'},
+        {t:'Best', r:'Лучший'},
+        {t:'More', r:'Больше', u:'«more slowly» — помедленнее; «one more» — ещё один.'},
+        {t:'Most', r:'Больше всего'},
+        {t:'Little', r:'Мало'},
+        {t:'Same', r:'Такой же'},
+        {t:'Other', r:'Другой'},
+        {t:'Another', r:'Ещё один'},
+        {t:'Both', r:'Оба'},
+        {t:'Each', r:'Каждый'},
+        {t:'Compare', r:'Сравнивать'},
+        {t:'Move', r:'Двигать', rev:true},
+        {t:'Break', r:'Ломать', rev:true},
+        {t:'Meeting', r:'Встреча', rev:true},
+        {t:'Join', r:'Присоединяться', rev:true},
+        {t:'Letter', r:'Письмо', rev:true},
+        {t:'Passport', r:'Паспорт', rev:true},
+        {t:'Future', r:'Будущее', rev:true},
+        {t:'Will', r:'Будет', rev:true}
+      ]},
+      { type:'words', title:'Сравнение и выбор · 2', scene:'market', cefr:'A1: Can compare simple options.', newCount:11, words:[
+        {t:'Choose', r:'Выбирать'},
+        {t:'Difference', r:'Разница'},
+        {t:'Similar', r:'Похожий'},
+        {t:'Type', r:'Тип'},
+        {t:'Style', r:'Стиль'},
+        {t:'Model', r:'Модель'},
+        {t:'Part', r:'Часть'},
+        {t:'Cheap', r:'Дешёвый'},
+        {t:'Expensive', r:'Дорогой'},
+        {t:'Cheaper', r:'Дешевле', u:'Сравнительная от cheap. Короткие слова: + er.'},
+        {t:'Than', r:'Чем', u:'Всегда при сравнении: «cheaper than this» — дешевле, чем это.'},
+        {t:'Would', r:'Бы', rev:true},
+        {t:'Draw', r:'Рисовать', rev:true},
+        {t:'Design', r:'Дизайн', rev:true},
+        {t:'Culture', r:'Культура', rev:true},
+        {t:'Beach', r:'Пляж', rev:true},
+        {t:'Mountain', r:'Гора', rev:true},
+        {t:'Local', r:'Местный', rev:true},
+        {t:'Capital', r:'Столица', rev:true}
+      ]},
+      { type:'build', title:'Собери: Сравнение и выбор', scene:'market', cefr:'A1: Can compare simple options.', tasks:[
+        {ru:'Этот лучше, чем тот.', parts:['This','one','is','better','than','that','one'], answer:'This one is better than that one', full:'This one is better than that one.',
+         whyT:'Сравнение', why:'Короткие слова: cheap → cheaper. Длинные: expensive → more expensive. После сравнения ставят than: «cheaper than this one».'},
+        {ru:'В чём разница?', parts:['What','is','the','difference'], answer:'What is the difference', full:'What is the difference?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Я возьму другой.', parts:['I','will','take','the','other','one'], answer:'I will take the other one', full:'I will take the other one.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Оба хорошие, но этот дешевле.', parts:['Both','are','good','but','this','one','is','cheaper'], answer:'Both are good but this one is cheaper', full:'Both are good, but this one is cheaper.',
+         whyT:'Сравнение', why:'Короткие слова: cheap → cheaper. Длинные: expensive → more expensive. После сравнения ставят than: «cheaper than this one».'}
+      ]},
+      { type:'dialog', title:'Выбрать из двух', scene:'market', cefr:'A1: Can compare simple options.',
+        intro:'Продавец показывает два телефона.',
+        turns:[
+          {who:'them', text:'This one is cheaper, that one is newer.', ru:'Этот дешевле, тот новее.'},
+          {who:'you', ru:'Спроси, в чём разница.', best:0,
+            options:['What is the difference?','Difference what is say?','Two thing not same why?']},
+          {who:'them', text:'The new one has a better camera.', ru:'У нового камера лучше.'},
+          {who:'you', ru:'Скажи, что берёшь дешёвый.', best:1,
+            options:['Cheap one take me.','I think I will take the cheaper one.','Money small give this.']},
+          {who:'them', text:'Good choice.', ru:'Хороший выбор.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok buy now this.','Choose good yes me.','Thank you for your help.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
+        ]},
+      { type:'words', title:'Тело: движение и состояние · 1', scene:'clinic', cefr:'A1: Can describe simple physical states.', newCount:13, words:[
+        {t:'Tired', r:'Усталый'},
+        {t:'Hungry', r:'Голодный'},
+        {t:'Thirsty', r:'Жаждущий'},
+        {t:'Sleep', r:'Спать'},
+        {t:'Wake', r:'Просыпаться'},
+        {t:'Keep', r:'Держать'},
+        {t:'Sit', r:'Сидеть'},
+        {t:'Stand', r:'Стоять'},
+        {t:'Fall', r:'Падать'},
+        {t:'Feel', r:'Чувствовать'},
+        {t:'Advice', r:'Совет'},
+        {t:'Help', r:'Помощь'},
+        {t:'Cafe', r:'Кафе'},
+        {t:'Birthday', r:'День рождения', rev:true},
+        {t:'Party', r:'Вечеринка', rev:true},
+        {t:'Extra', r:'Дополнительный', rev:true},
+        {t:'Supermarket', r:'Супермаркет', u:'Большой магазин. Маленький — «shop».', rev:true},
+        {t:'Writing', r:'Письмо / творчество', rev:true},
+        {t:'Famous', r:'Знаменитый', rev:true},
+        {t:'Better', r:'Лучше', rev:true},
+        {t:'Most', r:'Больше всего', rev:true},
+        {t:'Little', r:'Мало', rev:true}
+      ]},
+      { type:'words', title:'Тело: движение и состояние · 2', scene:'clinic', cefr:'A1: Can describe simple physical states.', newCount:12, words:[
+        {t:'Air', r:'Воздух'},
+        {t:'Cold', r:'Простуда'},
+        {t:'Die', r:'Умирать'},
+        {t:'Life', r:'Жизнь'},
+        {t:'Diet', r:'Диета'},
+        {t:'Healthy', r:'Здоровый'},
+        {t:'Exercise', r:'Упражнение'},
+        {t:'Headache', r:'Головная боль', u:'head + ache. «I have a headache» — с артиклем a.'},
+        {t:'Medicine', r:'Лекарство', u:'В аптеке: «medicine for a headache».'},
+        {t:'Nearest', r:'Ближайший', u:'Превосходная степень от near. «the nearest» — всегда с the.'},
+        {t:'Pharmacy', r:'Аптека', u:'В Британии чаще «chemist’s», в США — «pharmacy» или «drugstore».'},
+        {t:'Temperature', r:'Температура', u:'«I have a temperature» — у меня температура (жар).'},
+        {t:'Decide', r:'Решать', rev:true},
+        {t:'Prepare', r:'Готовиться', rev:true},
+        {t:'Project', r:'Проект', rev:true},
+        {t:'Band', r:'Группа', rev:true},
+        {t:'Star', r:'Звезда', rev:true},
+        {t:'Phrase', r:'Фраза', rev:true},
+        {t:'Conversation', r:'Разговор', rev:true},
+        {t:'Because', r:'Потому что', rev:true},
+        {t:'Important', r:'Важный', rev:true}
+      ]},
+      { type:'build', title:'Собери: Тело: движение и состояние', scene:'clinic', cefr:'A1: Can describe simple physical states.', tasks:[
+        {ru:'Я очень устал и голоден.', parts:['I','am','very','tired','and','hungry'], answer:'I am very tired and hungry', full:'I am very tired and hungry.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Мне нужно лекарство от головной боли.', parts:['I','need','medicine','for','a','headache'], answer:'I need medicine for a headache', full:'I need medicine for a headache.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Где ближайшая аптека?', parts:['Where','is','the','nearest','pharmacy'], answer:'Where is the nearest pharmacy', full:'Where is the nearest pharmacy?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'У меня температура.', parts:['I','have','a','temperature'], answer:'I have a temperature', full:'I have a temperature.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
+      ]},
+      { type:'dialog', title:'В аптеке', scene:'clinic', cefr:'A1: Can describe simple physical states.',
+        intro:'Ты подходишь к окошку аптеки.',
+        turns:[
+          {who:'them', text:'Hello, how can I help?', ru:'Здравствуйте, чем помочь?'},
+          {who:'you', ru:'Скажи, что нужно лекарство от головы.', best:1,
+            options:['Head pain medicine give.','Hello. I need medicine for a headache.','Medicine head bad have me.']},
+          {who:'them', text:'Do you have a temperature?', ru:'Температура есть?'},
+          {who:'you', ru:'Скажи: нет, только голова.', best:0,
+            options:['No, just my head.','Head only no hot me.','Temperature no. Head yes bad.']},
+          {who:'them', text:'Take this twice a day.', ru:'Принимайте дважды в день.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Two time day ok.','Twice yes take me.','Thank you very much.']},
+          {who:'them', text:'Do you have any questions?', ru:'Есть вопросы?'},
+          {who:'you', ru:'Спроси, когда прийти снова.', best:2,
+            options:['Come when again?','Next time when is?','When should I come again?']},
+          {who:'them', text:'In one week, if it does not get better.', ru:'Через неделю, если не станет лучше.'},
+          {who:'you', ru:'Подтверди.', best:0,
+            options:['One week. I understand.','Week one ok yes.','Understand me time week.']},
+          {who:'them', text:'Take care of yourself.', ru:'Берегите себя.'},
+          {who:'you', ru:'Поблагодари врача.', best:1,
+            options:['Ok me care.','Thank you, doctor. Goodbye.','Care yes bye go.']}
+        ]},
+      { type:'words', title:'Разговор ни о чём · 1', scene:'cafe', cefr:'A1: Can make simple small talk.', newCount:14, words:[
+        {t:'How', r:'Как'},
+        {t:'Fine', r:'Нормально'},
+        {t:'Well', r:'Хорошо'},
+        {t:'Great', r:'Отлично'},
+        {t:'Terrible', r:'Ужасно'},
+        {t:'News', r:'Новости'},
+        {t:'Happen', r:'Случаться'},
+        {t:'Really', r:'Правда'},
+        {t:'Amazing', r:'Удивительный'},
+        {t:'Wonderful', r:'Замечательный'},
+        {t:'Fantastic', r:'Потрясающий'},
+        {t:'Exciting', r:'Захватывающий'},
+        {t:'Boring', r:'Скучный'},
+        {t:'Funny', r:'Смешной'},
+        {t:'Ninety', r:'Девяносто', rev:true},
+        {t:'Thousand', r:'Тысяча', rev:true},
+        {t:'Lost', r:'Потерял', u:'Прошедшее от lose. «I have lost my bag» — я потерял сумку.', rev:true},
+        {t:'Police', r:'Полиция', rev:true},
+        {t:'Bill', r:'Счёт', u:'Счёт в кафе. В США чаще говорят «check».', rev:true},
+        {t:'Delicious', r:'Очень вкусно', rev:true},
+        {t:'Keep', r:'Держать', rev:true},
+        {t:'Fall', r:'Падать', rev:true}
+      ]},
+      { type:'words', title:'Разговор ни о чём · 2', scene:'cafe', cefr:'A1: Can make simple small talk.', newCount:14, words:[
+        {t:'Fun', r:'Весело'},
+        {t:'Guess', r:'Догадываться'},
+        {t:'Remember', r:'Помнить'},
+        {t:'Miss', r:'Скучать'},
+        {t:'Thank', r:'Благодарить', u:'«Thank you» — спасибо. «Thanks» — короче и проще.'},
+        {t:'Century', r:'Век'},
+        {t:'Dear', r:'Дорогой'},
+        {t:'Fact', r:'Факт'},
+        {t:'Mile', r:'Миля'},
+        {t:'Period', r:'Период'},
+        {t:'Personal', r:'Личный'},
+        {t:'Product', r:'Продукт'},
+        {t:'Tonight', r:'Сегодня вечером', u:'Одно слово, не «this night».'},
+        {t:'Dancer', r:'Танцор'},
+        {t:'Advice', r:'Совет', rev:true},
+        {t:'Other', r:'Другой', rev:true},
+        {t:'Another', r:'Ещё один', rev:true},
+        {t:'Both', r:'Оба', rev:true},
+        {t:'Programme', r:'Программа', rev:true},
+        {t:'Begin', r:'Начинать', rev:true},
+        {t:'River', r:'Река', rev:true},
+        {t:'Island', r:'Остров', rev:true}
+      ]},
+      { type:'build', title:'Собери: Разговор ни о чём', scene:'cafe', cefr:'A1: Can make simple small talk.', tasks:[
+        {ru:'Как дела? — Отлично, спасибо.', parts:['How','are','you','Great','thanks'], answer:'How are you Great thanks', full:'How are you? — Great, thanks.',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Ты не поверишь, что случилось.', parts:['You','will','not','believe','what','happened'], answer:'You will not believe what happened', full:'You will not believe what happened.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Это было замечательно.', parts:['It','was','wonderful'], answer:'It was wonderful', full:'It was wonderful.',
+         whyT:'Прошедшее время глагола be', why:'I/he/she/it → was, you/we/they → were. «That was delicious», «They were here».'},
+        {ru:'Я скучаю по дому.', parts:['I','miss','home'], answer:'I miss home', full:'I miss home.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'Встретил знакомого', scene:'cafe', cefr:'A1: Can make simple small talk.',
+        intro:'Ты столкнулся со старым знакомым.',
+        turns:[
+          {who:'them', text:'Hey! I have not seen you in ages!', ru:'Привет! Сто лет не виделись!'},
+          {who:'you', ru:'Поздоровайся и спроси, как дела.', best:2,
+            options:['Hey long time no see.','Hi you good is?','Hi! It has been a long time. How are you?']},
+          {who:'them', text:'I am great, thanks. And you?', ru:'Отлично, спасибо. А ты?'},
+          {who:'you', ru:'Скажи, что всё хорошо, много работы.', best:0,
+            options:['I am fine, just a lot of work.','Good me work much have.','Fine yes work big have me.']},
+          {who:'them', text:'Let us have a coffee some time.', ru:'Давай как-нибудь выпьем кофе.'},
+          {who:'you', ru:'Согласись.', best:1,
+            options:['Ok coffee yes go.','That sounds great!','Coffee good time we have.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
+        ]},
+      { type:'words', title:'Контроль: темы 41–44', scene:'cafe', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Beginning', r:'Начало', rev:true},
+        {t:'End', r:'Конец', rev:true},
+        {t:'Final', r:'Финальный', rev:true},
+        {t:'Improve', r:'Улучшать', rev:true},
+        {t:'Each', r:'Каждый', rev:true},
+        {t:'Compare', r:'Сравнивать', rev:true},
+        {t:'Difference', r:'Разница', rev:true},
+        {t:'Style', r:'Стиль', rev:true},
+        {t:'Model', r:'Модель', rev:true},
+        {t:'Part', r:'Часть', rev:true},
+        {t:'Cheaper', r:'Дешевле', u:'Сравнительная от cheap. Короткие слова: + er.', rev:true},
+        {t:'Than', r:'Чем', u:'Всегда при сравнении: «cheaper than this» — дешевле, чем это.', rev:true},
+        {t:'Cafe', r:'Кафе', rev:true},
+        {t:'Air', r:'Воздух', rev:true},
+        {t:'Diet', r:'Диета', rev:true},
+        {t:'Headache', r:'Головная боль', u:'head + ache. «I have a headache» — с артиклем a.', rev:true},
+        {t:'Medicine', r:'Лекарство', u:'В аптеке: «medicine for a headache».', rev:true},
+        {t:'Temperature', r:'Температура', u:'«I have a temperature» — у меня температура (жар).', rev:true},
+        {t:'How', r:'Как', rev:true},
+        {t:'Well', r:'Хорошо', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 41–44', scene:'cafe', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Я планирую переехать в мае.', parts:['I','plan','to','move','in','May'], answer:'I plan to move in May', full:'I plan to move in May.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Надеюсь, скоро найду работу.', parts:['I','hope','I','will','find','a','job','soon'], answer:'I hope I will find a job soon', full:'I hope I will find a job soon.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Я хочу улучшить свой английский.', parts:['I','want','to','improve','my','English'], answer:'I want to improve my English', full:'I want to improve my English.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Проект начинается на следующей неделе.', parts:['The','project','starts','next','week'], answer:'The project starts next week', full:'The project starts next week.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Этот лучше, чем тот.', parts:['This','one','is','better','than','that','one'], answer:'This one is better than that one', full:'This one is better than that one.',
+         whyT:'Сравнение', why:'Короткие слова: cheap → cheaper. Длинные: expensive → more expensive. После сравнения ставят than: «cheaper than this one».'},
+        {ru:'В чём разница?', parts:['What','is','the','difference'], answer:'What is the difference', full:'What is the difference?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'}
+      ]},
+      { type:'words', title:'Место и положение · 1', scene:'flat', cefr:'A1: Can say where things are.', newCount:11, words:[
+        {t:'Place', r:'Место'},
+        {t:'Here', r:'Здесь', u:'Место рядом с тобой. «Here is…» — вот, держите. «I am here» — я здесь.'},
+        {t:'There', r:'Там', u:'Место подальше. Ещё оборот «there is / there are» — «есть, имеется».'},
+        {t:'Above', r:'Над'},
+        {t:'Below', r:'Под'},
+        {t:'Over', r:'Над / через'},
+        {t:'Under', r:'Под'},
+        {t:'Next to', r:'Рядом с'},
+        {t:'In', r:'В'},
+        {t:'On', r:'На'},
+        {t:'At', r:'У'},
+        {t:'World', r:'Мир', rev:true},
+        {t:'Interview', r:'Собеседование', rev:true},
+        {t:'Website', r:'Сайт', rev:true},
+        {t:'Video', r:'Видео', rev:true},
+        {t:'Movie', r:'Кино', rev:true},
+        {t:'Guitar', r:'Гитара', rev:true},
+        {t:'How', r:'Как', rev:true},
+        {t:'Well', r:'Хорошо', rev:true}
+      ]},
+      { type:'words', title:'Место и положение · 2', scene:'flat', cefr:'A1: Can say where things are.', newCount:10, words:[
+        {t:'Into', r:'В (внутрь)'},
+        {t:'Out', r:'Наружу'},
+        {t:'Up', r:'Вверх', u:'«get up» — вставать, «go up» — подниматься. Меняет смысл глагола.'},
+        {t:'Down', r:'Вниз'},
+        {t:'Around', r:'Вокруг'},
+        {t:'Across', r:'Через'},
+        {t:'Through', r:'Сквозь'},
+        {t:'Between', r:'Между'},
+        {t:'Space', r:'Место / пространство'},
+        {t:'Straight', r:'Прямо', u:'О дороге: «go straight» — идите прямо.'},
+        {t:'Really', r:'Правда', rev:true},
+        {t:'Cafe', r:'Кафе', rev:true},
+        {t:'Air', r:'Воздух', rev:true},
+        {t:'Diet', r:'Диета', rev:true},
+        {t:'Each', r:'Каждый', rev:true},
+        {t:'Compare', r:'Сравнивать', rev:true},
+        {t:'Story', r:'История', rev:true},
+        {t:'Magazine', r:'Журнал', rev:true}
+      ]},
+      { type:'build', title:'Собери: Место и положение', scene:'flat', cefr:'A1: Can say where things are.', tasks:[
+        {ru:'Книга на столе.', parts:['The','book','is','on','the','table'], answer:'The book is on the table', full:'The book is on the table.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Магазин рядом с банком.', parts:['The','shop','is','next','to','the','bank'], answer:'The shop is next to the bank', full:'The shop is next to the bank.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Иди прямо через парк.', parts:['Go','straight','through','the','park'], answer:'Go straight through the park', full:'Go straight through the park.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Мой телефон под кроватью.', parts:['My','phone','is','under','the','bed'], answer:'My phone is under the bed', full:'My phone is under the bed.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'}
+      ]},
+      { type:'dialog', title:'Найти вещь', scene:'flat', cefr:'A1: Can say where things are.',
+        intro:'Ты ищешь ключи, сосед подсказывает.',
+        turns:[
+          {who:'them', text:'What are you looking for?', ru:'Что ищешь?'},
+          {who:'you', ru:'Скажи, что ищешь ключи.', best:0,
+            options:['I am looking for my keys.','Key where is me?','Keys no find me have.']},
+          {who:'them', text:'Did you check the kitchen table?', ru:'На кухонном столе смотрел?'},
+          {who:'you', ru:'Скажи, что там их нет.', best:1,
+            options:['Table no have there.','I looked there, they are not on the table.','No table key not is.']},
+          {who:'them', text:'Maybe under the bag?', ru:'Может, под сумкой?'},
+          {who:'you', ru:'Скажи, что нашёл.', best:2,
+            options:['Yes here find me.','Bag under is yes.','Found them! Thank you.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
+        ]},
+      { type:'words', title:'Количество · 1', scene:'market', cefr:'A1: Can express quantity.', newCount:11, words:[
+        {t:'All', r:'Все'},
+        {t:'Any', r:'Любой'},
+        {t:'Some', r:'Несколько'},
+        {t:'Many', r:'Много'},
+        {t:'Much', r:'Много', u:'«How much?» — сколько стоит. «Much» — с тем, что не считают: much water.'},
+        {t:'Few', r:'Мало'},
+        {t:'Lot', r:'Много', u:'Только в связке «a lot of»: «a lot of people». Без «a» не говорят.'},
+        {t:'Enough', r:'Достаточно'},
+        {t:'More', r:'Больше', u:'«more slowly» — помедленнее; «one more» — ещё один.'},
+        {t:'Extra', r:'Дополнительный'},
+        {t:'Every', r:'Каждый', u:'Дальше существительное в единственном числе: «every day».'},
+        {t:'Slowly', r:'Медленно', u:'От slow. «Speak more slowly, please» — очень нужная просьба.', rev:true},
+        {t:'Understand', r:'Понимать', rev:true},
+        {t:'Different', r:'Другой', rev:true},
+        {t:'Broken', r:'Сломан', u:'Третья форма от break. «It is broken» — оно сломано.', rev:true},
+        {t:'Finish', r:'Заканчивать', rev:true},
+        {t:'Practice', r:'Практика', rev:true},
+        {t:'Above', r:'Над', rev:true},
+        {t:'Below', r:'Под', rev:true}
+      ]},
+      { type:'words', title:'Количество · 2', scene:'market', cefr:'A1: Can express quantity.', newCount:10, words:[
+        {t:'Everything', r:'Всё', u:'Одно слово. Глагол после него — в единственном числе: «Everything is fine».'},
+        {t:'Everyone', r:'Все'},
+        {t:'Nothing', r:'Ничего'},
+        {t:'Nobody', r:'Никто'},
+        {t:'Something', r:'Что-то'},
+        {t:'Someone', r:'Кто-то'},
+        {t:'Anything', r:'Что-нибудь'},
+        {t:'Anyone', r:'Кто-нибудь'},
+        {t:'Only', r:'Только'},
+        {t:'Said', r:'Сказал', u:'Прошедшее от say. Читается «сэд», не «сэйд».'},
+        {t:'Over', r:'Над / через', rev:true},
+        {t:'Amazing', r:'Удивительный', rev:true},
+        {t:'Wonderful', r:'Замечательный', rev:true},
+        {t:'Fantastic', r:'Потрясающий', rev:true},
+        {t:'Headache', r:'Головная боль', u:'head + ache. «I have a headache» — с артиклем a.', rev:true},
+        {t:'Medicine', r:'Лекарство', u:'В аптеке: «medicine for a headache».', rev:true},
+        {t:'Beginning', r:'Начало', rev:true},
+        {t:'End', r:'Конец', rev:true}
+      ]},
+      { type:'build', title:'Собери: Количество', scene:'market', cefr:'A1: Can express quantity.', tasks:[
+        {ru:'У меня достаточно денег.', parts:['I','have','enough','money'], answer:'I have enough money', full:'I have enough money.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Здесь слишком много людей.', parts:['There','are','too','many','people','here'], answer:'There are too many people here', full:'There are too many people here.',
+         whyT:'Оборот there is / there are', why:'Так говорят о наличии: «There is a problem». Один предмет → there is, несколько → there are.'},
+        {ru:'Мне нужно ещё немного времени.', parts:['I','need','a','little','more','time'], answer:'I need a little more time', full:'I need a little more time.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Никто ничего не сказал.', parts:['Nobody','said','anything'], answer:'Nobody said anything', full:'Nobody said anything.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'}
+      ]},
+      { type:'dialog', title:'Хватит ли', scene:'market', cefr:'A1: Can express quantity.',
+        intro:'Ты покупаешь еду на компанию.',
+        turns:[
+          {who:'them', text:'Is that enough for everyone?', ru:'Этого всем хватит?'},
+          {who:'you', ru:'Скажи, что нужно больше хлеба.', best:1,
+            options:['Bread more need we.','I think we need more bread.','Bread small have buy again.']},
+          {who:'them', text:'How many people are coming?', ru:'Сколько человек придёт?'},
+          {who:'you', ru:'Скажи: около десяти.', best:0,
+            options:['About ten people.','Ten person come maybe.','People many ten is.']},
+          {who:'them', text:'Then we need two more bags.', ru:'Тогда нужно ещё два пакета.'},
+          {who:'you', ru:'Согласись.', best:2,
+            options:['Ok two more take.','Bag two yes buy.','You are right, let us take two more.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
+        ]},
+      { type:'words', title:'Модальность и вежливость · 1', scene:'office', cefr:'A1: Can make polite requests.', newCount:11, words:[
+        {t:'Can', r:'Мочь'},
+        {t:'Cannot', r:'Не мочь'},
+        {t:'Could', r:'Мог бы'},
+        {t:'Must', r:'Должен'},
+        {t:'Have to', r:'Приходится'},
+        {t:'Should', r:'Следует'},
+        {t:'May', r:'Можно'},
+        {t:'Would', r:'Бы'},
+        {t:'Let', r:'Позволять', u:'«Let us» (Let’s) — предложение вместе: «Let us meet» — давай встретимся.'},
+        {t:'Need', r:'Нужно'},
+        {t:'Possible', r:'Возможный'},
+        {t:'Try', r:'Пробовать', rev:true},
+        {t:'Flower', r:'Цветок', rev:true},
+        {t:'Plant', r:'Растение', rev:true},
+        {t:'Personal', r:'Личный', rev:true},
+        {t:'Product', r:'Продукт', rev:true},
+        {t:'Dancer', r:'Танцор', rev:true},
+        {t:'All', r:'Все', rev:true},
+        {t:'Any', r:'Любой', rev:true},
+        {t:'Some', r:'Несколько', rev:true}
+      ]},
+      { type:'words', title:'Модальность и вежливость · 2', scene:'office', cefr:'A1: Can make polite requests.', newCount:10, words:[
+        {t:'Sure', r:'Конечно'},
+        {t:'Course', r:'Конечно'},
+        {t:'Imagine', r:'Представлять'},
+        {t:'Include', r:'Включать'},
+        {t:'Help', r:'Помогать'},
+        {t:'Use', r:'Использовать'},
+        {t:'Useful', r:'Полезный'},
+        {t:'Ready', r:'Готов'},
+        {t:'Wait', r:'Ждать'},
+        {t:'Manager', r:'Менеджер, начальник', u:'Старший сотрудник. При жалобе: «Can I speak to the manager?»'},
+        {t:'Next to', r:'Рядом с', rev:true},
+        {t:'In', r:'В', rev:true},
+        {t:'On', r:'На', rev:true},
+        {t:'Exciting', r:'Захватывающий', rev:true},
+        {t:'Guess', r:'Догадываться', rev:true},
+        {t:'Difference', r:'Разница', rev:true},
+        {t:'Style', r:'Стиль', rev:true},
+        {t:'Bath', r:'Ванна', rev:true},
+        {t:'Vacation', r:'Отпуск', rev:true},
+        {t:'Build', r:'Строить', rev:true}
+      ]},
+      { type:'build', title:'Собери: Модальность и вежливость', scene:'office', cefr:'A1: Can make polite requests.', tasks:[
+        {ru:'Не могли бы вы мне помочь?', parts:['Could','you','help','me','please'], answer:'Could you help me please', full:'Could you help me, please?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Можно воспользоваться вашим телефоном?', parts:['May','I','use','your','phone'], answer:'May I use your phone', full:'May I use your phone?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я должен идти сейчас.', parts:['I','must','go','now'], answer:'I must go now', full:'I must go now.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Вам следует поговорить с менеджером.', parts:['You','should','talk','to','the','manager'], answer:'You should talk to the manager', full:'You should talk to the manager.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'}
+      ]},
+      { type:'dialog', title:'Вежливая просьба', scene:'office', cefr:'A1: Can make polite requests.',
+        intro:'Тебе нужна помощь коллеги.',
+        turns:[
+          {who:'them', text:'Yes? Did you need something?', ru:'Да? Что-то нужно?'},
+          {who:'you', ru:'Вежливо попроси помочь.', best:2,
+            options:['Help me now you.','You help me must.','Sorry to bother you. Could you help me for a minute?']},
+          {who:'them', text:'Sure, what is it?', ru:'Конечно, что такое?'},
+          {who:'you', ru:'Спроси, можно ли воспользоваться его компьютером.', best:0,
+            options:['May I use your computer?','Computer me use can?','Give computer me want.']},
+          {who:'them', text:'Of course, go ahead.', ru:'Конечно, пользуйтесь.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok use it now.','Thank you, that is very kind.','Kind you thanks have.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
+        ]},
+      { type:'words', title:'Разговор по телефону · 1', scene:'office', cefr:'A1: Can handle a simple phone call.', newCount:10, words:[
+        {t:'Call', r:'Звонить'},
+        {t:'Telephone', r:'Телефон'},
+        {t:'Answer', r:'Отвечать'},
+        {t:'Hello', r:'Алло'},
+        {t:'Speak', r:'Говорить'},
+        {t:'Message', r:'Сообщение'},
+        {t:'Note', r:'Записка'},
+        {t:'Later', r:'Позже'},
+        {t:'Busy', r:'Занято'},
+        {t:'Line', r:'Линия'},
+        {t:'Newspaper', r:'Газета', rev:true},
+        {t:'Article', r:'Статья', rev:true},
+        {t:'Interesting', r:'Интересный', rev:true},
+        {t:'Favourite', r:'Любимый', rev:true},
+        {t:'Laugh', r:'Смеяться', rev:true},
+        {t:'Worry', r:'Волноваться', u:'«Do not worry» — не волнуйся. Частая поддержка в разговоре.', rev:true},
+        {t:'Can', r:'Мочь', rev:true},
+        {t:'Cannot', r:'Не мочь', rev:true}
+      ]},
+      { type:'words', title:'Разговор по телефону · 2', scene:'office', cefr:'A1: Can handle a simple phone call.', newCount:10, words:[
+        {t:'Moment', r:'Момент'},
+        {t:'Minute', r:'Минута'},
+        {t:'Wait', r:'Подождать'},
+        {t:'Back', r:'Обратно'},
+        {t:'Again', r:'Снова'},
+        {t:'Hear', r:'Слышать'},
+        {t:'Sorry', r:'Извините', u:'Извинение за поступок: толкнул, опоздал, перебил. Чтобы обратиться к незнакомцу — «Excuse me».'},
+        {t:'Number', r:'Номер', u:'Номер телефона, дома, рейса. «What is your number?» — просят телефон.'},
+        {t:'Wrong', r:'Неверный'},
+        {t:'Thank', r:'Благодарить', u:'«Thank you» — спасибо. «Thanks» — короче и проще.'},
+        {t:'Could', r:'Мог бы', rev:true},
+        {t:'Many', r:'Много', rev:true},
+        {t:'Few', r:'Мало', rev:true},
+        {t:'Enough', r:'Достаточно', rev:true},
+        {t:'At', r:'У', rev:true},
+        {t:'Into', r:'В (внутрь)', rev:true},
+        {t:'Temperature', r:'Температура', u:'«I have a temperature» — у меня температура (жар).', rev:true},
+        {t:'Keep', r:'Держать', rev:true}
+      ]},
+      { type:'build', title:'Собери: Разговор по телефону', scene:'office', cefr:'A1: Can handle a simple phone call.', tasks:[
+        {ru:'Алло, могу я поговорить с Анной?', parts:['Hello','can','I','speak','to','Anna'], answer:'Hello can I speak to Anna', full:'Hello, can I speak to Anna?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Она сейчас занята.', parts:['She','is','busy','at','the','moment'], answer:'She is busy at the moment', full:'She is busy at the moment.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Я перезвоню позже.', parts:['I','will','call','back','later'], answer:'I will call back later', full:'I will call back later.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Извините, вы ошиблись номером.', parts:['Sorry','wrong','number'], answer:'Sorry wrong number', full:'Sorry, wrong number.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'Звонок в офис', scene:'office', cefr:'A1: Can handle a simple phone call.',
+        intro:'Ты звонишь и просишь коллегу.',
+        turns:[
+          {who:'them', text:'Good morning, how can I help?', ru:'Доброе утро, чем могу помочь?'},
+          {who:'you', ru:'Попроси позвать Марка.', best:1,
+            options:['Mark give phone me.','Good morning. Can I speak to Mark, please?','Mark want talk me now.']},
+          {who:'them', text:'He is in a meeting right now.', ru:'Он сейчас на совещании.'},
+          {who:'you', ru:'Скажи, что перезвонишь позже.', best:0,
+            options:['I see. I will call back later.','Ok later call me do.','Later phone again me yes.']},
+          {who:'them', text:'Would you like to leave a message?', ru:'Оставите сообщение?'},
+          {who:'you', ru:'Откажись вежливо.', best:2,
+            options:['No message. Bye.','Message no need me.','No, thank you. I will try again this afternoon.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
+        ]},
+      { type:'words', title:'Контроль: темы 45–48', scene:'office', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Out', r:'Наружу', rev:true},
+        {t:'Down', r:'Вниз', rev:true},
+        {t:'Around', r:'Вокруг', rev:true},
+        {t:'Through', r:'Сквозь', rev:true},
+        {t:'Space', r:'Место / пространство', rev:true},
+        {t:'Everyone', r:'Все', rev:true},
+        {t:'Nothing', r:'Ничего', rev:true},
+        {t:'Nobody', r:'Никто', rev:true},
+        {t:'Something', r:'Что-то', rev:true},
+        {t:'Someone', r:'Кто-то', rev:true},
+        {t:'Anything', r:'Что-нибудь', rev:true},
+        {t:'Anyone', r:'Кто-нибудь', rev:true},
+        {t:'Only', r:'Только', rev:true},
+        {t:'Said', r:'Сказал', u:'Прошедшее от say. Читается «сэд», не «сэйд».', rev:true},
+        {t:'Must', r:'Должен', rev:true},
+        {t:'Have to', r:'Приходится', rev:true},
+        {t:'Should', r:'Следует', rev:true},
+        {t:'Possible', r:'Возможный', rev:true},
+        {t:'Imagine', r:'Представлять', rev:true},
+        {t:'Include', r:'Включать', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 45–48', scene:'office', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Книга на столе.', parts:['The','book','is','on','the','table'], answer:'The book is on the table', full:'The book is on the table.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Магазин рядом с банком.', parts:['The','shop','is','next','to','the','bank'], answer:'The shop is next to the bank', full:'The shop is next to the bank.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Иди прямо через парк.', parts:['Go','straight','through','the','park'], answer:'Go straight through the park', full:'Go straight through the park.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Мой телефон под кроватью.', parts:['My','phone','is','under','the','bed'], answer:'My phone is under the bed', full:'My phone is under the bed.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'У меня достаточно денег.', parts:['I','have','enough','money'], answer:'I have enough money', full:'I have enough money.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Здесь слишком много людей.', parts:['There','are','too','many','people','here'], answer:'There are too many people here', full:'There are too many people here.',
+         whyT:'Оборот there is / there are', why:'Так говорят о наличии: «There is a problem». Один предмет → there is, несколько → there are.'}
+      ]},
+      { type:'words', title:'Правила и запреты · 1', scene:'street', cefr:'A1: Can understand simple rules and signs.', newCount:11, words:[
+        {t:'Rule', r:'Правило'},
+        {t:'Must', r:'Должен'},
+        {t:'Add', r:'Добавлять'},
+        {t:'Negative', r:'Отрицательный'},
+        {t:'Open', r:'Открыто'},
+        {t:'Close', r:'Закрыто', u:'Два смысла: «close to the shop» — рядом; «close the door» — закрой дверь.'},
+        {t:'Fly', r:'Летать'},
+        {t:'Quiet', r:'Тихо'},
+        {t:'Natural', r:'Природный'},
+        {t:'Situation', r:'Ситуация'},
+        {t:'Police', r:'Полиция'},
+        {t:'Final', r:'Финальный', rev:true},
+        {t:'Improve', r:'Улучшать', rev:true},
+        {t:'Million', r:'Миллион', rev:true},
+        {t:'Second', r:'Второй', rev:true},
+        {t:'Mine', r:'Мой (без существительного)', u:'«This is mine» — это моё. Если дальше есть предмет — «my bag».', rev:true},
+        {t:'Man', r:'Мужчина', rev:true},
+        {t:'Hello', r:'Алло', rev:true},
+        {t:'Line', r:'Линия', rev:true}
+      ]},
+      { type:'words', title:'Правила и запреты · 2', scene:'street', cefr:'A1: Can understand simple rules and signs.', newCount:11, words:[
+        {t:'Ticket', r:'Штраф / билет', u:'Билет и штраф — одно слово. «A parking ticket» — это штраф.'},
+        {t:'Pay', r:'Платить'},
+        {t:'Show', r:'Показывать'},
+        {t:'Stop', r:'Стоп'},
+        {t:'Wait', r:'Ждать'},
+        {t:'Look', r:'Смотреть'},
+        {t:'Point', r:'Место / пункт'},
+        {t:'Free', r:'Свободный', u:'Два смысла: «Are you free?» — свободен ли ты; «It is free» — бесплатно.'},
+        {t:'Correct', r:'Правильный'},
+        {t:'Entry', r:'Вход', u:'На табличках: «No entry» — входа нет.'},
+        {t:'Smoke', r:'Курить', u:'«No smoking» — не курить. Табличка почти везде.'},
+        {t:'Moment', r:'Момент', rev:true},
+        {t:'Have to', r:'Приходится', rev:true},
+        {t:'Should', r:'Следует', rev:true},
+        {t:'Possible', r:'Возможный', rev:true},
+        {t:'Everyone', r:'Все', rev:true},
+        {t:'Nothing', r:'Ничего', rev:true},
+        {t:'Remember', r:'Помнить', rev:true},
+        {t:'Century', r:'Век', rev:true}
+      ]},
+      { type:'build', title:'Собери: Правила и запреты', scene:'street', cefr:'A1: Can understand simple rules and signs.', tasks:[
+        {ru:'Здесь нельзя курить.', parts:['You','cannot','smoke','here'], answer:'You cannot smoke here', full:'You cannot smoke here.',
+         whyT:'Отрицание', why:'Частица not идёт после вспомогательного или модального глагола. «I did not get the letter» — смысловой глагол при этом в начальной форме.'},
+        {ru:'Пожалуйста, соблюдайте тишину.', parts:['Please','be','quiet'], answer:'Please be quiet', full:'Please be quiet.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Магазин закрыт по воскресеньям.', parts:['The','shop','is','closed','on','Sundays'], answer:'The shop is closed on Sundays', full:'The shop is closed on Sundays.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Вход бесплатный.', parts:['Entry','is','free'], answer:'Entry is free', full:'Entry is free.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'Замечание', scene:'street', cefr:'A1: Can understand simple rules and signs.',
+        intro:'Охранник подходит к тебе в здании.',
+        turns:[
+          {who:'them', text:'Excuse me, you cannot smoke here.', ru:'Простите, здесь нельзя курить.'},
+          {who:'you', ru:'Извинись, скажи, что не знал.', best:0,
+            options:['Oh, sorry. I did not know.','Sorry no know me have.','No smoke ok sorry me.']},
+          {who:'them', text:'There is an area outside.', ru:'Снаружи есть место.'},
+          {who:'you', ru:'Спроси, где именно.', best:2,
+            options:['Where outside is it?','Place where say me?','Where exactly is it?']},
+          {who:'them', text:'Through that door, on the left.', ru:'Через ту дверь, налево.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok go there now.','Thank you, I will go there.','Door left go me yes.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Итоги дня · 1', scene:'flat', cefr:'A1: Can describe a day in simple sentences.', newCount:11, words:[
+        {t:'Day', r:'День'},
+        {t:'Routine', r:'Распорядок'},
+        {t:'Usually', r:'Обычно'},
+        {t:'Always', r:'Всегда'},
+        {t:'Often', r:'Часто'},
+        {t:'Sometimes', r:'Иногда'},
+        {t:'Never', r:'Никогда'},
+        {t:'Once', r:'Один раз'},
+        {t:'Again', r:'Снова'},
+        {t:'Still', r:'Всё ещё'},
+        {t:'Ever', r:'Когда-либо'},
+        {t:'Model', r:'Модель', rev:true},
+        {t:'Part', r:'Часть', rev:true},
+        {t:'Introduce', r:'Представлять', rev:true},
+        {t:'Interested', r:'Заинтересованный', rev:true},
+        {t:'Bring', r:'Приносить', rev:true},
+        {t:'Ask', r:'Спрашивать', rev:true},
+        {t:'Rule', r:'Правило', rev:true},
+        {t:'Add', r:'Добавлять', rev:true}
+      ]},
+      { type:'words', title:'Итоги дня · 2', scene:'flat', cefr:'A1: Can describe a day in simple sentences.', newCount:11, words:[
+        {t:'Finish', r:'Заканчивать'},
+        {t:'End', r:'Конец'},
+        {t:'Result', r:'Результат'},
+        {t:'Success', r:'Успех'},
+        {t:'Report', r:'Отчёт'},
+        {t:'Detail', r:'Деталь'},
+        {t:'Complete', r:'Завершить'},
+        {t:'Correct', r:'Верный'},
+        {t:'Perfect', r:'Отличный'},
+        {t:'Perfectly', r:'Отлично', u:'От perfect. «It went perfectly» — прошло отлично.'},
+        {t:'Went', r:'Пошёл / прошёл', u:'Прошедшее от go. «I went home» — я пошёл домой.'},
+        {t:'Negative', r:'Отрицательный', rev:true},
+        {t:'Hello', r:'Алло', rev:true},
+        {t:'Busy', r:'Занято', rev:true},
+        {t:'Line', r:'Линия', rev:true},
+        {t:'Imagine', r:'Представлять', rev:true},
+        {t:'Include', r:'Включать', rev:true},
+        {t:'Out', r:'Наружу', rev:true},
+        {t:'Down', r:'Вниз', rev:true}
+      ]},
+      { type:'build', title:'Собери: Итоги дня', scene:'flat', cefr:'A1: Can describe a day in simple sentences.', tasks:[
+        {ru:'Обычно я заканчиваю в шесть.', parts:['I','usually','finish','at','six'], answer:'I usually finish at six', full:'I usually finish at six.',
+         whyT:'Предлоги времени', why:'at — точное время (at six), on — день (on Monday), in — часть суток и период (in the morning, in a week). Ошибка «in Monday» — типичная.'},
+        {ru:'Иногда я работаю в субботу.', parts:['Sometimes','I','work','on','Saturday'], answer:'Sometimes I work on Saturday', full:'Sometimes I work on Saturday.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я никогда не опаздываю.', parts:['I','am','never','late'], answer:'I am never late', full:'I am never late.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'День прошёл отлично.', parts:['The','day','went','perfectly'], answer:'The day went perfectly', full:'The day went perfectly.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'}
+      ]},
+      { type:'dialog', title:'Вечером дома', scene:'flat', cefr:'A1: Can describe a day in simple sentences.',
+        intro:'Сосед спрашивает, как прошёл день.',
+        turns:[
+          {who:'them', text:'How was your day?', ru:'Как прошёл день?'},
+          {who:'you', ru:'Скажи, что был длинный, но хороший.', best:1,
+            options:['Day long good is.','Long, but good, thanks.','Work much day big have.']},
+          {who:'them', text:'What time do you usually finish?', ru:'Во сколько обычно заканчиваешь?'},
+          {who:'you', ru:'Скажи: обычно в шесть.', best:0,
+            options:['Usually at six.','Six time finish me always.','End work six is me.']},
+          {who:'them', text:'That is not bad.', ru:'Неплохо.'},
+          {who:'you', ru:'Согласись и пожелай доброй ночи.', best:2,
+            options:['Ok night good you.','Yes ok. Sleep now me.','True. Good night!']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
+        ]},
+      { type:'words', title:'Разговор: связки · 1', scene:'cafe', cefr:'A1: Can link simple sentences.', newCount:10, words:[
+        {t:'And', r:'И'},
+        {t:'But', r:'Но'},
+        {t:'Or', r:'Или'},
+        {t:'So', r:'Поэтому'},
+        {t:'Because', r:'Потому что'},
+        {t:'Then', r:'Затем'},
+        {t:'Also', r:'Также'},
+        {t:'Too', r:'Тоже', u:'Два смысла: «too big» — слишком велико; «me too» — я тоже.'},
+        {t:'However', r:'Однако'},
+        {t:'If', r:'Если'},
+        {t:'Fall', r:'Падать', rev:true},
+        {t:'Advice', r:'Совет', rev:true},
+        {t:'Repeat', r:'Повторить', u:'«Could you repeat?» — вежливая просьба повторить.', rev:true},
+        {t:'Slow', r:'Медленный', rev:true},
+        {t:'Festival', r:'Фестиваль', rev:true},
+        {t:'Event', r:'Событие', rev:true},
+        {t:'Routine', r:'Распорядок', rev:true},
+        {t:'Usually', r:'Обычно', rev:true}
+      ]},
+      { type:'words', title:'Разговор: связки · 2', scene:'cafe', cefr:'A1: Can link simple sentences.', newCount:10, words:[
+        {t:'When', r:'Когда'},
+        {t:'About', r:'О / около'},
+        {t:'After', r:'После'},
+        {t:'Before', r:'До'},
+        {t:'Until', r:'До тех пор'},
+        {t:'During', r:'Во время'},
+        {t:'Than', r:'Чем', u:'Всегда при сравнении: «cheaper than this» — дешевле, чем это.'},
+        {t:'As', r:'Как'},
+        {t:'With', r:'С'},
+        {t:'Without', r:'Без', u:'Противоположно with: «coffee without sugar» — кофе без сахара.'},
+        {t:'Always', r:'Всегда', rev:true},
+        {t:'Fly', r:'Летать', rev:true},
+        {t:'Natural', r:'Природный', rev:true},
+        {t:'Situation', r:'Ситуация', rev:true},
+        {t:'Moment', r:'Момент', rev:true},
+        {t:'Telephone', r:'Телефон', rev:true},
+        {t:'Nobody', r:'Никто', rev:true},
+        {t:'Something', r:'Что-то', rev:true}
+      ]},
+      { type:'build', title:'Собери: Разговор: связки', scene:'cafe', cefr:'A1: Can link simple sentences.', tasks:[
+        {ru:'Я устал, но счастлив.', parts:['I','am','tired','but','happy'], answer:'I am tired but happy', full:'I am tired but happy.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Я остался дома, потому что шёл дождь.', parts:['I','stayed','home','because','it','was','raining'], answer:'I stayed home because it was raining', full:'I stayed home because it was raining.',
+         whyT:'Прошедшее время глагола be', why:'I/he/she/it → was, you/we/they → were. «That was delicious», «They were here».'},
+        {ru:'Позвони мне, когда придёшь.', parts:['Call','me','when','you','arrive'], answer:'Call me when you arrive', full:'Call me when you arrive.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Кофе без сахара, пожалуйста.', parts:['Coffee','without','sugar','please'], answer:'Coffee without sugar please', full:'Coffee without sugar, please.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'Объяснить причину', scene:'cafe', cefr:'A1: Can link simple sentences.',
+        intro:'Друг спрашивает, почему тебя не было.',
+        turns:[
+          {who:'them', text:'Why did you not come yesterday?', ru:'Почему ты вчера не пришёл?'},
+          {who:'you', ru:'Скажи, что был болен.', best:1,
+            options:['No come sick me.','I did not come because I was sick.','Sick me yes stay home.']},
+          {who:'them', text:'Are you better now?', ru:'Сейчас лучше?'},
+          {who:'you', ru:'Скажи: да, но всё ещё устал.', best:0,
+            options:['Yes, but I am still tired.','Better yes tired still have.','Good me now tired also.']},
+          {who:'them', text:'Take care of yourself.', ru:'Береги себя.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok care me do.','Yes rest more me.','Thanks, I will.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
+        ]},
+      { type:'words', title:'Вопросительные слова · 1', scene:'street', cefr:'A1: Can ask basic questions.', newCount:10, words:[
+        {t:'What', r:'Что'},
+        {t:'Who', r:'Кто'},
+        {t:'Where', r:'Где'},
+        {t:'When', r:'Когда'},
+        {t:'Why', r:'Почему'},
+        {t:'Which', r:'Который'},
+        {t:'How', r:'Как'},
+        {t:'Else', r:'Ещё'},
+        {t:'Question', r:'Вопрос'},
+        {t:'Answer', r:'Ответ'},
+        {t:'Dear', r:'Дорогой', rev:true},
+        {t:'Fact', r:'Факт', rev:true},
+        {t:'Tourist', r:'Турист', rev:true},
+        {t:'Visitor', r:'Посетитель', rev:true},
+        {t:'Forget', r:'Забывать', rev:true},
+        {t:'Find', r:'Находить', rev:true},
+        {t:'And', r:'И', rev:true},
+        {t:'But', r:'Но', rev:true}
+      ]},
+      { type:'words', title:'Вопросительные слова · 2', scene:'street', cefr:'A1: Can ask basic questions.', newCount:10, words:[
+        {t:'Ask', r:'Спрашивать'},
+        {t:'Tell', r:'Рассказывать'},
+        {t:'Know', r:'Знать'},
+        {t:'Sure', r:'Уверен'},
+        {t:'Maybe', r:'Может быть'},
+        {t:'Probably', r:'Вероятно'},
+        {t:'Really', r:'Действительно'},
+        {t:'Quite', r:'Довольно'},
+        {t:'Very', r:'Очень', u:'Усиливает признак: «very cold» — очень холодно. С глаголом не ставят.'},
+        {t:'Just', r:'Просто'},
+        {t:'Or', r:'Или', rev:true},
+        {t:'Often', r:'Часто', rev:true},
+        {t:'Sometimes', r:'Иногда', rev:true},
+        {t:'Never', r:'Никогда', rev:true},
+        {t:'Show', r:'Показывать', rev:true},
+        {t:'Look', r:'Смотреть', rev:true},
+        {t:'Use', r:'Использовать', rev:true},
+        {t:'Useful', r:'Полезный', rev:true}
+      ]},
+      { type:'build', title:'Собери: Вопросительные слова', scene:'street', cefr:'A1: Can ask basic questions.', tasks:[
+        {ru:'Где вы живёте?', parts:['Where','do','you','live'], answer:'Where do you live', full:'Where do you live?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Почему магазин закрыт?', parts:['Why','is','the','shop','closed'], answer:'Why is the shop closed', full:'Why is the shop closed?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Какой из них ваш?', parts:['Which','one','is','yours'], answer:'Which one is yours', full:'Which one is yours?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Кто это?', parts:['Who','is','this'], answer:'Who is this', full:'Who is this?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'}
+      ]},
+      { type:'dialog', title:'Расспросить', scene:'street', cefr:'A1: Can ask basic questions.',
+        intro:'Ты знакомишься с новым коллегой.',
+        turns:[
+          {who:'them', text:'I just started here last week.', ru:'Я только начал тут на прошлой неделе.'},
+          {who:'you', ru:'Спроси, откуда он.', best:0,
+            options:['Where are you from?','From where you is?','Country you what have?']},
+          {who:'them', text:'From Poland. And you?', ru:'Из Польши. А вы?'},
+          {who:'you', ru:'Скажи, откуда ты, и спроси, где он живёт.', best:2,
+            options:['Russia me. You home where?','Me Russia live here you where?','I am from Russia. Where do you live now?']},
+          {who:'them', text:'Near the park. It is quite far.', ru:'Рядом с парком. Довольно далеко.'},
+          {who:'you', ru:'Скажи, что живёшь рядом с работой.', best:1,
+            options:['Near work live me.','I live near the office, so it is easy.','Office close home me have good.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Контроль: темы 49–52', scene:'street', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Point', r:'Место / пункт', rev:true},
+        {t:'Entry', r:'Вход', u:'На табличках: «No entry» — входа нет.', rev:true},
+        {t:'Smoke', r:'Курить', u:'«No smoking» — не курить. Табличка почти везде.', rev:true},
+        {t:'Once', r:'Один раз', rev:true},
+        {t:'Still', r:'Всё ещё', rev:true},
+        {t:'Ever', r:'Когда-либо', rev:true},
+        {t:'Result', r:'Результат', rev:true},
+        {t:'Success', r:'Успех', rev:true},
+        {t:'Report', r:'Отчёт', rev:true},
+        {t:'Detail', r:'Деталь', rev:true},
+        {t:'Complete', r:'Завершить', rev:true},
+        {t:'Perfect', r:'Отличный', rev:true},
+        {t:'Perfectly', r:'Отлично', u:'От perfect. «It went perfectly» — прошло отлично.', rev:true},
+        {t:'Went', r:'Пошёл / прошёл', u:'Прошедшее от go. «I went home» — я пошёл домой.', rev:true},
+        {t:'So', r:'Поэтому', rev:true},
+        {t:'Then', r:'Затем', rev:true},
+        {t:'Also', r:'Также', rev:true},
+        {t:'However', r:'Однако', rev:true},
+        {t:'If', r:'Если', rev:true},
+        {t:'About', r:'О / около', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 49–52', scene:'street', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Здесь нельзя курить.', parts:['You','cannot','smoke','here'], answer:'You cannot smoke here', full:'You cannot smoke here.',
+         whyT:'Отрицание', why:'Частица not идёт после вспомогательного или модального глагола. «I did not get the letter» — смысловой глагол при этом в начальной форме.'},
+        {ru:'Пожалуйста, соблюдайте тишину.', parts:['Please','be','quiet'], answer:'Please be quiet', full:'Please be quiet.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Магазин закрыт по воскресеньям.', parts:['The','shop','is','closed','on','Sundays'], answer:'The shop is closed on Sundays', full:'The shop is closed on Sundays.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Вход бесплатный.', parts:['Entry','is','free'], answer:'Entry is free', full:'Entry is free.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Обычно я заканчиваю в шесть.', parts:['I','usually','finish','at','six'], answer:'I usually finish at six', full:'I usually finish at six.',
+         whyT:'Предлоги времени', why:'at — точное время (at six), on — день (on Monday), in — часть суток и период (in the morning, in a week). Ошибка «in Monday» — типичная.'},
+        {ru:'Иногда я работаю в субботу.', parts:['Sometimes','I','work','on','Saturday'], answer:'Sometimes I work on Saturday', full:'Sometimes I work on Saturday.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'words', title:'Местоимения и люди · 1', scene:'office', cefr:'A1: Can refer to people correctly.', newCount:11, words:[
+        {t:'He', r:'Он'},
+        {t:'She', r:'Она'},
+        {t:'They', r:'Они'},
+        {t:'We', r:'Мы'},
+        {t:'Us', r:'Нас'},
+        {t:'Them', r:'Их'},
+        {t:'Him', r:'Его'},
+        {t:'Her', r:'Её'},
+        {t:'His', r:'Его (чей)'},
+        {t:'Their', r:'Их (чей)'},
+        {t:'Our', r:'Наш'},
+        {t:'Around', r:'Вокруг', rev:true},
+        {t:'Through', r:'Сквозь', rev:true},
+        {t:'Reader', r:'Читатель', rev:true},
+        {t:'Reading', r:'Чтение', rev:true},
+        {t:'Photograph', r:'Фотография', rev:true},
+        {t:'Blog', r:'Блог', rev:true},
+        {t:'What', r:'Что', rev:true},
+        {t:'Who', r:'Кто', rev:true}
+      ]},
+      { type:'words', title:'Местоимения и люди · 2', scene:'office', cefr:'A1: Can refer to people correctly.', newCount:10, words:[
+        {t:'Its', r:'Его (о предмете)'},
+        {t:'Yourself', r:'Сам'},
+        {t:'Everybody', r:'Все'},
+        {t:'Somebody', r:'Кто-то'},
+        {t:'No one', r:'Никто'},
+        {t:'Group', r:'Группа'},
+        {t:'Part', r:'Часть'},
+        {t:'Member', r:'Участник'},
+        {t:'Own', r:'Собственный'},
+        {t:'Saw', r:'Увидел', u:'Прошедшее от see. «I saw him» — я его видел.'},
+        {t:'Where', r:'Где', rev:true},
+        {t:'So', r:'Поэтому', rev:true},
+        {t:'Then', r:'Затем', rev:true},
+        {t:'Also', r:'Также', rev:true},
+        {t:'Once', r:'Один раз', rev:true},
+        {t:'Still', r:'Всё ещё', rev:true},
+        {t:'Hello', r:'Алло', rev:true},
+        {t:'Note', r:'Записка', rev:true}
+      ]},
+      { type:'build', title:'Собери: Местоимения и люди', scene:'office', cefr:'A1: Can refer to people correctly.', tasks:[
+        {ru:'Они наши соседи.', parts:['They','are','our','neighbours'], answer:'They are our neighbours', full:'They are our neighbours.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я видел её вчера.', parts:['I','saw','her','yesterday'], answer:'I saw her yesterday', full:'I saw her yesterday.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Это его машина, а не наша.', parts:['It','is','his','car','not','ours'], answer:'It is his car not ours', full:'It is his car, not ours.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Никто не знает ответа.', parts:['No','one','knows','the','answer'], answer:'No one knows the answer', full:'No one knows the answer.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', title:'Кто это сделал', scene:'office', cefr:'A1: Can refer to people correctly.',
+        intro:'На работе обсуждают, кто занимался задачей.',
+        turns:[
+          {who:'them', text:'Who worked on this?', ru:'Кто над этим работал?'},
+          {who:'you', ru:'Скажи, что это делали Марк и Анна.', best:1,
+            options:['Mark Anna do it.','Mark and Anna did it together.','Them two work this have.']},
+          {who:'them', text:'Did they finish it?', ru:'Они закончили?'},
+          {who:'you', ru:'Скажи, что она закончила, а он ещё нет.', best:0,
+            options:['She finished, but he did not.','Her finish him no yes.','Woman ok man no finish.']},
+          {who:'them', text:'I will talk to him.', ru:'Я поговорю с ним.'},
+          {who:'you', ru:'Согласись.', best:2,
+            options:['Ok talk him you.','Him yes speak good.','That is a good idea.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
+        ]},
+      { type:'words', title:'Медиа и техника · 1', scene:'flat', cefr:'A1: Can talk about simple media.', newCount:10, words:[
+        {t:'Watch', r:'Смотреть'},
+        {t:'Show', r:'Шоу / показывать'},
+        {t:'Programme', r:'Программа'},
+        {t:'See', r:'Смотреть / видеть'},
+        {t:'Dvd', r:'Диск'},
+        {t:'Cd', r:'Диск'},
+        {t:'Sound', r:'Звук'},
+        {t:'Text', r:'Текст'},
+        {t:'Chart', r:'График'},
+        {t:'Article', r:'Статья'},
+        {t:'Future', r:'Будущее', rev:true},
+        {t:'Will', r:'Будет', rev:true},
+        {t:'Exactly', r:'Точно', u:'Подтверждение: «Exactly» — именно так. Ещё «ровно»: exactly ten.', rev:true},
+        {t:'New', r:'Новый', u:'Противоположно old. «a new phone».', rev:true},
+        {t:'As', r:'Как', rev:true},
+        {t:'With', r:'С', rev:true},
+        {t:'He', r:'Он', rev:true},
+        {t:'She', r:'Она', rev:true},
+        {t:'They', r:'Они', rev:true}
+      ]},
+      { type:'words', title:'Медиа и техника · 2', scene:'flat', cefr:'A1: Can talk about simple media.', newCount:10, words:[
+        {t:'Topic', r:'Тема'},
+        {t:'Title', r:'Заголовок'},
+        {t:'Section', r:'Раздел'},
+        {t:'Paragraph', r:'Абзац'},
+        {t:'Statement', r:'Утверждение'},
+        {t:'Description', r:'Описание'},
+        {t:'Describe', r:'Описывать'},
+        {t:'Discuss', r:'Обсуждать'},
+        {t:'Conversation', r:'Разговор'},
+        {t:'Dialogue', r:'Диалог'},
+        {t:'Why', r:'Почему', rev:true},
+        {t:'Which', r:'Который', rev:true},
+        {t:'Else', r:'Ещё', rev:true},
+        {t:'However', r:'Однако', rev:true},
+        {t:'If', r:'Если', rev:true},
+        {t:'Point', r:'Место / пункт', rev:true},
+        {t:'Entry', r:'Вход', u:'На табличках: «No entry» — входа нет.', rev:true},
+        {t:'Someone', r:'Кто-то', rev:true},
+        {t:'Anything', r:'Что-нибудь', rev:true}
+      ]},
+      { type:'build', title:'Собери: Медиа и техника', scene:'flat', cefr:'A1: Can talk about simple media.', tasks:[
+        {ru:'Я смотрю эту программу каждый вечер.', parts:['I','watch','this','programme','every','evening'], answer:'I watch this programme every evening', full:'I watch this programme every evening.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Сделай звук потише, пожалуйста.', parts:['Turn','the','sound','down','please'], answer:'Turn the sound down please', full:'Turn the sound down, please.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Прочитай первый абзац.', parts:['Read','the','first','paragraph'], answer:'Read the first paragraph', full:'Read the first paragraph.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Мы обсудим эту тему завтра.', parts:['We','will','discuss','this','topic','tomorrow'], answer:'We will discuss this topic tomorrow', full:'We will discuss this topic tomorrow.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'}
+      ]},
+      { type:'dialog', title:'Что посмотреть', scene:'flat', cefr:'A1: Can talk about simple media.',
+        intro:'Вечером выбираете, что включить.',
+        turns:[
+          {who:'them', text:'What do you want to watch?', ru:'Что хочешь посмотреть?'},
+          {who:'you', ru:'Предложи фильм.', best:2,
+            options:['Film put on now.','Movie watch we can?','How about a film?']},
+          {who:'them', text:'I saw a good one last week.', ru:'Я на прошлой неделе видел хороший.'},
+          {who:'you', ru:'Спроси, о чём он.', best:0,
+            options:['What is it about?','About what is it?','Story what have film?']},
+          {who:'them', text:'It is about a family in Italy.', ru:'Про семью в Италии.'},
+          {who:'you', ru:'Согласись посмотреть.', best:1,
+            options:['Ok that one put.','Sounds good, let us watch it.','Family Italy yes see we.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
+        ]},
+      { type:'words', title:'Быт: мелочи · 1', scene:'flat', cefr:'A1: Can handle small everyday matters.', newCount:11, words:[
+        {t:'Thing', r:'Вещь'},
+        {t:'Lie', r:'Лежать'},
+        {t:'Piece', r:'Кусочек'},
+        {t:'Bag', r:'Сумка'},
+        {t:'Lot', r:'Много', u:'Только в связке «a lot of»: «a lot of people». Без «a» не говорят.'},
+        {t:'Make', r:'Делать'},
+        {t:'Do', r:'Делать'},
+        {t:'Get', r:'Получать'},
+        {t:'Give', r:'Давать'},
+        {t:'Take', r:'Брать'},
+        {t:'Keep', r:'Хранить'},
+        {t:'Manager', r:'Менеджер, начальник', u:'Старший сотрудник. При жалобе: «Can I speak to the manager?»', rev:true},
+        {t:'Can', r:'Мочь', rev:true},
+        {t:'Cheaper', r:'Дешевле', u:'Сравнительная от cheap. Короткие слова: + er.', rev:true},
+        {t:'Better', r:'Лучше', rev:true},
+        {t:'Wash', r:'Мыть', rev:true},
+        {t:'Cook', r:'Готовить', rev:true},
+        {t:'Watch', r:'Смотреть', rev:true},
+        {t:'Dvd', r:'Диск', rev:true}
+      ]},
+      { type:'words', title:'Быт: мелочи · 2', scene:'flat', cefr:'A1: Can handle small everyday matters.', newCount:10, words:[
+        {t:'Put', r:'Класть', u:'Прошедшее тоже put — форма не меняется. «Put it here» — положи сюда.'},
+        {t:'Bring', r:'Приносить'},
+        {t:'Add', r:'Добавлять'},
+        {t:'Create', r:'Создавать'},
+        {t:'Use', r:'Использовать'},
+        {t:'Need', r:'Нужно'},
+        {t:'Want', r:'Хотеть'},
+        {t:'Have', r:'Иметь'},
+        {t:'Own', r:'Иметь свой'},
+        {t:'Bit', r:'Немного', u:'Только «a bit»: «a bit tired» — немного устал.'},
+        {t:'Cd', r:'Диск', rev:true},
+        {t:'We', r:'Мы', rev:true},
+        {t:'Us', r:'Нас', rev:true},
+        {t:'Them', r:'Их', rev:true},
+        {t:'Probably', r:'Вероятно', rev:true},
+        {t:'Quite', r:'Довольно', rev:true},
+        {t:'Ever', r:'Когда-либо', rev:true},
+        {t:'Result', r:'Результат', rev:true}
+      ]},
+      { type:'build', title:'Собери: Быт: мелочи', scene:'flat', cefr:'A1: Can handle small everyday matters.', tasks:[
+        {ru:'Мне нужно кое-что купить.', parts:['I','need','to','buy','a','few','things'], answer:'I need to buy a few things', full:'I need to buy a few things.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Можешь дать мне немного времени?', parts:['Can','you','give','me','a','bit','of','time'], answer:'Can you give me a bit of time', full:'Can you give me a bit of time?',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Положи это в коробку.', parts:['Put','it','in','the','box'], answer:'Put it in the box', full:'Put it in the box.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'У меня своя машина.', parts:['I','have','my','own','car'], answer:'I have my own car', full:'I have my own car.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'Просьба по мелочи', scene:'flat', cefr:'A1: Can handle small everyday matters.',
+        intro:'Ты просишь соседа помочь.',
+        turns:[
+          {who:'them', text:'Do you need something?', ru:'Тебе что-то нужно?'},
+          {who:'you', ru:'Попроси немного соли.', best:1,
+            options:['Salt give me now.','Yes, could you give me a bit of salt?','Salt want small me have?']},
+          {who:'them', text:'Sure, take it.', ru:'Конечно, бери.'},
+          {who:'you', ru:'Поблагодари и скажи, что вернёшь завтра.', best:0,
+            options:['Thanks. I will get some tomorrow and give it back.','Ok tomorrow buy me give you.','Salt back tomorrow yes come.']},
+          {who:'them', text:'No need, really.', ru:'Да не надо, правда.'},
+          {who:'you', ru:'Настой вежливо.', best:2,
+            options:['No I give must.','Must give back me yes.','Are you sure? Well, thank you.']},
+          {who:'them', text:'Is everything else alright?', ru:'В остальном всё нормально?'},
+          {who:'you', ru:'Скажи, что да, всё хорошо.', best:1,
+            options:['All ok yes.','Yes, everything else is fine.','Good all have me.']},
+          {who:'them', text:'Good. Call me if you need anything.', ru:'Хорошо. Звоните, если что.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you, I will.','Ok call you me.','Yes phone have me.']},
+          {who:'them', text:'Have a good evening.', ru:'Хорошего вечера.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You also evening.','Ok bye night.','You too, good night!']}
+        ]},
+      { type:'words', title:'Оценка и качество · 1', scene:'market', cefr:'A1: Can give simple evaluations.', newCount:10, words:[
+        {t:'Good', r:'Хороший', u:'О качестве. «Well» — о том, как делают: «speak well».'},
+        {t:'Bad', r:'Плохой'},
+        {t:'Great', r:'Отличный'},
+        {t:'Poor', r:'Плохой'},
+        {t:'Perfect', r:'Идеальный'},
+        {t:'Popular', r:'Популярный'},
+        {t:'Common', r:'Обычный'},
+        {t:'Special', r:'Особый'},
+        {t:'Main', r:'Главный'},
+        {t:'Real', r:'Настоящий'},
+        {t:'Yourself', r:'Сам', rev:true},
+        {t:'Everybody', r:'Все', rev:true},
+        {t:'Somebody', r:'Кто-то', rev:true},
+        {t:'No one', r:'Никто', rev:true},
+        {t:'Group', r:'Группа', rev:true},
+        {t:'Saw', r:'Увидел', u:'Прошедшее от see. «I saw him» — я его видел.', rev:true},
+        {t:'Lie', r:'Лежать', rev:true},
+        {t:'Make', r:'Делать', rev:true},
+        {t:'Do', r:'Делать', rev:true},
+        {t:'Sound', r:'Звук', rev:true},
+        {t:'Text', r:'Текст', rev:true},
+        {t:'Chart', r:'График', rev:true}
+      ]},
+      { type:'words', title:'Оценка и качество · 2', scene:'market', cefr:'A1: Can give simple evaluations.', newCount:10, words:[
+        {t:'True', r:'Правдивый'},
+        {t:'False', r:'Ложный'},
+        {t:'Correct', r:'Правильный'},
+        {t:'Positive', r:'Положительный'},
+        {t:'Negative', r:'Отрицательный'},
+        {t:'Important', r:'Важный'},
+        {t:'Useful', r:'Полезный'},
+        {t:'Natural', r:'Натуральный'},
+        {t:'Modern', r:'Современный'},
+        {t:'Local', r:'Местный'},
+        {t:'Him', r:'Его', rev:true},
+        {t:'Her', r:'Её', rev:true},
+        {t:'About', r:'О / около', rev:true},
+        {t:'After', r:'После', rev:true},
+        {t:'Busy', r:'Занято', rev:true},
+        {t:'Line', r:'Линия', rev:true},
+        {t:'Cafe', r:'Кафе', rev:true},
+        {t:'Air', r:'Воздух', rev:true},
+        {t:'Think', r:'Думать', rev:true},
+        {t:'Believe', r:'Верить', rev:true},
+        {t:'Our', r:'Наш', rev:true},
+        {t:'Its', r:'Его (о предмете)', rev:true}
+      ]},
+      { type:'build', title:'Собери: Оценка и качество', scene:'market', cefr:'A1: Can give simple evaluations.', tasks:[
+        {ru:'Это очень полезная книга.', parts:['It','is','a','very','useful','book'], answer:'It is a very useful book', full:'It is a very useful book.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Здесь местные продукты.', parts:['The','products','here','are','local'], answer:'The products here are local', full:'The products here are local.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Ответ правильный.', parts:['The','answer','is','correct'], answer:'The answer is correct', full:'The answer is correct.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Это самое главное.', parts:['This','is','the','main','thing'], answer:'This is the main thing', full:'This is the main thing.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', title:'Спросить совет', scene:'market', cefr:'A1: Can give simple evaluations.',
+        intro:'Ты выбираешь подарок и просишь совета.',
+        turns:[
+          {who:'them', text:'Can I help you choose?', ru:'Помочь с выбором?'},
+          {who:'you', ru:'Скажи, что ищешь подарок.', best:0,
+            options:['Yes, I am looking for a present.','Present want buy me.','Gift find me help you.']},
+          {who:'them', text:'Is it for a man or a woman?', ru:'Для мужчины или женщины?'},
+          {who:'you', ru:'Скажи: для друга, и спроси, что популярно.', best:2,
+            options:['Friend man. Popular what?','For friend. Good thing what have?','For a friend. What is popular here?']},
+          {who:'them', text:'This local tea is very popular.', ru:'Этот местный чай очень популярен.'},
+          {who:'you', ru:'Согласись взять.', best:1,
+            options:['Ok tea take one.','That sounds perfect, I will take it.','Tea good yes buy me.']},
+          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё.', best:1,
+            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
+          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
+          {who:'you', ru:'Скажи: картой.', best:0,
+            options:['By card, please.','Card me pay yes.','Money card take you.']},
+          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
+          {who:'you', ru:'Пожелай того же.', best:2,
+            options:['You day good.','Ok bye go me.','Thanks, you too!']}
+        ]},
+      { type:'words', title:'Контроль: темы 53–56', scene:'market', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'His', r:'Его (чей)', rev:true},
+        {t:'Their', r:'Их (чей)', rev:true},
+        {t:'Topic', r:'Тема', rev:true},
+        {t:'Section', r:'Раздел', rev:true},
+        {t:'Paragraph', r:'Абзац', rev:true},
+        {t:'Statement', r:'Утверждение', rev:true},
+        {t:'Description', r:'Описание', rev:true},
+        {t:'Describe', r:'Описывать', rev:true},
+        {t:'Discuss', r:'Обсуждать', rev:true},
+        {t:'Dialogue', r:'Диалог', rev:true},
+        {t:'Get', r:'Получать', rev:true},
+        {t:'Create', r:'Создавать', rev:true},
+        {t:'Have', r:'Иметь', rev:true},
+        {t:'Bit', r:'Немного', u:'Только «a bit»: «a bit tired» — немного устал.', rev:true},
+        {t:'Popular', r:'Популярный', rev:true},
+        {t:'Main', r:'Главный', rev:true},
+        {t:'Real', r:'Настоящий', rev:true},
+        {t:'Positive', r:'Положительный', rev:true},
+        {t:'He', r:'Он', rev:true},
+        {t:'She', r:'Она', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 53–56', scene:'market', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Они наши соседи.', parts:['They','are','our','neighbours'], answer:'They are our neighbours', full:'They are our neighbours.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я видел её вчера.', parts:['I','saw','her','yesterday'], answer:'I saw her yesterday', full:'I saw her yesterday.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Это его машина, а не наша.', parts:['It','is','his','car','not','ours'], answer:'It is his car not ours', full:'It is his car, not ours.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Никто не знает ответа.', parts:['No','one','knows','the','answer'], answer:'No one knows the answer', full:'No one knows the answer.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Я смотрю эту программу каждый вечер.', parts:['I','watch','this','programme','every','evening'], answer:'I watch this programme every evening', full:'I watch this programme every evening.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Сделай звук потише, пожалуйста.', parts:['Turn','the','sound','down','please'], answer:'Turn the sound down please', full:'Turn the sound down, please.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'words', title:'Прошлое · 1', scene:'cafe', cefr:'A1: Can talk about the past simply.', newCount:11, words:[
+        {t:'Yesterday', r:'Вчера'},
+        {t:'Ago', r:'Назад'},
+        {t:'Last', r:'Прошлый'},
+        {t:'Past', r:'Прошлое', u:'Минуты после часа: «ten past five» — пять десять.'},
+        {t:'Before', r:'Раньше'},
+        {t:'This', r:'Этот'},
+        {t:'That', r:'Тот'},
+        {t:'For', r:'Для / в течение'},
+        {t:'From', r:'Из / от'},
+        {t:'By', r:'К / посредством'},
+        {t:'Happen', r:'Случиться'},
+        {t:'Third', r:'Третий', rev:true},
+        {t:'Fourth', r:'Четвёртый', rev:true},
+        {t:'Description', r:'Описание', rev:true},
+        {t:'Describe', r:'Описывать', rev:true},
+        {t:'Discuss', r:'Обсуждать', rev:true},
+        {t:'Dialogue', r:'Диалог', rev:true},
+        {t:'Popular', r:'Популярный', rev:true},
+        {t:'Main', r:'Главный', rev:true},
+        {t:'Real', r:'Настоящий', rev:true},
+        {t:'Get', r:'Получать', rev:true}
+      ]},
+      { type:'words', title:'Прошлое · 2', scene:'cafe', cefr:'A1: Can talk about the past simply.', newCount:11, words:[
+        {t:'Remember', r:'Помнить'},
+        {t:'Forget', r:'Забыть'},
+        {t:'Born', r:'Родился'},
+        {t:'Become', r:'Стал'},
+        {t:'Finish', r:'Закончил'},
+        {t:'Start', r:'Начал'},
+        {t:'Leave', r:'Уехал'},
+        {t:'Come', r:'Пришёл'},
+        {t:'Meet', r:'Встретил', u:'О знакомстве и о встрече: «Let us meet at six».'},
+        {t:'Forgot', r:'Забыл', u:'Прошедшее от forget. «I forgot the password».'},
+        {t:'Went', r:'Пошёл / прошёл', u:'Прошедшее от go. «I went home» — я пошёл домой.'},
+        {t:'Create', r:'Создавать', rev:true},
+        {t:'Have', r:'Иметь', rev:true},
+        {t:'Topic', r:'Тема', rev:true},
+        {t:'Section', r:'Раздел', rev:true},
+        {t:'Just', r:'Просто', rev:true},
+        {t:'What', r:'Что', rev:true},
+        {t:'Smoke', r:'Курить', u:'«No smoking» — не курить. Табличка почти везде.', rev:true},
+        {t:'Rule', r:'Правило', rev:true},
+        {t:'Mile', r:'Миля', rev:true},
+        {t:'Period', r:'Период', rev:true}
+      ]},
+      { type:'build', title:'Собери: Прошлое', scene:'cafe', cefr:'A1: Can talk about the past simply.', tasks:[
+        {ru:'Я был здесь два года назад.', parts:['I','was','here','two','years','ago'], answer:'I was here two years ago', full:'I was here two years ago.',
+         whyT:'Прошедшее время глагола be', why:'I/he/she/it → was, you/we/they → were. «That was delicious», «They were here».'},
+        {ru:'Вчера мы ходили в кино.', parts:['Yesterday','we','went','to','the','cinema'], answer:'Yesterday we went to the cinema', full:'Yesterday we went to the cinema.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Я забыл её имя.', parts:['I','forgot','her','name'], answer:'I forgot her name', full:'I forgot her name.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Что случилось на прошлой неделе?', parts:['What','happened','last','week'], answer:'What happened last week', full:'What happened last week?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'}
+      ]},
+      { type:'dialog', title:'Вспомнить прошлое', scene:'cafe', cefr:'A1: Can talk about the past simply.',
+        intro:'Друг вспоминает старую поездку.',
+        turns:[
+          {who:'them', text:'Do you remember our trip to Rome?', ru:'Помнишь нашу поездку в Рим?'},
+          {who:'you', ru:'Скажи «да, это было два года назад».', best:2,
+            options:['Rome yes go we.','Remember yes trip good.','Yes! That was two years ago.']},
+          {who:'them', text:'It was the best holiday.', ru:'Лучший отпуск был.'},
+          {who:'you', ru:'Согласись и скажи, что погода была отличная.', best:0,
+            options:['Yes, and the weather was perfect.','Weather good was yes.','Sun much have then good.']},
+          {who:'them', text:'We should go again.', ru:'Надо съездить снова.'},
+          {who:'you', ru:'Согласись.', best:1,
+            options:['Ok go again we.','Definitely! Let us plan it.','Again yes want me go.']},
+          {who:'them', text:'Would you like anything else?', ru:'Хотите что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что нет, спасибо.', best:2,
+            options:['No more me.','Finish all yes.','No, thank you. That is all.']},
+          {who:'them', text:'I will bring it in a moment.', ru:'Сейчас принесу.'},
+          {who:'you', ru:'Поблагодари.', best:0,
+            options:['Thank you very much.','Ok bring fast.','Good wait me here.']},
+          {who:'them', text:'Here you are. Enjoy!', ru:'Пожалуйста. Приятного!'},
+          {who:'you', ru:'Поблагодари и скажи, что выглядит вкусно.', best:1,
+            options:['Look good yes food.','Thank you, it looks delicious.','Food nice have me eat.']}
+        ]},
+      { type:'words', title:'Дела и задачи · 1', scene:'office', cefr:'A1: Can describe simple tasks and activities.', newCount:10, words:[
+        {t:'Action', r:'Действие'},
+        {t:'Activity', r:'Занятие'},
+        {t:'Work', r:'Работа'},
+        {t:'Project', r:'Проект'},
+        {t:'Detail', r:'Деталь'},
+        {t:'Report', r:'Отчёт'},
+        {t:'Result', r:'Результат'},
+        {t:'Success', r:'Успех'},
+        {t:'Problem', r:'Проблема'},
+        {t:'Answer', r:'Решение'},
+        {t:'Perfectly', r:'Отлично', u:'От perfect. «It went perfectly» — прошло отлично.', rev:true},
+        {t:'Routine', r:'Распорядок', rev:true},
+        {t:'Space', r:'Место / пространство', rev:true},
+        {t:'Here', r:'Здесь', u:'Место рядом с тобой. «Here is…» — вот, держите. «I am here» — я здесь.', rev:true},
+        {t:'Interest', r:'Интерес', rev:true},
+        {t:'Skill', r:'Навык', rev:true},
+        {t:'Ago', r:'Назад', rev:true},
+        {t:'Last', r:'Прошлый', rev:true}
+      ]},
+      { type:'words', title:'Дела и задачи · 2', scene:'office', cefr:'A1: Can describe simple tasks and activities.', newCount:10, words:[
+        {t:'Check', r:'Проверить'},
+        {t:'Complete', r:'Завершить'},
+        {t:'Finish', r:'Закончить'},
+        {t:'Keep', r:'Продолжать'},
+        {t:'Stop', r:'Остановить'},
+        {t:'Change', r:'Изменить', u:'Сдача и мелочь. «Keep the change» — сдачи не надо.'},
+        {t:'Improve', r:'Улучшить'},
+        {t:'Add', r:'Добавить'},
+        {t:'Include', r:'Включить'},
+        {t:'Prepare', r:'Подготовить'},
+        {t:'This', r:'Этот', rev:true},
+        {t:'Positive', r:'Положительный', rev:true},
+        {t:'Perfect', r:'Идеальный', rev:true},
+        {t:'Popular', r:'Популярный', rev:true},
+        {t:'Bit', r:'Немного', u:'Только «a bit»: «a bit tired» — немного устал.', rev:true},
+        {t:'Thing', r:'Вещь', rev:true},
+        {t:'His', r:'Его (чей)', rev:true},
+        {t:'Their', r:'Их (чей)', rev:true}
+      ]},
+      { type:'build', title:'Собери: Дела и задачи', scene:'office', cefr:'A1: Can describe simple tasks and activities.', tasks:[
+        {ru:'Мне нужно закончить отчёт.', parts:['I','need','to','finish','the','report'], answer:'I need to finish the report', full:'I need to finish the report.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Проверь, пожалуйста, результаты.', parts:['Please','check','the','results'], answer:'Please check the results', full:'Please check the results.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'},
+        {ru:'Мы добавим ещё одну страницу.', parts:['We','will','add','one','more','page'], answer:'We will add one more page', full:'We will add one more page.',
+         whyT:'Будущее с will', why:'will + глагол без to, одинаково для всех лиц. «I will think about it».'},
+        {ru:'Проект был успешным.', parts:['The','project','was','a','success'], answer:'The project was a success', full:'The project was a success.',
+         whyT:'Прошедшее время глагола be', why:'I/he/she/it → was, you/we/they → were. «That was delicious», «They were here».'}
+      ]},
+      { type:'dialog', title:'Отчитаться о задаче', scene:'office', cefr:'A1: Can describe simple tasks and activities.',
+        intro:'Начальник спрашивает про статус.',
+        turns:[
+          {who:'them', text:'How is the report going?', ru:'Как продвигается отчёт?'},
+          {who:'you', ru:'Скажи, что почти закончил.', best:1,
+            options:['Report soon finish me.','It is almost finished.','Work nearly end have me.']},
+          {who:'them', text:'When can I see it?', ru:'Когда смогу посмотреть?'},
+          {who:'you', ru:'Скажи: завтра утром.', best:0,
+            options:['Tomorrow morning.','Morning next day give.','Time tomorrow early yes.']},
+          {who:'them', text:'Perfect, thank you.', ru:'Отлично, спасибо.'},
+          {who:'you', ru:'Скажи, что пришлёшь по почте.', best:2,
+            options:['Email send me you.','Mail give tomorrow yes.','I will send it to you by email.']},
+          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
+          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
+            options:['When will I know?','Answer when have me?','Time answer what is?']},
+          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
+          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
+            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
+          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
+          {who:'you', ru:'Попрощайся вежливо.', best:1,
+            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
+        ]},
+      { type:'words', title:'Мелкие слова · 1', scene:'street', cefr:'A1: Can use common small words naturally.', newCount:10, words:[
+        {t:'Yeah', r:'Ага'},
+        {t:'Oh', r:'О'},
+        {t:'Ok', r:'Хорошо'},
+        {t:'Well', r:'Ну'},
+        {t:'Just', r:'Просто'},
+        {t:'Even', r:'Даже'},
+        {t:'Still', r:'Всё ещё'},
+        {t:'Again', r:'Опять'},
+        {t:'Away', r:'Прочь'},
+        {t:'Off', r:'Прочь / выключен'},
+        {t:'Until', r:'До тех пор', rev:true},
+        {t:'During', r:'Во время', rev:true},
+        {t:'Anyone', r:'Кто-нибудь', rev:true},
+        {t:'Said', r:'Сказал', u:'Прошедшее от say. Читается «сэд», не «сэйд».', rev:true},
+        {t:'Mean', r:'Значить', rev:true},
+        {t:'Meaning', r:'Значение', rev:true},
+        {t:'Action', r:'Действие', rev:true},
+        {t:'Activity', r:'Занятие', rev:true}
+      ]},
+      { type:'words', title:'Мелкие слова · 2', scene:'street', cefr:'A1: Can use common small words naturally.', newCount:10, words:[
+        {t:'Back', r:'Назад'},
+        {t:'Down', r:'Вниз'},
+        {t:'Up', r:'Вверх', u:'«get up» — вставать, «go up» — подниматься. Меняет смысл глагола.'},
+        {t:'Out', r:'Наружу'},
+        {t:'Over', r:'Через'},
+        {t:'Little', r:'Немного'},
+        {t:'Quite', r:'Довольно'},
+        {t:'Too', r:'Слишком', u:'Два смысла: «too big» — слишком велико; «me too» — я тоже.'},
+        {t:'Very', r:'Очень', u:'Усиливает признак: «very cold» — очень холодно. С глаголом не ставят.'},
+        {t:'Only', r:'Только'},
+        {t:'Detail', r:'Деталь', rev:true},
+        {t:'That', r:'Тот', rev:true},
+        {t:'For', r:'Для / в течение', rev:true},
+        {t:'From', r:'Из / от', rev:true},
+        {t:'Main', r:'Главный', rev:true},
+        {t:'Real', r:'Настоящий', rev:true},
+        {t:'Paragraph', r:'Абзац', rev:true},
+        {t:'Statement', r:'Утверждение', rev:true}
+      ]},
+      { type:'build', title:'Собери: Мелкие слова', scene:'street', cefr:'A1: Can use common small words naturally.', tasks:[
+        {ru:'Ну, я не уверен.', parts:['Well','I','am','not','sure'], answer:'Well I am not sure', full:'Well, I am not sure.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это просто немного дорого.', parts:['It','is','just','a','little','expensive'], answer:'It is just a little expensive', full:'It is just a little expensive.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Я всё ещё здесь.', parts:['I','am','still','here'], answer:'I am still here', full:'I am still here.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Свет выключен.', parts:['The','light','is','off'], answer:'The light is off', full:'The light is off.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]},
+      { type:'dialog', title:'Мягко отказать', scene:'street', cefr:'A1: Can use common small words naturally.',
+        intro:'Тебе предлагают то, что не подходит.',
+        turns:[
+          {who:'them', text:'So, will you take it?', ru:'Так берёте?'},
+          {who:'you', ru:'Скажи, что немного дорого.', best:0,
+            options:['Well, it is a little expensive for me.','Money big me no have.','Expensive too much bad.']},
+          {who:'them', text:'I can give you a small discount.', ru:'Могу сделать небольшую скидку.'},
+          {who:'you', ru:'Спроси, сколько получится.', best:2,
+            options:['How much then?','Price new what is?','And how much would that be?']},
+          {who:'them', text:'Forty instead of fifty.', ru:'Сорок вместо пятидесяти.'},
+          {who:'you', ru:'Согласись.', best:1,
+            options:['Ok forty take me.','Alright, I will take it.','Forty yes good buy.']},
+          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
+          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
+            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
+          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
+          {who:'you', ru:'Уточни направление.', best:0,
+            options:['Left or right?','Way what go me?','Which side is it?']},
+          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
+          {who:'you', ru:'Поблагодари.', best:2,
+            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
+        ]},
+      { type:'words', title:'Проверка A1 · 1', scene:'airport', cefr:'A1: Can handle a short everyday exchange from start to end.', newCount:10, words:[
+        {t:'Advice', r:'Совет'},
+        {t:'Air', r:'Воздух'},
+        {t:'Die', r:'Умирать'},
+        {t:'Fly', r:'Летать'},
+        {t:'Imagine', r:'Представить'},
+        {t:'Point', r:'Пункт'},
+        {t:'Situation', r:'Ситуация'},
+        {t:'Sound', r:'Звук'},
+        {t:'Text', r:'Текст'},
+        {t:'Topic', r:'Тема'},
+        {t:'Could', r:'Мог бы', rev:true},
+        {t:'Visit', r:'Посещать', rev:true},
+        {t:'Beach', r:'Пляж', rev:true},
+        {t:'Even', r:'Даже', rev:true},
+        {t:'Away', r:'Прочь', rev:true},
+        {t:'Off', r:'Прочь / выключен', rev:true},
+        {t:'Yeah', r:'Ага', rev:true},
+        {t:'Oh', r:'О', rev:true},
+        {t:'Ok', r:'Хорошо', rev:true}
+      ]},
+      { type:'words', title:'Проверка A1 · 2', scene:'airport', cefr:'A1: Can handle a short everyday exchange from start to end.', newCount:10, words:[
+        {t:'Watch', r:'Смотреть'},
+        {t:'Hello', r:'Здравствуйте'},
+        {t:'Thanks', r:'Спасибо', u:'Неформальное спасибо. Официальнее — «Thank you».'},
+        {t:'Sorry', r:'Извините', u:'Извинение за поступок: толкнул, опоздал, перебил. Чтобы обратиться к незнакомцу — «Excuse me».'},
+        {t:'Please', r:'Пожалуйста', u:'Ставь в конец просьбы: «Coffee, please». Без него звучит как приказ.'},
+        {t:'Help', r:'Помощь'},
+        {t:'Understand', r:'Понимать'},
+        {t:'Repeat', r:'Повторить', u:'«Could you repeat?» — вежливая просьба повторить.'},
+        {t:'Ticket', r:'Билет', u:'Билет и штраф — одно слово. «A parking ticket» — это штраф.'},
+        {t:'Passport', r:'Паспорт'},
+        {t:'Action', r:'Действие', rev:true},
+        {t:'Activity', r:'Занятие', rev:true},
+        {t:'Report', r:'Отчёт', rev:true},
+        {t:'By', r:'К / посредством', rev:true},
+        {t:'Forgot', r:'Забыл', u:'Прошедшее от forget. «I forgot the password».', rev:true},
+        {t:'Lie', r:'Лежать', rev:true},
+        {t:'Make', r:'Делать', rev:true},
+        {t:'Who', r:'Кто', rev:true},
+        {t:'Where', r:'Где', rev:true},
+        {t:'Cannot', r:'Не мочь', rev:true}
+      ]},
+      { type:'build', title:'Собери: Проверка A1', scene:'airport', cefr:'A1: Can handle a short everyday exchange from start to end.', tasks:[
+        {ru:'Спасибо за совет.', parts:['Thank','you','for','the','advice'], answer:'Thank you for the advice', full:'Thank you for the advice.',
+         whyT:'Предлог на своём месте', why:'Предлог стоит перед тем словом, к которому относится: «tickets for the train», «pay by card», «talk about it». В русском предлог часто другой.'},
+        {ru:'Мы летим сегодня вечером.', parts:['We','fly','tonight'], answer:'We fly tonight', full:'We fly tonight.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Это личный вопрос.', parts:['It','is','a','personal','question'], answer:'It is a personal question', full:'It is a personal question.',
+         whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'},
+        {ru:'Представь эту ситуацию.', parts:['Imagine','this','situation'], answer:'Imagine this situation', full:'Imagine this situation.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
+      { type:'dialog', title:'Последняя проверка', scene:'airport', cefr:'A1: Can handle a short everyday exchange from start to end.',
+        intro:'Ты в аэропорту, у стойки регистрации, летишь домой.',
+        turns:[
+          {who:'them', text:'Good evening. Where are you flying tonight?', ru:'Добрый вечер. Куда летите сегодня?'},
+          {who:'you', ru:'Скажи, куда летишь, и подай паспорт.', best:2,
+            options:['Moscow. Passport here take.','Fly Moscow me go now.','To Moscow. Here is my passport.']},
+          {who:'them', text:'Do you have any bags to check in?', ru:'Есть багаж для сдачи?'},
+          {who:'you', ru:'Скажи: одна сумка.', best:0,
+            options:['Just one bag, thank you.','One bag have me yes.','Bag one give you now.']},
+          {who:'them', text:'Your flight leaves at nine. Gate twelve.', ru:'Ваш рейс в девять. Выход двенадцать.'},
+          {who:'you', ru:'Переспроси номер выхода и поблагодари.', best:1,
+            options:['Gate what say again?','Gate twelve, right? Thank you very much.','Twelve yes ok go me.']},
+          {who:'them', text:'Do you have any hand luggage?', ru:'Ручная кладь есть?'},
+          {who:'you', ru:'Скажи: только маленькая сумка.', best:0,
+            options:['Just a small bag.','Bag small one have.','One small bag me yes.']},
+          {who:'them', text:'That is fine. Here is your ticket.', ru:'Хорошо. Вот ваш билет.'},
+          {who:'you', ru:'Спроси, где выход на посадку.', best:2,
+            options:['Gate where is?','Where go me now?','Where is the gate, please?']},
+          {who:'them', text:'Straight ahead, then left.', ru:'Прямо, потом налево.'},
+          {who:'you', ru:'Поблагодари.', best:1,
+            options:['Ok go there.','Thank you very much.','Left yes see me go.']}
+        ]},
+      { type:'words', title:'Контроль: темы 57–60', scene:'airport', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
+        {t:'Ago', r:'Назад', rev:true},
+        {t:'Last', r:'Прошлый', rev:true},
+        {t:'Past', r:'Прошлое', u:'Минуты после часа: «ten past five» — пять десять.', rev:true},
+        {t:'Before', r:'Раньше', rev:true},
+        {t:'This', r:'Этот', rev:true},
+        {t:'That', r:'Тот', rev:true},
+        {t:'For', r:'Для / в течение', rev:true},
+        {t:'From', r:'Из / от', rev:true},
+        {t:'By', r:'К / посредством', rev:true},
+        {t:'Forgot', r:'Забыл', u:'Прошедшее от forget. «I forgot the password».', rev:true},
+        {t:'Yeah', r:'Ага', rev:true},
+        {t:'Oh', r:'О', rev:true},
+        {t:'Ok', r:'Хорошо', rev:true},
+        {t:'Even', r:'Даже', rev:true},
+        {t:'Away', r:'Прочь', rev:true},
+        {t:'Off', r:'Прочь / выключен', rev:true},
+        {t:'Yesterday', r:'Вчера', rev:true},
+        {t:'Remember', r:'Помнить', rev:true},
+        {t:'Born', r:'Родился', rev:true},
+        {t:'Leave', r:'Уехал', rev:true}
+      ]},
+      { type:'build', title:'Повтори фразы: темы 57–60', scene:'airport', cefr:'A1: Can recall and reproduce phrases from previous topics.', tasks:[
+        {ru:'Я был здесь два года назад.', parts:['I','was','here','two','years','ago'], answer:'I was here two years ago', full:'I was here two years ago.',
+         whyT:'Прошедшее время глагола be', why:'I/he/she/it → was, you/we/they → were. «That was delicious», «They were here».'},
+        {ru:'Вчера мы ходили в кино.', parts:['Yesterday','we','went','to','the','cinema'], answer:'Yesterday we went to the cinema', full:'Yesterday we went to the cinema.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Я забыл её имя.', parts:['I','forgot','her','name'], answer:'I forgot her name', full:'I forgot her name.',
+         whyT:'Прошедшее время: неправильный глагол', why:'У этих глаголов нет окончания -ed, форму нужно помнить: go → went, buy → bought, leave → left, lose → lost, see → saw, tell → told.'},
+        {ru:'Что случилось на прошлой неделе?', parts:['What','happened','last','week'], answer:'What happened last week', full:'What happened last week?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'},
+        {ru:'Мне нужно закончить отчёт.', parts:['I','need','to','finish','the','report'], answer:'I need to finish the report', full:'I need to finish the report.',
+         whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
+        {ru:'Проверь, пожалуйста, результаты.', parts:['Please','check','the','results'], answer:'Please check the results', full:'Please check the results.',
+         whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
+      ]}
+    ],
+    2:[
+      { type:'words', title:'Город и дорога', scene:'street', words:[
+        {t:'Left / Right',      r:'Налево / Направо'},
+        {t:'Straight ahead',    r:'Прямо'},
+        {t:'How do I get to…?', r:'Как мне добраться до…?'},
+        {t:'Bus stop',          r:'Автобусная остановка'},
+        {t:'It’s far / close',  r:'Это далеко / близко'},
+        {t:'Next to',           r:'Рядом с'},
+        {t:'Twenty minutes',    r:'Двадцать минут'},
+        {t:'I’m lost',          r:'Я заблудился'}
+      ]},
+      { type:'build', title:'Спроси дорогу', scene:'street', tasks:[
+        {ru:'Извините, как мне добраться до вокзала?', parts:['Excuse','me,','how','do','I','get','to','the','station?'], answer:'Excuse me, how do I get to the station?'},
+        {ru:'Это далеко отсюда?', parts:['Is','it','far','from','here?'], answer:'Is it far from here?'},
+        {ru:'Кажется, я заблудился.', parts:['I','think','I’m','lost.'], answer:'I think I’m lost.'}
+      ]},
+      { type:'dialog', title:'Прохожий под дождём', scene:'street',
+        intro:'Дождь усиливается, ты не понимаешь, куда идти. Человек ждёт автобус.',
+        turns:[
+          {who:'them', text:'You alright? You look a bit lost.', ru:'Всё нормально? Вы, кажется, потерялись.'},
+          {who:'you', ru:'Признай это и спроси дорогу к метро.', best:1,
+            options:['Yes lost. Metro where.','Yeah, a bit. How do I get to the tube station?','I am lost person help.']},
+          {who:'them', text:'Straight ahead, then left at the lights. Five minutes.', ru:'Прямо, потом налево на светофоре. Пять минут.'},
+          {who:'you', ru:'Переспроси: налево на светофоре?', best:0,
+            options:['Left at the lights, yeah?','Light left yes what?','Repeat again slow please now.']},
+          {who:'them', text:'That’s it. Can’t miss it.', ru:'Именно. Не пропустите.'},
+          {who:'you', ru:'Поблагодари по-человечески.', best:2,
+            options:['Okay.','Thank you very much for the help I appreciate it a lot sir.','Brilliant, thanks a lot.']}
+        ]},
+      { type:'words', title:'Продукты и цены', scene:'market', words:[
+        {t:'Bread / Milk / Eggs', r:'Хлеб / Молоко / Яйца'},
+        {t:'A bag, please',       r:'Пакет, пожалуйста'},
+        {t:'Half a kilo',         r:'Полкило'},
+        {t:'Is this fresh?',      r:'Это свежее?'},
+        {t:'Too expensive',       r:'Слишком дорого'},
+        {t:'Do you have…?',       r:'У вас есть…?'},
+        {t:'That’s all',          r:'Это всё'},
+        {t:'Receipt',             r:'Чек'}
+      ]},
+      { type:'build', title:'На рынке', scene:'market', tasks:[
+        {ru:'У вас есть свежий хлеб?', parts:['Do','you','have','any','fresh','bread?'], answer:'Do you have any fresh bread?'},
+        {ru:'Полкило, пожалуйста.', parts:['Half','a','kilo,','please.'], answer:'Half a kilo, please.'},
+        {ru:'Это всё, спасибо.', parts:['That’s','all,','thanks.'], answer:'That’s all, thanks.'}
+      ]},
+      { type:'dialog', title:'Прилавок', scene:'market',
+        intro:'Продавец быстро складывает овощи и мельком смотрит на тебя.',
+        turns:[
+          {who:'them', text:'Morning! What are you after?', ru:'Доброе утро! Что вам нужно?'},
+          {who:'you', ru:'Спроси, есть ли помидоры.', best:0,
+            options:['Morning. Do you have any tomatoes?','Tomato you give me.','I after tomato please yes.']},
+          {who:'them', text:'Fresh in this morning. How many?', ru:'Свежие, с утра. Сколько?'},
+          {who:'you', ru:'Попроси полкило.', best:2,
+            options:['Many six.','Kilo half of it me.','Half a kilo, please.']},
+          {who:'them', text:'Two pounds. Anything else?', ru:'Два фунта. Что-нибудь ещё?'},
+          {who:'you', ru:'Скажи, что это всё, и попроси чек.', best:1,
+            options:['No more. Paper give.','That’s all. Could I have a receipt?','All finish thank you bye.']}
+        ]}
+    ],
+    3:[
+      { type:'words', title:'Аренда и жильё', scene:'flat', words:[
+        {t:'Lease / Contract',   r:'Договор аренды'},
+        {t:'Deposit',            r:'Залог'},
+        {t:'Bills included',     r:'Коммунальные включены'},
+        {t:'Landlord',           r:'Арендодатель'},
+        {t:'Viewing',            r:'Просмотр квартиры'},
+        {t:'Notice period',      r:'Срок предупреждения о выезде'},
+        {t:'Damp / Mould',       r:'Сырость / Плесень'},
+        {t:'Is it negotiable?',  r:'Цена обсуждается?'}
+      ]},
+      { type:'build', title:'Вопросы к договору', scene:'flat', tasks:[
+        {ru:'Коммунальные включены в стоимость?', parts:['Are','the','bills','included','in','the','rent?'], answer:'Are the bills included in the rent?'},
+        {ru:'Сколько составляет залог?', parts:['How','much','is','the','deposit?'], answer:'How much is the deposit?'},
+        {ru:'Могу я взглянуть на договор до подписания?', parts:['Could','I','see','the','contract','before','I','sign?'], answer:'Could I see the contract before I sign?'}
+      ]},
+      { type:'dialog', title:'Просмотр квартиры', scene:'flat',
+        intro:'Пустая квартира, пахнет краской. Агент открывает шторы и ждёт вопросов.',
+        turns:[
+          {who:'them', text:'So, this is the flat. Any questions?', ru:'Итак, вот квартира. Есть вопросы?'},
+          {who:'you', ru:'Спроси про коммунальные.', best:1,
+            options:['Money all how?','Yes — are the bills included in the rent?','Bills inside price or no inside?']},
+          {who:'them', text:'Water is, electricity isn’t. Council tax is on you.', ru:'Вода — да, электричество — нет. Налог платите вы.'},
+          {who:'you', ru:'Уточни размер залога.', best:0,
+            options:['Right. And how much is the deposit?','Deposit number say me.','Money before I give how much be?']},
+          {who:'them', text:'Five weeks’ rent, returned at the end.', ru:'Пять недель аренды, возвращается в конце.'},
+          {who:'you', ru:'Попроси прислать договор на почту.', best:2,
+            options:['Send paper email now fast.','Contract I want see it must.','Could you email me the contract to look over?']}
+        ]},
+      { type:'words', title:'Банк и документы', scene:'bank', words:[
+        {t:'Open an account',   r:'Открыть счёт'},
+        {t:'Proof of address',  r:'Подтверждение адреса'},
+        {t:'Sort code',         r:'Код отделения банка'},
+        {t:'Transfer',          r:'Перевод'},
+        {t:'Fee',               r:'Комиссия'},
+        {t:'Statement',         r:'Выписка'},
+        {t:'It was declined',   r:'Платёж отклонён'},
+        {t:'Appointment',       r:'Приём / запись'}
+      ]},
+      { type:'build', title:'В отделении', scene:'bank', tasks:[
+        {ru:'Я хотел бы открыть счёт.', parts:['I’d','like','to','open','an','account.'], answer:'I’d like to open an account.'},
+        {ru:'Какие документы вам нужны?', parts:['What','documents','do','you','need?'], answer:'What documents do you need?'},
+        {ru:'Есть ли комиссия за перевод?', parts:['Is','there','a','fee','for','the','transfer?'], answer:'Is there a fee for the transfer?'}
+      ]},
+      { type:'dialog', title:'Открыть счёт', scene:'bank',
+        intro:'Тебя приглашают за стол. На экране у сотрудника — форма.',
+        turns:[
+          {who:'them', text:'How can I help you today?', ru:'Чем могу помочь?'},
+          {who:'you', ru:'Скажи, зачем пришёл.', best:0,
+            options:['I’d like to open a current account.','Account open me want today.','Bank account give please.']},
+          {who:'them', text:'Of course. Do you have proof of address?', ru:'Конечно. Есть подтверждение адреса?'},
+          {who:'you', ru:'Спроси, подойдёт ли договор аренды.', best:2,
+            options:['Paper address no have me.','Address proof what is that thing?','I have a tenancy agreement — would that work?']},
+          {who:'them', text:'That’s fine. It takes about ten minutes.', ru:'Подойдёт. Займёт минут десять.'},
+          {who:'you', ru:'Уточни, когда придёт карта.', best:1,
+            options:['Card when fast?','Great. When would the card arrive?','I wait card here now?']}
+        ]}
+    ],
+    4:[
+      { type:'words', title:'Работа и найм', scene:'office', words:[
+        {t:'Notice period',       r:'Срок отработки'},
+        {t:'To be responsible for',r:'Отвечать за'},
+        {t:'Track record',        r:'Опыт с результатами'},
+        {t:'Take ownership',      r:'Брать ответственность на себя'},
+        {t:'Trade-off',           r:'Компромисс, выбор из двух'},
+        {t:'Deadline slipped',    r:'Срок сдвинулся'},
+        {t:'Salary expectations', r:'Ожидания по зарплате'},
+        {t:'Probation',           r:'Испытательный срок'}
+      ]},
+      { type:'build', title:'Формулируй позицию', scene:'office', tasks:[
+        {ru:'Я отвечал за команду из шести человек.', parts:['I','was','responsible','for','a','team','of','six.'], answer:'I was responsible for a team of six.'},
+        {ru:'Мы сдвинули срок, но сохранили качество.', parts:['We','pushed','the','deadline','but','kept','the','quality.'], answer:'We pushed the deadline but kept the quality.'},
+        {ru:'Я бы хотел уточнить ожидания по роли.', parts:['I’d','like','to','clarify','the','expectations','for','the','role.'], answer:'I’d like to clarify the expectations for the role.'}
+      ]},
+      { type:'dialog', title:'Собеседование', scene:'office',
+        intro:'Двое напротив. Ноутбук закрыт — значит, слушают, а не читают резюме.',
+        turns:[
+          {who:'them', text:'Tell us about a project that didn’t go to plan.', ru:'Расскажите о проекте, который пошёл не по плану.'},
+          {who:'you', ru:'Назови проблему спокойно, без оправданий.', best:1,
+            options:['All projects fine for me always.','We missed a deadline by two weeks — I’ll explain why and what we changed.','It was not my fault, the team was bad.']},
+          {who:'them', text:'And what would you do differently now?', ru:'Что бы вы сделали иначе сейчас?'},
+          {who:'you', ru:'Дай конкретный вывод.', best:0,
+            options:['I’d cut the scope earlier instead of adding people.','I don’t know, maybe work harder.','Nothing, it was fine in the end.']},
+          {who:'them', text:'What are your salary expectations?', ru:'Какие у вас ожидания по зарплате?'},
+          {who:'you', ru:'Ответь вилкой и оставь пространство.', best:2,
+            options:['Whatever you give me is okay.','Maximum money you have please.','I’m looking in the range we discussed, but I’m open depending on the scope.']}
+        ]},
+      { type:'words', title:'У врача', scene:'clinic', words:[
+        {t:'Symptoms',        r:'Симптомы'},
+        {t:'It hurts here',   r:'Болит здесь'},
+        {t:'For three days',  r:'Уже три дня'},
+        {t:'Prescription',    r:'Рецепт'},
+        {t:'Side effects',    r:'Побочные эффекты'},
+        {t:'Referral',        r:'Направление к специалисту'},
+        {t:'Allergic to',     r:'Аллергия на'},
+        {t:'Sick note',       r:'Больничный'}
+      ]},
+      { type:'build', title:'Объясни, что болит', scene:'clinic', tasks:[
+        {ru:'Болит уже три дня, особенно по утрам.', parts:['It’s','been','hurting','for','three','days,','mostly','in','the','mornings.'], answer:'It’s been hurting for three days, mostly in the mornings.'},
+        {ru:'У меня аллергия на пенициллин.', parts:['I’m','allergic','to','penicillin.'], answer:'I’m allergic to penicillin.'},
+        {ru:'Есть ли у этого побочные эффекты?', parts:['Does','this','have','any','side','effects?'], answer:'Does this have any side effects?'}
+      ]},
+      { type:'dialog', title:'Приём', scene:'clinic',
+        intro:'Кабинет, врач разворачивает стул к тебе и откладывает экран.',
+        turns:[
+          {who:'them', text:'What brings you in today?', ru:'С чем вы пришли?'},
+          {who:'you', ru:'Опиши симптом и срок.', best:0,
+            options:['I’ve had a sharp pain in my lower back for three days.','Pain back much bad long time.','I am sick you fix me.']},
+          {who:'them', text:'Any numbness in your legs?', ru:'Есть онемение в ногах?'},
+          {who:'you', ru:'Ответь точно, не преувеличивая.', best:2,
+            options:['Everything is numb, I think.','Maybe yes maybe no I not sure sorry.','No numbness, just stiffness in the morning.']},
+          {who:'them', text:'I’ll prescribe something mild and see you in a week.', ru:'Выпишу мягкое средство и жду вас через неделю.'},
+          {who:'you', ru:'Спроси про больничный.', best:1,
+            options:['Paper for work give me now.','Could I also get a sick note for work?','I need document yes for boss man.']}
+        ]}
+    ],
+    5:[
+      { type:'words', title:'Оттенки и тон', scene:'cafe', words:[
+        {t:'To be fair…',        r:'Справедливости ради…'},
+        {t:'I take your point, but…', r:'Понимаю вашу мысль, но…'},
+        {t:'It’s a bit of a stretch', r:'Это натяжка'},
+        {t:'Off the top of my head', r:'Навскидку'},
+        {t:'Let’s park that',    r:'Отложим это'},
+        {t:'A grey area',        r:'Спорная зона'},
+        {t:'Reading between the lines', r:'Читая между строк'},
+        {t:'That aged well',     r:'ирон.: и как оно теперь выглядит'}
+      ]},
+      { type:'build', title:'Смягчай и уточняй', scene:'office', tasks:[
+        {ru:'Я понимаю вашу мысль, но данные говорят об обратном.', parts:['I','take','your','point,','but','the','data','says','otherwise.'], answer:'I take your point, but the data says otherwise.'},
+        {ru:'Навскидку я бы сказал, что около трети.', parts:['Off','the','top','of','my','head,','I’d','say','about','a','third.'], answer:'Off the top of my head, I’d say about a third.'},
+        {ru:'Давайте отложим это и вернёмся в пятницу.', parts:['Let’s','park','that','and','come','back','to','it','on','Friday.'], answer:'Let’s park that and come back to it on Friday.'}
+      ]},
+      { type:'dialog', title:'Несогласие без ссоры', scene:'office',
+        intro:'Совещание затянулось. Коллега настаивает на своём — тебе есть что возразить.',
+        turns:[
+          {who:'them', text:'Honestly, I think we should just ship it and fix it later.', ru:'Честно, давайте выкатим, а починим потом.'},
+          {who:'you', ru:'Возрази мягко, но по существу.', best:1,
+            options:['No. Bad idea. We do my way.','I see the appeal, but last time “later” cost us a month.','Whatever you think is best, I guess.']},
+          {who:'them', text:'That was a different situation though.', ru:'Тогда была другая ситуация.'},
+          {who:'you', ru:'Признай часть правоты и удержи позицию.', best:0,
+            options:['Fair — it was. Still, the same dependency is in play here.','You are wrong again like before always.','Okay okay you win, ship it.']},
+          {who:'them', text:'So what do you suggest?', ru:'И что ты предлагаешь?'},
+          {who:'you', ru:'Предложи конкретный компромисс.', best:2,
+            options:['Something better than this.','I suggest we think more about it deeply somehow.','Ship the core on Friday, hold the billing part for one sprint.']}
+        ]}
+    ]
+  }
+};
+
+/* Для языков, где контента ещё нет, берём английский каркас,
+   чтобы приложение не ломалось. Заполняется отдельно, не UI-задача. */
+function getCourse(langCode, stage){
+  const c = (COURSE[langCode] && COURSE[langCode][stage]) || COURSE.en[stage] || [];
+  return c;
+}
+function levelKind(type){
+  return {words:'Слова', build:'Предложения', dialog:'Диалог'}[type] || 'Практика';
+}

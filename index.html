@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>ContextFlow</title>
+<link rel="stylesheet" href="css/fonts.css?v=1788956273">
+<link rel="stylesheet" href="css/theme.css?v=1788956273">
+<link rel="stylesheet" href="css/map.css?v=1788956273">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="grain"></div>
+
+  <div class="stack" id="stack">
+
+    <!-- ============ 1. ПРИВЕТСТВИЕ (как первый запуск iPhone) ============ -->
+    <div class="screen on" id="sc-welcome">
+      <div class="ios-aurora">
+        <span class="au a1"></span><span class="au a2"></span>
+        <span class="au a3"></span><span class="au a4"></span>
+      </div>
+      <div class="ios-hello-wrap">
+        <div class="ios-hello" id="ios-hello">hello</div>
+      </div>
+      <div class="ios-bottom">
+        <button class="btn ios-start" onclick="Onb.start()">Начать</button>
+      </div>
+    </div>
+
+    <!-- ============ 3. ХАБ ============ -->
+    <div class="screen" id="sc-hub">
+      <div class="hub-top">
+        <div class="avatar" id="avatar" onclick="go('sc-profile')">—</div>
+        <div style="text-align:right">
+          <div class="kicker" id="hub-greet">Доброе утро</div>
+          <div class="small" style="color:var(--text-3)" id="hub-date">—</div>
+        </div>
+      </div>
+
+      <div class="hub-mid">
+        <div>
+          <span class="kicker moss">Курс</span>
+          <h1 class="big" style="margin-top:6px" id="hub-h1">Твой язык</h1>
+          <p class="small" style="margin-top:8px" id="hub-caption">Выбери язык — и сразу в путь.</p>
+        </div>
+
+        <div id="hub-tile-slot"></div>
+
+        <button class="btn ghost" onclick="Lang.open()">
+          <span id="hub-lang-btn">Выбрать язык</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============ 4. ВЫБОР ЯЗЫКА ============ -->
+    <div class="screen" id="sc-lang">
+      <div class="pad" style="padding-top:16px">
+        <div class="row between">
+          <button class="icon-btn" onclick="back()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <span class="kicker">Языки</span>
+          <div style="width:38px"></div>
+        </div>
+        <h2 class="mid" style="margin-top:18px">Что будем учить</h2>
+        <p class="small" style="margin-top:6px;margin-bottom:16px">Нажми — и обучение начнётся сразу. Сменить можно в любой момент.</p>
+      </div>
+      <div class="scroll pad pad-b"><div class="lang-list" id="lang-list"></div></div>
+    </div>
+
+    <!-- ============ 5. КАРТА ГОРЫ ============ -->
+    <div class="screen" id="sc-map">
+      <div class="map-header">
+        <button class="icon-btn" onclick="Trail.exit()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div style="text-align:center;flex:1">
+          <div class="kicker">Маршрут</div>
+          <div style="font-size:13.5px;font-weight:650;display:flex;align-items:center;gap:6px;justify-content:center;margin-top:2px" id="map-lang">—</div>
+        </div>
+        <button class="pill" onclick="Lang.open()">Сменить</button>
+      </div>
+
+      <div class="map-viewport">
+        <img id="map-blur" class="map-blur" src="assets/map/mountain-map.png" alt="">
+        <div class="map-frame" id="map-frame">
+          <img id="map-photo" class="map-photo" src="assets/map/mountain-map.png" alt="Карта маршрута">
+          <div class="hotspots" id="hotspots">
+            <button class="hotspot" id="hot-5" type="button" aria-label="Stage 5" onclick="Trail.zoom(5)"></button>
+            <button class="hotspot" id="hot-4" type="button" aria-label="Stage 4" onclick="Trail.zoom(4)"></button>
+            <button class="hotspot" id="hot-3" type="button" aria-label="Stage 3" onclick="Trail.zoom(3)"></button>
+            <button class="hotspot" id="hot-2" type="button" aria-label="Stage 2" onclick="Trail.zoom(2)"></button>
+            <button class="hotspot" id="hot-1" type="button" aria-label="Stage 1" onclick="Trail.zoom(1)"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stage-card" id="stage-card">
+        <div class="row between">
+          <span class="kicker moss" id="sc-tag">Обзор маршрута</span>
+          <span class="kicker" id="sc-status">Карта</span>
+        </div>
+        <div>
+          <h3 class="sm" id="sc-title">Выбери этап на горе</h3>
+          <p class="small" style="margin-top:4px" id="sc-desc">Нажми на табличку Stage 1–5.</p>
+        </div>
+        <div class="row gap12" id="sc-prog-row" style="display:none">
+          <div class="bar" style="flex:1"><i id="sc-prog" style="width:0"></i></div>
+          <span class="small" id="sc-prog-txt">0 / 0</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn ghost hidden" id="sc-back" style="flex:0 0 44%" onclick="Trail.overview()">К карте</button>
+          <button class="btn moss" id="sc-go" onclick="Trail.enterStage()">Выбери этап</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 6. УРОВНИ ЭТАПА ============ -->
+    <div class="screen" id="sc-levels">
+      <div class="pad" style="padding-top:16px">
+        <div class="row between">
+          <button class="icon-btn" onclick="go('sc-map')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <span class="kicker" id="lv-cefr">A1</span>
+          <div style="width:38px"></div>
+        </div>
+        <h2 class="mid" style="margin-top:16px" id="lv-title">Базовый лагерь</h2>
+        <p class="small" style="margin-top:6px" id="lv-sub">—</p>
+        <div class="row gap12" style="margin-top:14px;margin-bottom:16px">
+          <div class="bar" style="flex:1"><i id="lv-prog" style="width:0"></i></div>
+          <span class="small" id="lv-prog-txt">0 / 0</span>
+        </div>
+      </div>
+      <div class="scroll pad pad-b"><div class="col gap8" id="lv-list" style="gap:10px"></div></div>
+    </div>
+
+    <!-- ============ 7. УРОК ============ -->
+    <div class="screen" id="sc-lesson">
+      <div class="scene" id="scene"><img id="scene-img" alt=""><div class="veil"></div></div>
+      <div class="lesson-wrap">
+        <div class="lesson-top">
+          <button class="icon-btn" onclick="Lesson.quit()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+          <div class="bar" style="flex:1"><i id="l-prog" style="width:0"></i></div>
+          <div class="hearts" id="hearts"></div>
+        </div>
+        <div class="pad" style="padding-bottom:6px">
+          <span class="kicker amber" id="l-scene">Сцена</span>
+          <div class="small" id="l-kind" style="margin-top:2px">—</div>
+        </div>
+        <div class="scroll" id="l-body"></div>
+        <div class="pad" style="padding-bottom:var(--safe-b);padding-top:8px">
+          <div class="small" id="l-feedback" style="min-height:18px;margin-bottom:8px"></div>
+          <button class="btn moss" id="l-action">Проверить</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 8. ИТОГ ============ -->
+    <div class="screen" id="sc-done">
+      <div class="hero-bg" id="done-bg"></div>
+      <div class="hero-veil"></div>
+      <div class="hero-content" style="justify-content:center;text-align:center">
+        <div class="summit-glow">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#d9a441" stroke-width="1.5" stroke-linejoin="round"><path d="M3 20l6.5-13 4 7 2.5-4 5 10z"/></svg>
+        </div>
+        <span class="kicker amber" style="margin-top:14px" id="done-kicker">Уровень пройден</span>
+        <h1 class="big" style="margin-top:8px" id="done-title">Готово</h1>
+        <p class="body" style="margin-top:10px;max-width:290px;align-self:center" id="done-text">—</p>
+        <div class="card" style="margin-top:24px;text-align:left">
+          <div class="row between"><span class="small">Точность</span><b id="done-acc">—</b></div>
+          <div class="row between" style="margin-top:8px"><span class="small">Этап</span><b id="done-stage">—</b></div>
+        </div>
+        <div style="margin-top:auto;padding-top:24px">
+          <button class="btn amber" id="done-next">Следующий уровень</button>
+          <button class="btn quiet" onclick="go('sc-map');Trail.overview()">Вернуться на гору</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 9. ПРОФИЛЬ ============ -->
+    <div class="screen" id="sc-profile">
+      <div class="pad" style="padding-top:16px">
+        <div class="row between">
+          <button class="icon-btn" onclick="back()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <span class="kicker">Профиль</span>
+          <div style="width:38px"></div>
+        </div>
+      </div>
+      <div class="scroll pad pad-b" style="padding-top:14px">
+        <div class="row gap12" style="margin-bottom:20px">
+          <div class="avatar" style="width:58px;height:58px;font-size:20px" id="avatar-big">—</div>
+          <div>
+            <h3 class="sm" id="pf-name">Путник</h3>
+            <p class="small" id="pf-lang">—</p>
+          </div>
+        </div>
+
+        <div class="stat-grid" style="margin-bottom:12px">
+          <div class="stat"><span class="kicker">Пройдено</span><b id="pf-levels">0</b><span class="small">уровней</span></div>
+          <div class="stat"><span class="kicker">Слов встречено</span><b id="pf-words">0</b><span class="small">карточек</span></div>
+          <div class="stat"><span class="kicker">Точность</span><b id="pf-acc">—</b><span class="small">в среднем</span></div>
+          <div class="stat"><span class="kicker">Высота</span><b id="pf-alt">0 м</b><span class="small">по маршруту</span></div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="set-row">
+            <div><h3 class="sm">Звук сцен</h3><p class="small">Ветер, птицы, зал, дождь</p></div>
+            <div class="switch on" id="sw-amb" onclick="Settings.toggleAmb()"><i></i></div>
+          </div>
+          <div class="set-row">
+            <div><h3 class="sm">Звуки нажатий</h3><p class="small">Шаги по тропе, отклик кнопок</p></div>
+            <div class="switch on" id="sw-fx" onclick="Settings.toggleFx()"><i></i></div>
+          </div>
+          <div class="set-row">
+            <div><h3 class="sm">Озвучка фраз</h3><p class="small">Читать вслух на изучаемом языке</p></div>
+            <div class="switch on" id="sw-tts" onclick="Settings.toggleTts()"><i></i></div>
+          </div>
+          <div class="set-row">
+            <div><h3 class="sm">Открыть все уровни</h3><p class="small">Режим проверки: ходить по курсу без замков</p></div>
+            <div class="switch" id="sw-all" onclick="Settings.toggleAll()"><i></i></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:12px">
+          <div class="set-row" onclick="Lang.open()" style="cursor:pointer">
+            <div><h3 class="sm">Язык курса</h3><p class="small">Сменить в любой момент</p></div>
+            <b class="row gap8" id="pf-lang-2">—</b>
+          </div>
+        </div>
+
+        <button class="btn ghost" style="color:var(--clay)" onclick="Settings.reset()">Сбросить прогресс</button>
+        <p class="small" style="text-align:center;margin-top:16px">ContextFlow · <span id="pf-ver">v24</span></p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ НИЖНЯЯ НАВИГАЦИЯ ============ -->
+  <div class="tabbar hidden" id="tabbar">
+    <button class="tab on" data-go="sc-hub">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/></svg>
+      <span>Главная</span>
+    </button>
+    <button class="tab" data-go="sc-map">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3 20l6.5-13 4 7 2.5-4 5 10z"/></svg>
+      <span>Маршрут</span>
+    </button>
+    <button class="tab" data-go="sc-profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.2-3.7 4-5.5 7.5-5.5s6.3 1.8 7.5 5.5"/></svg>
+      <span>Профиль</span>
+    </button>
+  </div>
+
+  <div class="sheet-wrap" id="sheet-wrap"><div class="sheet-bg" onclick="Sheet.close()"></div><div class="sheet" id="sheet"></div></div>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="js/sound.js?v=1788956273"></script>
+<script src="js/lessons.js?v=1788956273"></script>
+<script src="js/vosk/vosk.js?v=1788956273"></script>
+<script src="js/stt.js?v=1788956273"></script>
+<script src="js/app.js?v=1788956273"></script>
+</body>
+</html>
