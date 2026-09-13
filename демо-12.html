@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Партия 8 ветвей · ур. 189, 268, 269</title>
+<title>Партия 8 ветвей · ур. 40, 7, 15</title>
 <style>
 :root{--bg:#101416;--card:#181e21;--line:#2a3237;--text:#e8edef;--text2:#9aa5ab;--text3:#6b757b;
 --moss:#6f9c78;--clay:#b26856;--amber:#c8933f}
@@ -36,7 +36,7 @@ button:disabled{opacity:.5;cursor:default}
 .note-end{color:var(--moss);font-size:14px;margin-top:8px;font-weight:600}
 </style></head><body><div class="wrap">
 <h1>Партия 8: разговор идёт за тобой</h1>
-<p class="sub">Три сцены с ветвями (ур. 189, 268, 269). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
+<p class="sub">Три сцены с ветвями (ур. 40, 7, 15). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
 
 <div class="pick" id="pick"></div>
 
@@ -195,7 +195,7 @@ const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 
 
 /* ============ ПАРТИЯ 6 · ур. 67, 73, 77 ============ */
 
-const S1 = { title:'В аптеке · ур. 189', start:'need',
+const S1 = { title:'В аптеке · ур. 40', start:'need',
         intro:'Ты подходишь к окошку аптеки. За прилавком фармацевт.',
         opener:{them:'Hello, how can I help?', ru:'Здравствуйте, чем помочь?'},
         nodes:{
@@ -246,7 +246,7 @@ const S1 = { title:'В аптеке · ур. 189', start:'need',
           return {huh:1}; },
         tr:{ ok:{them:'Get well soon!',ruThem:'Выздоравливайте!',next:null} } }
         }};
-const S2 = { title:'Регистрация после приезда · ур. 268', start:'appoint',
+const S2 = { title:'Регистрация после приезда · ур. 7', start:'appoint',
         intro:'Регистрационный офис. Очередь, люди с папками документов. Твоя папка — с собой.',
         opener:{them:'Good morning. Do you have an appointment?', ru:'Доброе утро. Вы записаны на приём?'},
         nodes:{
@@ -312,7 +312,7 @@ const S2 = { title:'Регистрация после приезда · ур. 26
           return {huh:1}; },
         tr:{ ok:{them:'Goodbye! Welcome to the country.',ruThem:'До свидания! Добро пожаловать в страну.',next:null} } }
         }};
-const S3 = { title:'СИМ-карта и контракт · ур. 269', start:'need',
+const S3 = { title:'СИМ-карта и контракт · ур. 15', start:'need',
         intro:'Салон связи. Нужна связь как можно скорее: без неё не работает ничего.',
         opener:{them:'Hi there! Can I help you?', ru:'Привет! Могу чем-то помочь?'},
         nodes:{

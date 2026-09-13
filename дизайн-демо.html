@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>ContextFlow · направления дизайна</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;min-height:100vh;
+  background:#0c0f12;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  display:flex;flex-direction:column;align-items:center;
+  padding:12px 12px 30px;
+  color:#e8e6e0;
+}
+.demo-top{width:100%;max-width:400px;margin-bottom:10px}
+.demo-title{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#8a949a;font-weight:700;text-align:center;margin-bottom:10px}
+.switch{display:flex;gap:6px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:5px}
+.switch button{
+  flex:1;border:none;background:none;color:#9aa4ab;font:600 12.5px inherit;
+  padding:9px 4px;border-radius:10px;cursor:pointer;transition:.2s;
+}
+.switch button.on{background:rgba(255,255,255,.14);color:#fff}
+.hint{text-align:center;font-size:11.5px;color:#7b848b;margin-top:10px;line-height:1.5}
+
+/* ============ корпус ============ */
+.phone{
+  width:100%;max-width:400px;position:relative;overflow:hidden;
+  height:min(780px,calc(100vh - 132px));min-height:600px;
+  border-radius:34px;
+  display:flex;flex-direction:column;
+}
+@media(min-width:460px){.phone{border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 80px rgba(0,0,0,.6)}}
+.screen{position:absolute;inset:0;display:none;flex-direction:column}
+.screen.on{display:flex}
+.icon-btn{
+  width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.row{display:flex;align-items:center}
+.between{justify-content:space-between}
+.bar{height:6px;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px}
+.kicker{font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}
+h1{font-size:30px;line-height:1.05;letter-spacing:-.02em}
+.small{font-size:12px;line-height:1.45}
+.btn{
+  border:none;cursor:pointer;font-family:inherit;display:flex;align-items:center;
+  justify-content:center;gap:8px;width:100%;border-radius:18px;
+  font-size:16px;font-weight:700;min-height:52px;transition:transform .15s,filter .15s;
+}
+.btn:active{transform:scale(.97)}
+.btn.primary{}
+textarea.free{
+  width:100%;border-radius:16px;padding:12px 14px;resize:none;outline:none;
+  font:15px/1.4 inherit;min-height:48px;font-family:inherit;
+}
+
+/* пузыри */
+.chat{display:flex;flex-direction:column;gap:9px;padding:4px 14px}
+.bub{max-width:86%;padding:10px 13px;border-radius:18px;font-size:13.5px;line-height:1.4;position:relative;animation:bubin .25s ease both}
+@keyframes bubin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.bub .tr{display:block;font-size:10.5px;opacity:.72;margin-top:3px}
+.bub-line{display:flex;align-items:flex-end;gap:6px;align-self:flex-start;max-width:92%}
+.bub-line .bub{max-width:100%}
+.say{
+  width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;font-size:12px;
+}
+.you{align-self:flex-end}
+.verdict{margin:2px 14px 0;padding:10px 13px;border-radius:14px;font-size:12.5px;line-height:1.45}
+.verdict b{display:block;margin-bottom:3px}
+.why-text{font-size:11.5px;margin:6px 2px 0;line-height:1.45;opacity:.85}
+
+/* =================================================================
+   ТЕМА A — «Игровой поход»  (Duolingo-тёплый, карточки, без фото)
+   ================================================================= */
+body[data-theme="a"] .phone{background:#f7f2e7;color:#243129}
+body[data-theme="a"] .kicker{color:#c08520}
+body[data-theme="a"] .kicker.g{color:#3f8f4b}
+body[data-theme="a"] .small{color:#7d857c}
+body[data-theme="a"] .icon-btn{background:#fff;box-shadow:0 4px 14px rgba(31,52,38,.12);color:#4c5a50}
+body[data-theme="a"] h1{font-weight:800}
+body[data-theme="a"] .screen-hub-pad{padding:18px 16px 12px}
+body[data-theme="a"] .hub-top{display:flex;align-items:center;gap:10px;padding:14px 16px 2px}
+body[data-theme="a"] .avatar{
+  width:42px;height:42px;border-radius:50%;background:#ffe3a3;color:#8a5a00;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;
+  border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.12);
+}
+body[data-theme="a"] .hero{background:#fff;border-radius:26px;padding:16px;box-shadow:0 10px 30px rgba(75,90,60,.12);margin:12px 16px}
+body[data-theme="a"] .tile-art{border-radius:20px;overflow:hidden;margin-bottom:12px}
+body[data-theme="a"] .miss{
+  margin:10px 16px 0;background:#fff;border-radius:20px;padding:13px 15px;
+  display:flex;align-items:center;gap:11px;box-shadow:0 6px 20px rgba(75,90,60,.08);cursor:pointer;
+}
+body[data-theme="a"] .miss .n{width:38px;height:38px;border-radius:12px;background:#f6c6bd;color:#a43a28;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+body[data-theme="a"] .bar{background:#e9e4d6}
+body[data-theme="a"] .bar i{background:#f2b43e}
+body[data-theme="a"] .btn.primary{background:#4aa74f;color:#fff;box-shadow:0 6px 0 #357e3a,0 12px 24px rgba(74,167,79,.35)}
+body[data-theme="a"] .btn.primary:active{transform:translateY(3px);box-shadow:0 3px 0 #357e3a}
+body[data-theme="a"] .tabbar{
+  display:flex;background:#fff;border-top:2px solid #f0ead9;padding:8px 8px 12px;margin-top:auto;
+}
+body[data-theme="a"] .tab{flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font:600 10px inherit;color:#a6a396;padding:6px 0}
+body[data-theme="a"] .tab.on{color:#3f8f4b}
+/* уровни */
+body[data-theme="a"] .screen-levels-pad{padding:16px}
+body[data-theme="a"] .lesson{
+  background:#fff;border-radius:20px;padding:13px 15px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 6px 18px rgba(75,90,60,.07);margin-bottom:10px;cursor:pointer;border:2px solid transparent;
+}
+body[data-theme="a"] .lesson.open{border-color:#b7dcb2}
+body[data-theme="a"] .lesson.done{opacity:.85}
+body[data-theme="a"] .lesson .ic{
+  width:44px;height:44px;border-radius:14px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:19px;
+}
+body[data-theme="a"] .lesson.words .ic{background:#fdeed2}
+body[data-theme="a"] .lesson.build .ic{background:#dcedf4}
+body[data-theme="a"] .lesson.dialog .ic{background:#dff0e1}
+body[data-theme="a"] .lesson .chev{color:#b8b2a0;font-size:17px}
+body[data-theme="a"] .chips{display:flex;gap:5px;margin-top:4px;flex-wrap:wrap}
+body[data-theme="a"] .chip{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;background:#f4efe2;color:#8a8371}
+body[data-theme="a"] .lvl-title{font-size:14.5px;font-weight:750}
+/* диалог */
+body[data-theme="a"] #screen-dialog{background:#f7f2e7}
+body[data-theme="a"] .dialog-head{background:linear-gradient(180deg,#ffe9bd,#f7f2e7);padding:10px 14px 8px;display:flex;align-items:center;gap:10px}
+body[data-theme="a"] .dscene{font-size:11px;font-weight:800;color:#a56a00;background:#fff;border-radius:99px;padding:5px 12px;box-shadow:0 3px 8px rgba(0,0,0,.06);margin-left:auto}
+body[data-theme="a"] .chat{flex:1;min-height:0;overflow-y:auto;margin-top:8px}
+body[data-theme="a"] .bub{background:#fff;border:1px solid #efe7d4}
+body[data-theme="a"] .bub .tr{color:#a8a08c}
+body[data-theme="a"] .bub.you{background:#dff0e1;border-color:#c4e2c6}
+body[data-theme="a"] .say{background:#fff;border:1px solid #e2d9c0;color:#7d857c}
+body[data-theme="a"] .anszone{background:#fff;border-radius:24px 24px 0 0;padding:12px 14px 18px;box-shadow:0 -8px 24px rgba(75,90,60,.1)}
+body[data-theme="a"] textarea.free{border:2px solid #e7dfc9;background:#fbf8f0;color:#2b362e}
+body[data-theme="a"] textarea.free:focus{border-color:#8cc48f}
+body[data-theme="a"] .btn.dunno{
+  margin-top:8px;background:#fbf8f0;border:2px solid #eadfae;color:#a5821f;min-height:46px;font-weight:800;
+}
+body[data-theme="a"] .btn.dunno .q{width:24px;height:24px;border-radius:50%;background:#f4d671;color:#8a6500;display:flex;align-items:center;justify-content:center;font-size:12px}
+body[data-theme="a"] .hearts{display:flex;gap:3px;font-size:14px}
+body[data-theme="a"] .hearts .lost{filter:grayscale(1);opacity:.35}
+body[data-theme="a"] .verdict{background:#fff;border:2px dashed #e3dcc8}
+body[data-theme="a"] .verdict b.ok{color:#3f8f4b}
+body[data-theme="a"] .verdict b.bad{color:#c2503c}
+
+/* =================================================================
+   ТЕМА B — «Ночная экспедиция» (тёмное стекло, аура, один акцент)
+   ================================================================= */
+body[data-theme="b"] .phone{background:#0e1216;color:#eef0ea}
+body[data-theme="b"] .kicker{color:#8d9aa3;letter-spacing:.22em}
+body[data-theme="b"] .kicker.g{color:#93c6a0}
+body[data-theme="b"] .small{color:#8d979b}
+body[data-theme="b"] .icon-btn{background:rgba(255,255,255,.07);color:#cfd7da;backdrop-filter:blur(8px)}
+body[data-theme="b"] h1{font-weight:650;letter-spacing:-.035em}
+body[data-theme="b"] .screen-hub-pad{padding:22px 18px 14px}
+body[data-theme="b"] .hub-top{display:flex;align-items:center;gap:10px;padding:14px 16px 2px}
+body[data-theme="b"] .avatar{
+  width:40px;height:40px;border-radius:50%;
+  background:linear-gradient(135deg,rgba(227,166,87,.35),rgba(227,166,87,.08));
+  color:#e8b877;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:14px;border:1px solid rgba(227,166,87,.4);
+}
+body[data-theme="b"] .greet{font-size:13px;color:#9aa5aa}
+body[data-theme="b"] .date{font-size:11px;color:#5f6a6f}
+body[data-theme="b"] .hero{
+  border-radius:24px;padding:14px;margin:16px 16px 0;
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.09);
+}
+body[data-theme="b"] .tile-art{border-radius:18px;overflow:hidden;margin-bottom:14px}
+body[data-theme="b"] .miss{
+  margin:12px 16px 0;border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:11px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);cursor:pointer;
+}
+body[data-theme="b"] .miss .n{width:36px;height:36px;border-radius:11px;background:rgba(207,123,102,.18);color:#e09a86;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+body[data-theme="b"] .bar{background:rgba(255,255,255,.08)}
+body[data-theme="b"] .bar i{background:linear-gradient(90deg,#e3a657,#8fbf9a)}
+body[data-theme="b"] .btn.primary{
+  background:linear-gradient(135deg,#e9b36b,#cf8c3e);color:#241503;
+  box-shadow:0 10px 28px rgba(227,166,87,.28);
+}
+body[data-theme="b"] .btn.ghost2{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#d8deda;backdrop-filter:blur(10px)}
+body[data-theme="b"] .tabbar{display:flex;padding:10px 12px 14px;background:rgba(10,13,16,.6);backdrop-filter:blur(14px);border-top:1px solid rgba(255,255,255,.06);margin-top:auto}
+body[data-theme="b"] .tab{flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font:500 10px inherit;color:#5f6a6f;padding:4px 0;letter-spacing:.02em}
+body[data-theme="b"] .tab svg{width:21px;height:21px}
+body[data-theme="b"] .tab.on{color:#e3a657}
+/* уровни */
+body[data-theme="b"] .screen-levels-pad{padding:16px}
+body[data-theme="b"] .lesson{
+  border-radius:18px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:9px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);cursor:pointer;
+}
+body[data-theme="b"] .lesson.open{border-color:rgba(227,166,87,.45);background:linear-gradient(90deg,rgba(227,166,87,.1),rgba(255,255,255,.03))}
+body[data-theme="b"] .lesson.locked{opacity:.45}
+body[data-theme="b"] .lesson .ic{
+  width:40px;height:40px;border-radius:12px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:17px;
+}
+body[data-theme="b"] .lesson.words .ic{background:rgba(125,148,168,.16)}
+body[data-theme="b"] .lesson.build .ic{background:rgba(227,166,87,.14)}
+body[data-theme="b"] .lesson.dialog .ic{background:rgba(143,191,154,.15)}
+body[data-theme="b"] .lesson .chev{color:#4f5a5f}
+body[data-theme="b"] .lvl-title{font-size:14px;font-weight:600}
+body[data-theme="b"] .chips{display:flex;gap:6px;margin-top:3px}
+body[data-theme="b"] .chip{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8d979b}
+body[data-theme="b"] .chip.dot{width:3px;height:3px;border-radius:50%;background:#566166;align-self:center}
+/* диалог */
+body[data-theme="b"] #screen-dialog{background:#0e1216}
+body[data-theme="b"] .dialog-head{padding:12px 14px 8px;display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,rgba(227,166,87,.07),transparent)}
+body[data-theme="b"] .dscene{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#c99a58;margin-left:auto}
+body[data-theme="b"] .chat{flex:1;min-height:0;overflow-y:auto;margin-top:10px}
+body[data-theme="b"] .bub{
+  background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(10px);
+}
+body[data-theme="b"] .bub .tr{color:#77848a}
+body[data-theme="b"] .bub.you{background:rgba(143,191,154,.14);border-color:rgba(143,191,154,.25)}
+body[data-theme="b"] .say{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#b9c4c2}
+body[data-theme="b"] .anszone{padding:12px 14px 18px;border-top:1px solid rgba(255,255,255,.06)}
+body[data-theme="b"] textarea.free{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#eef0ea}
+body[data-theme="b"] textarea.free:focus{border-color:rgba(227,166,87,.6)}
+body[data-theme="b"] .btn.dunno{
+  margin-top:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.14);
+  color:#aeb8b4;min-height:46px;font-weight:600;backdrop-filter:blur(8px);
+}
+body[data-theme="b"] .btn.dunno .q{width:24px;height:24px;border-radius:50%;background:rgba(227,166,87,.2);color:#e3a657;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+body[data-theme="b"] .hearts{display:flex;gap:4px;font-size:13px}
+body[data-theme="b"] .hearts .lost{filter:grayscale(1);opacity:.3}
+body[data-theme="b"] .verdict{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09)}
+body[data-theme="b"] .verdict b.ok{color:#93c6a0}
+body[data-theme="b"] .verdict b.bad{color:#e09a86}
+body[data-theme="b"] .why-text{color:#8d979b}
+
+/* =================================================================
+   ТЕМА C — «Бумажный дневник» (светло, блокнот, от руки)
+   ================================================================= */
+body[data-theme="c"] .phone{background:#f1ecdf;color:#2b3130}
+body[data-theme="c"] .kicker{color:#c05f3c;letter-spacing:.2em}
+body[data-theme="c"] .kicker.g{color:#3e6b50}
+body[data-theme="c"] .small{color:#8d8172}
+body[data-theme="c"] h1{font-family:Georgia,"Times New Roman",serif;font-weight:700;letter-spacing:-.01em}
+body[data-theme="c"] .icon-btn{background:#fff;color:#5a5046;border:1px solid #e3dac8;box-shadow:0 2px 6px rgba(90,80,70,.08)}
+body[data-theme="c"] .screen-hub-pad{padding:20px 16px 12px}
+body[data-theme="c"] .hub-top{display:flex;align-items:center;gap:10px;padding:14px 16px 2px}
+body[data-theme="c"] .avatar{
+  width:40px;height:40px;border-radius:12px;background:#fff;border:1px solid #e0d6c2;
+  color:#c05f3c;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:14px;box-shadow:0 3px 8px rgba(90,80,70,.08);
+}
+body[data-theme="c"] .greet{font-family:Georgia,serif;font-style:italic;font-size:15px;color:#6d645a}
+body[data-theme="c"] .date{font-size:11px;color:#9a8f7d}
+body[data-theme="c"] .hero{
+  background:#fff;border:1px solid #e6ddca;border-radius:6px;
+  padding:14px;margin:16px 16px 0;box-shadow:4px 4px 0 #e0d5be;transform:rotate(-.4deg);
+}
+body[data-theme="c"] .tile-art{border-radius:4px;overflow:hidden;margin-bottom:13px;border:1px solid #eee5d4}
+body[data-theme="c"] .miss{
+  margin:14px 16px 0;background:#fff;border:1px solid #e6ddca;border-radius:6px;
+  padding:12px 14px;display:flex;align-items:center;gap:11px;box-shadow:3px 3px 0 #e0d5be;cursor:pointer;transform:rotate(.3deg);
+}
+body[data-theme="c"] .miss .n{width:36px;height:36px;border-radius:50%;background:#f3d9cf;color:#a23d24;display:flex;align-items:center;justify-content:center;font-weight:800}
+body[data-theme="c"] .bar{background:#e7decc}
+body[data-theme="c"] .bar i{background:#b9893b}
+body[data-theme="c"] .btn.primary{background:#3e6b50;color:#f7f2e5;box-shadow:0 4px 0 #2c4d39}
+body[data-theme="c"] .btn.primary:active{transform:translateY(2px);box-shadow:0 2px 0 #2c4d39}
+body[data-theme="c"] .tabbar{display:flex;border-top:1px solid #e2d8c4;background:rgba(255,255,255,.6);padding:8px 6px 12px;margin-top:auto;backdrop-filter:blur(6px)}
+body[data-theme="c"] .tab{flex:1;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font:600 10px inherit;color:#a2957f;padding:5px 0}
+body[data-theme="c"] .tab.on{color:#c05f3c}
+/* уровни */
+body[data-theme="c"] .screen-levels-pad{padding:16px}
+body[data-theme="c"] .lesson{
+  background:#fff;border:1px solid #e8dfcd;border-radius:6px;padding:12px 13px;
+  display:flex;align-items:center;gap:11px;margin-bottom:9px;cursor:pointer;box-shadow:2px 2px 0 #e2d7c1;
+}
+body[data-theme="c"] .lesson.locked{opacity:.5;background:#f6f1e4}
+body[data-theme="c"] .lesson .ic{width:38px;height:38px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:15px}
+body[data-theme="c"] .lesson.words .ic{background:#f7e9d2;color:#9a6b1d}
+body[data-theme="c"] .lesson.build .ic{background:#e4eef2;color:#3b6d83}
+body[data-theme="c"] .lesson.dialog .ic{background:#e2eee3;color:#35664a}
+body[data-theme="c"] .lesson .chev{color:#b9ac94}
+body[data-theme="c"] .lvl-title{font-size:14px;font-weight:700;font-family:Georgia,serif}
+body[data-theme="c"] .chips{display:flex;gap:6px;margin-top:3px}
+body[data-theme="c"] .chip{font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#a2957f}
+body[data-theme="c"] .chip.dot{width:3px;height:3px;border-radius:50%;background:#c8bba4;align-self:center}
+/* диалог */
+body[data-theme="c"] #screen-dialog{background:#f1ecdf}
+body[data-theme="c"] .dialog-head{padding:12px 14px 6px;display:flex;align-items:center;gap:10px;border-bottom:1px dashed #dcd2bd}
+body[data-theme="c"] .dscene{font-family:Georgia,serif;font-style:italic;font-size:12px;color:#9a6b1d;margin-left:auto}
+body[data-theme="c"] .chat{flex:1;min-height:0;overflow-y:auto;margin-top:10px}
+body[data-theme="c"] .bub{background:#fff;border:1px solid #e4dac6;border-radius:4px 14px 14px 14px}
+body[data-theme="c"] .bub.you{background:#e4eedd;border-color:#cfe0c8;border-radius:14px 4px 14px 14px}
+body[data-theme="c"] .bub .tr{color:#a89a82;font-style:italic}
+body[data-theme="c"] .say{background:#fff;border:1px solid #ddd2bb;color:#8d7f6a}
+body[data-theme="c"] .anszone{background:rgba(255,255,255,.55);border-top:1px dashed #dcd2bd;padding:12px 14px 18px}
+body[data-theme="c"] textarea.free{background:#fff;border:1px solid #ddd2bb;color:#2b3130;border-radius:10px}
+body[data-theme="c"] textarea.free:focus{border-color:#b9893b}
+body[data-theme="c"] .btn.dunno{
+  margin-top:8px;background:#fff;border:1.5px solid #e2d3b4;color:#8d6d2f;
+  min-height:44px;font-weight:700;font-size:14px;
+}
+body[data-theme="c"] .btn.dunno .q{width:22px;height:22px;border-radius:50%;border:1.5px solid #c9a75e;display:flex;align-items:center;justify-content:center;font-size:11px}
+body[data-theme="c"] .hearts{display:flex;gap:4px;font-size:13px}
+body[data-theme="c"] .hearts .lost{opacity:.25}
+body[data-theme="c"] .verdict{background:#fff8ec;border:1px solid #e8dcc2}
+body[data-theme="c"] .verdict b.ok{color:#3e6b50}
+body[data-theme="c"] .verdict b.bad{color:#c05f3c}
+
+/* ============ общие экраны ============ */
+.screen-hub-pad,.screen-levels-pad{flex:1;min-height:0;display:flex;flex-direction:column}
+#screen-dialog{background:#000}
+.greet-line{display:flex;flex-direction:column;gap:1px}
+.tile-art svg{display:block;width:100%;height:auto}
+.lvl-head{margin-bottom:12px}
+body[data-theme="a"] .lvl-head{background:#fff;border-radius:22px;padding:14px 16px;box-shadow:0 6px 18px rgba(75,90,60,.08);margin:16px 16px 12px}
+body[data-theme="b"] .lvl-head{margin:16px 16px 12px}
+body[data-theme="c"] .lvl-head{margin:16px 16px 12px}
+.lvl-head .bar{margin-top:10px}
+.lv-list{margin:0 16px;padding-bottom:16px}
+body[data-theme="a"] .lv-list{margin:0 16px}
+</style>
+</head>
+<body data-theme="a">
+
+<div class="demo-top">
+  <div class="demo-title">Дёрни за нитку · куда двинуть дизайн?</div>
+  <div class="switch">
+    <button data-theme="a" class="on">🎈 Игровой поход</button>
+    <button data-theme="b">🌌 Ночная экспедиция</button>
+    <button data-theme="c">📓 Бумажный дневник</button>
+  </div>
+  <div class="hint">Фото-«иишность» убрана — сцены нарисованы. Листай экраны внутри телефона: Главная → Уроки → Диалог.</div>
+</div>
+
+<div class="phone">
+
+  <!-- ================= ГЛАВНАЯ ================= -->
+  <div class="screen on" id="screen-hub">
+    <div class="hub-top">
+      <div class="avatar" id="avatar">М</div>
+      <div class="greet-line">
+        <div class="greet" id="greet">Добрый вечер, Маша</div>
+        <div class="date" id="date">вторник, 9 сентября</div>
+      </div>
+      <div style="margin-left:auto" class="icon-btn" title="профиль">⚙</div>
+    </div>
+    <div class="scroll screen-hub-pad">
+      <div style="margin-top:14px" class="kicker g" data-t="k1">Курс</div>
+      <h1 style="margin-top:4px" data-t="h1">В путь</h1>
+      <p class="small" style="margin-top:6px;max-width:30ch" data-t="cap">Этап 1 — Базовый лагерь. Первые слова, первые люди.</p>
+
+      <div class="hero" onclick="go('levels')">
+        <div class="tile-art" id="art"></div>
+        <div class="between row">
+          <div>
+            <div class="kicker" data-t="tk" style="margin-bottom:5px">Начать · A1</div>
+            <div style="font-size:19px;font-weight:800" data-t="tn">Базовый лагерь</div>
+            <div class="small" style="margin-top:3px" data-t="td">Знакомство у аэропорта: имя, вежливость, простые просьбы</div>
+          </div>
+        </div>
+        <div class="row" style="gap:10px;margin-top:12px">
+          <div class="bar" style="flex:1"><i style="width:30%"></i></div>
+          <span class="small">0/8</span>
+        </div>
+        <button class="btn primary" style="margin-top:12px" onclick="go('levels')" data-t="btn">Смотреть уроки →</button>
+      </div>
+
+      <div class="miss" onclick="go('levels')">
+        <div class="n">3</div>
+        <div style="flex:1">
+          <div style="font-size:13.5px;font-weight:700" data-t="mn">Разбор ошибок</div>
+          <div class="small" data-t="ms">три фразы ждут второго захода</div>
+        </div>
+        <span style="opacity:.5">→</span>
+      </div>
+    </div>
+    <div class="tabbar">
+      <button class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z"/></svg>Главная</button>
+      <button class="tab" onclick="go('levels')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 20l6.5-13 4 7 2.5-4 5 10z"/></svg>Маршрут</button>
+      <button class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c1.2-3.6 3.9-5.4 7-5.4s5.8 1.8 7 5.4"/></svg>Профиль</button>
+    </div>
+  </div>
+
+  <!-- ================= УРОКИ ================= -->
+  <div class="screen" id="screen-levels">
+    <div class="screen-levels-pad" style="padding-top:16px">
+      <div class="between row" style="padding:0 16px">
+        <button class="icon-btn" onclick="go('hub')">←</button>
+        <span class="kicker g" data-t="l1">Этап 1 · A1 — Базовый лагерь</span>
+        <div class="icon-btn" style="opacity:0">←</div>
+      </div>
+      <div class="scroll" style="padding-top:6px">
+        <div class="lvl-head">
+          <div style="font-size:18px;font-weight:800" data-t="l2">Уроки этапа</div>
+          <div class="small" style="margin-top:3px" data-t="l3">Сначала слова — потом живой разговор</div>
+          <div class="row" style="gap:10px;margin-top:10px">
+            <div class="bar" style="flex:1"><i style="width:34%"></i></div>
+            <span class="small">3/8</span>
+          </div>
+        </div>
+        <div class="lv-list" id="lessons"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ДИАЛОГ ================= -->
+  <div class="screen" id="screen-dialog">
+    <div class="dialog-head">
+      <button class="icon-btn" onclick="go('levels')">←</button>
+      <div style="flex:1">
+        <div style="font-size:12.5px;font-weight:800" data-t="dt">Первое приветствие</div>
+        <div class="kicker g" style="margin-top:2px;font-size:9px" data-t="ds">Урок 3 из 8</div>
+      </div>
+      <div class="hearts"><span>❤</span><span>❤</span><span>❤</span><span>❤</span><span class="lost">❤</span></div>
+      <div class="dscene" data-t="sc">✈ аэропорт</div>
+    </div>
+    <div class="chat" id="chat"></div>
+    <div class="anszone">
+      <div class="kicker g" style="margin-bottom:6px" data-t="my">Твой ход</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:8px;opacity:.92" data-t="task">Скажи, откуда ты приехала (например: I'm from Russia)</div>
+      <textarea class="free" id="inp" placeholder="Напиши ответ своими словами…"></textarea>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <button class="btn primary" style="flex:1" id="send">Ответить</button>
+        <button class="icon-btn" style="width:52px;height:52px;flex:0 0 auto" title="надиктовать">🎤</button>
+      </div>
+      <button class="btn dunno" id="dunno"><span class="q">?</span><span data-t="dn">Не знаю, что сказать</span></button>
+      <div id="hintline"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ---------- темы ---------- */
+document.querySelectorAll('.switch button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.switch button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.body.dataset.theme=b.dataset.theme;
+  };
+});
+
+/* ---------- экраны ---------- */
+const SCREENS=['hub','levels','dialog'];
+function go(name){
+  SCREENS.forEach(s=>document.getElementById('screen-'+(s==='levels'?'levels':s==='hub'?'hub':'dialog')).classList.toggle('on',s===name));
+  const t=document.querySelector('.demo-top');
+  t.style.display = name==='dialog' ? 'none' : '';
+  if(name==='dialog'&&!window.__chatInit){window.__chatInit=1;initChat();}
+  if(name==='hub'){renderArt();}
+}
+
+/* ---------- арт-сцены (SVG, без фото) ---------- */
+function artA(){return `
+<svg viewBox="0 0 400 170" xmlns="http://www.w3.org/2000/svg">
+  <defs><linearGradient id="ska" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6f5"/><stop offset="1" stop-color="#e9f6ee"/></linearGradient></defs>
+  <rect width="400" height="170" fill="url(#ska)"/>
+  <circle cx="330" cy="38" r="20" fill="#f6c453"/>
+  <path d="M0 130 Q 60 105 120 125 T 400 118 L400 170 L0 170Z" fill="#7fbd7f"/>
+  <path d="M-10 150 Q 90 118 190 140 T 410 136 L410 170 L-10 170Z" fill="#5aa06a"/>
+  <path d="M60 120 L128 38 L196 120Z" fill="#3d7d55"/>
+  <path d="M60 120 L128 38 L196 120Z" fill="none" stroke="#2f6444" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M128 38 l14 20 l14 -20 l-10 6 l-4 -8 l-8 8 l-6 -6Z" fill="#fff"/>
+  <path d="M232 150 L300 74 L368 150Z" fill="#4f9363"/>
+  <path d="M300 74 l10 16 l10 -16 l-7 5 l-3 -6 l-5 6 l-5 -5Z" fill="#fff"/>
+  <path d="M36 152 l22 -30 l22 30Z" fill="#e9a344"/>
+  <path d="M48 122 l6 -12 l6 12Z" fill="#c97f28"/>
+  <path d="M0 170 L400 170" stroke="#cbe3c9" stroke-width="2"/>
+  <path d="M20 160 q40 -14 80 0" stroke="#fff" stroke-width="3" fill="none" opacity=".8" stroke-linecap="round"/>
+  <path d="M20 160 l6 -2 -2 6 l-6 2Z" fill="#fff"/>
+</svg>`;}
+function artB(){return `
+<svg viewBox="0 0 400 170" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="skyb" cx=".5" cy=".2" r="1.1"><stop offset="0" stop-color="#182434"/><stop offset="1" stop-color="#0b1016"/></radialGradient>
+    <linearGradient id="aur" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="rgba(143,191,154,0)"/><stop offset=".5" stop-color="rgba(143,191,154,.5)"/><stop offset="1" stop-color="rgba(143,191,154,0)"/></linearGradient>
+  </defs>
+  <rect width="400" height="170" fill="url(#skyb)"/>
+  <ellipse cx="330" cy="44" rx="120" ry="34" fill="url(#aur)" transform="rotate(-6 330 44)"/>
+  <circle cx="320" cy="46" r="17" fill="#e8dcc0"/>
+  <circle cx="313" cy="42" r="3" fill="#cfc3a4" opacity=".8"/>
+  <circle cx="326" cy="52" r="2" fill="#cfc3a4" opacity=".7"/>
+  <g fill="#fff"><circle cx="60" cy="40" r="1.2"/><circle cx="90" cy="62" r="1"/><circle cx="150" cy="30" r="1.4"/><circle cx="200" cy="70" r="1"/><circle cx="250" cy="44" r="1.1"/><circle cx="380" cy="70" r="1.2"/><circle cx="120" cy="90" r=".9"/></g>
+  <path d="M-20 150 L70 84 L150 150Z" fill="#202c38"/>
+  <path d="M60 150 L170 60 L280 150Z" fill="#26343f"/>
+  <path d="M160 150 L290 72 L400 150Z" fill="#1b2530"/>
+  <path d="M170 60 l9 10 l-3 -11 l-4 8 l-7 -6Z" fill="#fff" opacity=".9"/>
+  <path d="M-20 170 L420 170 L420 175 L-20 175Z" fill="#0a0f14"/>
+  <path d="M0 160 q50 -8 100 0 t100 0 t100 0 t100 0" stroke="#e3a657" stroke-width="1.6" fill="none" opacity=".75" stroke-dasharray="1 7" stroke-linecap="round"/>
+  <circle cx="305" cy="140" r="2.4" fill="#e3a657"/>
+</svg>`;}
+function artC(){return `
+<svg viewBox="0 0 400 170" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="170" fill="#fdfbf5"/>
+  <g opacity=".5"><path d="M0 8 L400 8" stroke="#e4dcc9" stroke-width="1"/><path d="M0 24 L400 24" stroke="#e4dcc9" stroke-width="1"/><path d="M0 40 L400 40" stroke="#e4dcc9" stroke-width="1"/><path d="M0 56 L400 56" stroke="#e4dcc9" stroke-width="1"/><path d="M0 72 L400 72" stroke="#e4dcc9" stroke-width="1"/><path d="M0 88 L400 88" stroke="#e4dcc9" stroke-width="1"/><path d="M0 104 L400 104" stroke="#e4dcc9" stroke-width="1"/><path d="M0 120 L400 120" stroke="#e4dcc9" stroke-width="1"/><path d="M0 136 L400 136" stroke="#e4dcc9" stroke-width="1"/><path d="M0 152 L400 152" stroke="#e4dcc9" stroke-width="1"/></g>
+  <path d="M330 26 c 3 -2 6 -1 8 1 l2 4 -8 8 -8 -6Z" fill="#c05f3c" opacity=".85"/>
+  <circle cx="338" cy="30" r="14" fill="#e8b04b" opacity=".75"/>
+  <path d="M40 138 L112 62 L184 138" fill="#cfe3d4" stroke="#4a5a4e" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M112 62 q3 3 5 6 l1 8 -8 8 -8 -6 -1 -6Z" fill="#fdfbf5" stroke="#4a5a4e" stroke-width="1.8"/>
+  <path d="M150 138 L232 48 L316 138" fill="#e9dcc2" stroke="#4a5a4e" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M232 48 l6 4 2 5 -6 6 -6 -4Z" fill="#fdfbf5" stroke="#4a5a4e" stroke-width="1.8"/>
+  <path d="M0 150 L400 150" stroke="#4a5a4e" stroke-width="2"/>
+  <path d="M60 132 l30 -10 q8 -3 14 1" stroke="#6b5b45" stroke-width="1.6" fill="none"/>
+  <path d="M290 134 l26 -8" stroke="#6b5b45" stroke-width="1.6" fill="none"/>
+  <text x="18" y="28" font-family="Georgia,serif" font-style="italic" font-size="13" fill="#a2957f">этап I — базовый лагерь</text>
+</svg>`;}
+const ARTS=[artA,artB,artC];
+function renderArt(){
+  const art=document.getElementById('art'); if(!art)return;
+  const idx={a:0,b:1,c:2}[document.body.dataset.theme];
+  art.innerHTML=ARTS[idx]();
+}
+document.body.addEventListener('click',e=>{
+  if(e.target.closest('.switch button')) setTimeout(renderArt,0);
+});
+
+/* ---------- уроки ---------- */
+const LESSONS=[
+ {t:'Знакомство',kind:'words',scene:'✈ аэропорт',st:'done',icon:'А'},
+ {t:'Собери: знакомство',kind:'build',scene:'✈ аэропорт',st:'done',icon:'＋'},
+ {t:'Первое приветствие',kind:'dialog',scene:'✈ аэропорт',st:'open',icon:'“”'},
+ {t:'Я и мои данные',kind:'words',scene:'🏢 офис',st:'locked',icon:'А'},
+ {t:'Заполнить анкету',kind:'dialog',scene:'🏢 офис',st:'locked',icon:'“”'},
+];
+const KIND_NAME={words:'слова',build:'собери фразу',dialog:'диалог'};
+function renderLessons(){
+  const lv=document.getElementById('lessons'); lv.innerHTML='';
+  LESSONS.forEach((x,i)=>{
+    const row=document.createElement('div');
+    row.className='lesson '+x.kind+(x.st==='locked'?' locked':'');
+
+    const mid=document.createElement('div'); mid.style.flex='1'; mid.style.minWidth='0';
+    const title=document.createElement('div'); title.className='lvl-title'; title.textContent=(i+1)+'. '+x.t;
+    const chips=document.createElement('div'); chips.className='chips';
+    const c1=document.createElement('span'); c1.className='chip'; c1.textContent=KIND_NAME[x.kind];
+    const dot=document.createElement('span'); dot.className='chip dot';
+    const c2=document.createElement('span'); c2.className='chip'; c2.textContent=x.scene;
+    chips.append(c1,dot,c2); mid.append(title,chips);
+
+    const ic=document.createElement('div'); ic.className='ic'; ic.textContent=x.st==='done'?'✓':x.icon;
+    const chev=document.createElement('span'); chev.className='chev';
+    chev.textContent=x.st==='done'?'✓':x.st==='open'?'›':'🔒';
+    if(x.st==='done'){chev.style.opacity='.35';}
+    row.append(ic,mid,chev);
+    row.onclick=()=>{ if(x.st!=='locked') go('dialog'); };
+    lv.appendChild(row);
+  });
+}
+
+/* ---------- чат ---------- */
+function initChat(){
+  const chat=document.getElementById('chat');
+  const say=document.createElement('button'); say.className='say'; say.textContent='🔊'; say.title='Слушать реплику';
+  const line=document.createElement('div'); line.className='bub-line';
+  const b1=document.createElement('div'); b1.className='bub';
+  b1.innerHTML='Hello! Welcome to Oakbridge.<span class="tr">Здравствуйте! Добро пожаловать в Оукбридж.</span>';
+  line.append(b1,say); chat.appendChild(line);
+  const y=document.createElement('div'); y.className='bub you';
+  y.innerHTML='Hi! I\'m Masha.<span class="tr">Привет! Я Маша.</span>';
+  chat.appendChild(y);
+  const line2=document.createElement('div'); line2.className='bub-line';
+  const say2=document.createElement('button'); say2.className='say'; say2.textContent='🔊';
+  const b2=document.createElement('div'); b2.className='bub';
+  b2.innerHTML='Nice to meet you, Masha. Where are you from?<span class="tr">Очень приятно, Маша. Откуда ты?</span>';
+  line2.append(b2,say2); chat.appendChild(line2);
+  chat.scrollTop=chat.scrollHeight;
+
+  const ok=(txt,why)=>{
+    const v=document.createElement('div'); v.className='verdict';
+    v.innerHTML='<b class="ok">Тебя поняли ✓</b>Носитель бы сказал: «'+txt+'»'+(why?'<div class="why-text">'+why+'</div>':'');
+    document.getElementById('hintline').innerHTML='';
+    document.getElementById('hintline').appendChild(v);
+    document.getElementById('inp').disabled=true;
+    document.getElementById('send').style.opacity=.5;
+    document.getElementById('dunno').style.display='none';
+    const nxt=document.createElement('button'); nxt.className='btn primary'; nxt.style.marginTop='8px';
+    nxt.setAttribute('data-t','nxt'); nxt.textContent='Дальше →';
+    document.getElementById('hintline').appendChild(nxt);
+  };
+  document.getElementById('dunno').onclick=()=>{
+    document.getElementById('inp').value='I\'m from Russia.';
+    const b=document.createElement('div'); b.className='bub you';
+    b.innerHTML='I\'m from Russia.<span class="tr">Я из России.</span>';
+    document.getElementById('chat').appendChild(b);
+    document.getElementById('chat').scrollTop=document.getElementById('chat').scrollHeight;
+    ok('I\'m from Russia.','from + страна — откуда ты. Просто назови страну после from.');
+  };
+  document.getElementById('send').onclick=()=>{
+    const v=document.getElementById('inp').value.trim(); if(!v) return;
+    const b=document.createElement('div'); b.className='bub you'; b.textContent=v;
+    document.getElementById('chat').appendChild(b);
+    document.getElementById('inp').value='';
+    document.getElementById('chat').scrollTop=document.getElementById('chat').scrollHeight;
+    ok('I\'m from Russia.','');
+  };
+}
+renderArt(); renderLessons();
+</script>
+</body>
+</html>
