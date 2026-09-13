@@ -948,6 +948,65 @@ for (const [id, sc] of Object.entries(SCENES)) {
   expect('Семья: «брат и сестра» -> ветка sib', s3, 'n0', 'I have a brother and a sister.', 'sib');
 }
 
+// ---------- рецензия R5 (2026-09-13): регресс-набор ----------
+{
+  const s1 = SCENES.s1, s2 = SCENES.s2, s3 = SCENES.s3;
+  const st = (sc, at, said, mem) => step(sc, at, said, mem || {});
+  const expect = (name, sc, at, said, wantBr, extra) => {
+    const mem = {};
+    const r = st(sc, at, said, mem);
+    let ok = wantBr === 'huh' ? !!r.err : (!r.err && r.br === wantBr);
+    if (ok && extra) ok = extra(mem, r);
+    T(name, ok, r.err || ('br=' + r.br + ' name=' + mem.name));
+  };
+  // EXP:didn't и отрицания
+  expect('R5-011 «I didn\'t miss them.» -> no', s3, 'miss', 'I didn\'t miss them.', 'no');
+  // S1
+  expect('R5-002 «I am not going home.» -> не уход', s1, 'meet', 'I am not going home.', 'ask');
+  expect('R5-002 «I am going home» -> home', s1, 'meet', 'I am going home', 'home');
+  expect('R5-002 «I am not leaving.» -> не уход', s1, 'meet', 'I am not leaving.', 'ask');
+  expect('R5-003 «Room 999?» -> переспрос', s1, 'floor', 'Room 999?', 'huh');
+  expect('R5-003 «The room is not 204.» -> переспрос', s1, 'floor', 'The room is not 204.', 'huh');
+  expect('R5-003 «room 204 second floor» -> ок', s1, 'floor', 'room 204 second floor', 'ok');
+  expect('R5-004 «Anna is not my name.» (name0) -> переспрос, имя пусто', s1, 'name0', 'Anna is not my name.', 'huh', m => !m.name);
+  expect('R5 «I am not late» именем не считается', s1, 'n0', 'My name is Anna, I am not late I hope, I have a meeting.', 'meet_full', m => m.name === 'Anna');
+  // S2
+  expect('R5-005 «Anna is not my name.» (n0) -> переспрос', s2, 'n0', 'Anna is not my name.', 'huh', m => !m.name);
+  expect('R5-006 «I am not Petrova.» (n1) -> переспрос', s2, 'n1', 'I am not Petrova.', 'huh');
+  expect('R5-006 «Petrova» (n1) -> ок', s2, 'n1', 'Petrova', 'ok');
+  expect('R5-017 «I work in London.» (n1) -> переспрос', s2, 'n1', 'I work in London.', 'huh');
+  expect('R5-017 «I live at Park Street.» (n1) -> переспрос', s2, 'n1', 'I live at Park Street.', 'huh');
+  expect('R5-017 «My last name is Petrova» (n1) -> ок', s2, 'n1', 'My last name is Petrova', 'ok');
+  expect('R5-007 «12 Park Street» -> full', s2, 'addr', '12 Park Street', 'full');
+  expect('R5-007 «I do not live at 12 Park Street.» -> переспрос', s2, 'addr', 'I do not live at 12 Park Street.', 'huh');
+  expect('R5-008 «I am 25» -> ок', s2, 'age', 'I am 25', 'ok');
+  expect('R5-008 «I am not 25.» -> переспрос', s2, 'age', 'I am not 25.', 'again');
+  expect('R5-009 «My number is 123456» -> digits', s2, 'phone', 'My number is 123456', 'digits');
+  expect('R5-009 «I have no phone number.» -> без номера к почте не идём', s2, 'phone', 'I have no phone number.', 'nonum');
+  expect('R5-010 «I do not want to write it there.» -> переспрос', s2, 'mail', 'I do not want to write it there.', 'huh');
+  expect('R5-018 «I have two cats.» -> не номер дома', s2, 'numH', 'I have two cats.', 'huh');
+  expect('R5-019 «When will it be ready?» -> ок', s2, 'ready', 'When will it be ready?', 'ok');
+  expect('R5-019 «When can you help me?» -> переспрос', s2, 'ready', 'When can you help me?', 'huh');
+  expect('R5-019 «I am not ready.» -> переспрос', s2, 'ready', 'I am not ready.', 'huh');
+  // S3
+  expect('R5-020 «I have two brothers.» -> sib', s3, 'n0', 'I have two brothers.', 'sib');
+  expect('R5-021 «I am alone.» (n0) -> ветка одиночества', s3, 'n0', 'I am alone.', 'alone');
+  expect('R5-021 «I don\'t have any siblings.» -> ветка отсутствия', s3, 'n0', 'I don\'t have any siblings.', 'nosib');
+  expect('R5-024 «брат есть, сестры нет» -> не один', s3, 'who', 'I have a brother but no sister.', 'ok');
+  expect('R5-012 «My parents are here.» -> here', s3, 'parents', 'My parents are here.', 'here');
+  expect('R5-012 «here, not in Russia» -> here', s3, 'parents', 'My parents are here, not in Russia.', 'here');
+  expect('R5-012 «live in Russia» -> russia', s3, 'parents', 'My parents live in Russia.', 'russia');
+  expect('R5-012 «Russia, not Moscow» -> russia', s3, 'parents', 'My parents live in Russia, not Moscow.', 'russia');
+  expect('R5-012 «don\'t live in Russia» -> other', s3, 'parents', 'My parents don\'t live in Russia.', 'other');
+  expect('R5-012 «are not in Russia» -> other', s3, 'parents', 'My parents are not in Russia.', 'other');
+  expect('R5-013 «I don\'t see them often.» -> не ок', s3, 'often', 'I don\'t see them often.', 'rare');
+  expect('R5-025 «I rarely see them.» -> понято', s3, 'often', 'I rarely see them.', 'rare');
+  expect('R5-025 «Not always.» -> понято', s3, 'often', 'Not always.', 'rare');
+  expect('R5-023 «No, they came last summer.» -> yes', s3, 'visit', 'No, they came last summer.', 'yes');
+  expect('R5-014 «I do not plan to visit them.» -> не ок', s3, 'plan', 'I do not plan to visit them.', 'notyet');
+  expect('R5-014 «I will go soon.» -> ок', s3, 'plan', 'I will go soon.', 'ok');
+}
+
 // ---------- итог ----------
 console.log(`\nИТОГ: ${pass} pass, ${fail} fail\n`);
 if (fails.length) { console.log('ПРОВАЛЫ:'); fails.forEach(f => console.log(' ✗ ' + f)); process.exitCode = 1; }

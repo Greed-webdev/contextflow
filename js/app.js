@@ -27,7 +27,7 @@ const mkDunno = () => { const b = el('button','btn dunno wide'); b.innerHTML = d
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v29';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v30';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -840,7 +840,10 @@ window.addEventListener('pagehide', ()=>{ Voice.stop(); STT.stop(); Lesson.saySt
 const norm = t => (t||'').toLowerCase().replace(/[\u2019']/g,"'").replace(/[^a-z' ]/g,' ').split(/\s+/).filter(Boolean);
 const EXP={"i'm":['i','am'],"it's":['it','is'],"don't":['do','not'],"can't":['can','not'],"i've":['i','have'],
 "what's":['what','is'],"i'll":['i','will'],"there's":['there','is'],"we're":['we','are'],"you're":['you','are'],
-"that's":['that','is'],"doesn't":['does','not'],"isn't":['is','not'],"won't":['will','not']};
+"that's":['that','is'],"doesn't":['does','not'],"isn't":['is','not'],"won't":['will','not'],
+"didn't":['did','not'],"wasn't":['was','not'],"weren't":['were','not'],"haven't":['have','not'],
+"hasn't":['has','not'],"hadn't":['had','not'],"couldn't":['could','not'],"shouldn't":['should','not'],
+"wouldn't":['would','not'],"mustn't":['must','not'],"aren't":['are','not'],"they're":['they','are'],"i'd":['i','would']};
 const expand = a => { const o=[]; a.forEach(x=>{ if(EXP[x]) o.push(...EXP[x]); else o.push(x.replace(/'/g,'')); }); return o; };
 const NUM={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,
 thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,
@@ -853,7 +856,8 @@ const has = (w,...xs)=> xs.some(x=>w.includes(x));
    «I do miss them» — не отрицание (между do и miss нет not). */
 const NEG_LEAD=['no','not','never','cannot'];
 const NEG_SKIP=['to','a','an','the','on','in','at','from','want','wants','have','has','had','do','does','did',
-'will','would','can','could','shall','should','am','is','are','be','been','really','just','very','so','think'];
+'will','would','can','could','shall','should','am','is','are','be','been','really','just','very','so','think',
+'any','some','plan','plans','planning','going','intention','like','hope','live','lives','living','stay','stays','staying'];
 const negatedWord=(w,i)=>{ let k=i-1,steps=0;
   while(k>=0&&steps<3){ const x=w[k];
     if(NEG_LEAD.includes(x)) return true;
@@ -861,6 +865,23 @@ const negatedWord=(w,i)=>{ let k=i-1,steps=0;
     k--; steps++; }
   return false; };
 const isNegatedIntent=(w,targets)=>{ for(let i=0;i<w.length;i++){ if(targets.includes(w[i])&&negatedWord(w,i)) return true; } return false; };
+/* Отказ от имени: «X is not my name», «that is not my real name», «I am not X».
+   Звать ДО любого извлечения имени — если имя отрицается, возвращать переспрос. */
+const deniesName = w => {
+  for (let i=0;i<w.length-1;i++){
+    if(w[i]==='is'&&w[i+1]==='not'){
+      const tail=w.slice(i+2,i+6);
+      if(tail.includes('name')) return true; /* X is not my (real) name */
+    }
+  }
+  for (let i=0;i<w.length-3;i++){
+    if(w[i]==='i'&&w[i+1]==='am'&&w[i+2]==='not'){
+      const x=w[i+3];
+      /* только уверенные имена: иначе «i am not late / not here» ложно отрицало имя */
+      if(x&&NAME_OK.has(x)&&!NOT_NAME.has(x)) return true; /* I am not Petrova */
+    }
+  }
+  return false; };
 /* Имя из явного представления: «my name is X [Y]», «i am X», «i'm X», «call me X».
    Возвращает до двух слов (имя + фамилия). После «my name is» берёт даже
    стоп-слова (Hope, Will, May — живые имена); после «i am» — только белый список. */
@@ -871,6 +892,8 @@ const introNames = w => {
     if(a==='name'&&b==='is'){ strong=true; j=i+2; }
     else if(a==='call'&&b==='me'){ strong=true; j=i+2; }
     else if(a==='this'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='surname'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='family'&&b==='name'&&w[i+2]==='is'){ strong=true; j=i+3; }
     else if((a==='i'&&b==='am')||a==='im'){ j=(a==='im')?i+1:i+2; }
     if(j<0) continue;
     const ok=x=>x&&/^[a-z']+$/.test(x)&&x.length>=2&&x.length<=15
