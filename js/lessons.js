@@ -4742,28 +4742,60 @@ const COURSE = {
         {ru:'У меня температура.', parts:['I','have','a','temperature'], answer:'I have a temperature', full:'I have a temperature.',
          whyT:'Артикль a / an', why:'a перед согласным звуком, an перед гласным: a doctor, an hour. Ставится, когда предмет называют впервые или он один из многих.'}
       ]},
-      { type:'dialog', title:'В аптеке', scene:'clinic', cefr:'A1: Can describe simple physical states.',
-        intro:'Ты подходишь к окошку аптеки.',
-        turns:[
-          {who:'them', text:'Hello, how can I help?', ru:'Здравствуйте, чем помочь?'},
-          {who:'you', ru:'Скажи, что нужно лекарство от головы.', best:1,
-            options:['Head pain medicine give.','Hello. I need medicine for a headache.','Medicine head bad have me.']},
-          {who:'them', text:'Do you have a temperature?', ru:'Температура есть?'},
-          {who:'you', ru:'Скажи: нет, только голова.', best:0,
-            options:['No, just my head.','Head only no hot me.','Temperature no. Head yes bad.']},
-          {who:'them', text:'Take this twice a day.', ru:'Принимайте дважды в день.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Two time day ok.','Twice yes take me.','Thank you very much.']},
-          {who:'them', text:'Do you have any questions?', ru:'Есть вопросы?'},
-          {who:'you', ru:'Спроси, когда прийти снова.', best:2,
-            options:['Come when again?','Next time when is?','When should I come again?']},
-          {who:'them', text:'In one week, if it does not get better.', ru:'Через неделю, если не станет лучше.'},
-          {who:'you', ru:'Подтверди.', best:0,
-            options:['One week. I understand.','Week one ok yes.','Understand me time week.']},
-          {who:'them', text:'Take care of yourself.', ru:'Берегите себя.'},
-          {who:'you', ru:'Поблагодари врача.', best:1,
-            options:['Ok me care.','Thank you, doctor. Goodbye.','Care yes bye go.']}
-        ]},
+      { type:'dialog', variant:'flow', title:'В аптеке', scene:'clinic', cefr:'A1: Can describe simple physical states.',
+        intro:'Ты подходишь к окошку аптеки. За прилавком фармацевт.',
+        flow:{ title:'В аптеке · ур. 189', start:'need',
+        intro:'Ты подходишь к окошку аптеки. За прилавком фармацевт.',
+        opener:{them:'Hello, how can I help?', ru:'Здравствуйте, чем помочь?'},
+        nodes:{
+      need:{ task:'Скажи, какое тебе нужно лекарство (например: болит голова / живот / кашель).', best:'I need something for a headache.',
+        judge(w){
+          if(has(w,'head','headache','headaches','migraine')) return {br:'head'};
+          if(has(w,'stomach','tummy','belly','sick')) return {br:'stomach'};
+          if(has(w,'cough','cold','throat','flu','feverish')) return {br:'cough'};
+          if(has(w,'allergy','allergic','rash','skin')) return {br:'allergy'};
+          if(has(w,'pain','pains','hurt','hurts','ache')) return {br:'head'};
+          return {huh:1}; },
+        tr:{
+          head:{them:'I see. Do you have a temperature?',ruThem:'Понимаю. Температура есть?',next:'temp'},
+          stomach:{them:'Take these after food, twice a day.',ruThem:'Принимайте эти после еды, дважды в день.',next:'thanks'},
+          cough:{them:'I see. Do you have a temperature?',ruThem:'Понимаю. Температура есть?',next:'temp'},
+          allergy:{them:'These tablets help. One a day.',ruThem:'Эти таблетки помогают. Одна в день.',next:'thanks'} } },
+      temp:{ task:'Ответь, есть ли у тебя температура.', best:'No, just my head.',
+        judge(w){
+          if(has(w,'no','not','nope','just','only')&&!has(w,'yes')) return {br:'no'};
+          if(has(w,'yes','yeah','temperature','fever','hot','high','a little','bit')) return {br:'yes'};
+          return {huh:1}; },
+        tr:{
+          yes:{them:'Then take this one too, for the fever. Take both twice a day.',ruThem:'Тогда примите ещё это, от жара. И то и другое — дважды в день.',next:'thanks'},
+          no:{them:'Good. Then these will be enough. Twice a day.',ruThem:'Хорошо. Тогда этих достаточно. Дважды в день.',next:'thanks'} } },
+      thanks:{ task:'Поблагодари и подтверди, что понял.', best:'Thank you very much.',
+        judge(w){
+          if(has(w,'thank','thanks','ok','okay','good','great','sure','fine','twice','understand','got it','alright')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Do you have any questions?',ruThem:'Есть вопросы?',next:'more'} } },
+      more:{ task:'Спроси, когда прийти снова. Если вопросов нет — так и скажи.', best:'When should I come again?',
+        judge(w){
+          if(has(w,'nothing','all','enough')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* «вопросов нет» */
+          if(has(w,'again','come','back','when','return','next','week','days')) return {br:'again'};
+          if(has(w,'what','where','how','why','can','do','does','is','are')) return {br:'again'};
+          return {huh:1}; },
+        tr:{
+          again:{them:'In one week, if it does not get better.',ruThem:'Через неделю, если не станет лучше.',next:'ok1'},
+          none:{them:'Take care of yourself.',ruThem:'Берегите себя.',next:'bye'} } },
+      ok1:{ task:'Подтверди, что понял.', best:'One week. I understand.',
+        judge(w){
+          if(has(w,'week','understand','ok','okay','yes','yeah','good','sure','fine','got','clear')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Take care of yourself.',ruThem:'Берегите себя.',next:'bye'} } },
+      bye:{ task:'Попрощайся вежливо.', best:'Thank you. Goodbye.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice','care')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Get well soon!',ruThem:'Выздоравливайте!',next:null} } }
+        }}
+      },
       { type:'words', title:'Разговор ни о чём · 1', scene:'cafe', cefr:'A1: Can make simple small talk.', newCount:14, words:[
         {t:'How', r:'Как'},
         {t:'Fine', r:'Нормально'},
@@ -6206,7 +6238,138 @@ const COURSE = {
          whyT:'Прошедшее время: правильный глагол', why:'К глаголу добавляется -ed: work → worked, move → moved, happen → happened. В отрицании и вопросе -ed уходит: «I did not work».'},
         {ru:'Проверь, пожалуйста, результаты.', parts:['Please','check','the','results'], answer:'Please check the results', full:'Please check the results.',
          whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
-      ]}
+      ]},
+      { type:'dialog', variant:'flow', title:'Регистрация после приезда', scene:'office', cefr:'A1: Can handle a simple administrative task and give personal details.',
+        intro:'Регистрационный офис. Очередь, люди с папками документов. Твоя папка — с собой.',
+        flow:{ title:'Регистрация после приезда · ур. 268', start:'appoint',
+        intro:'Регистрационный офис. Очередь, люди с папками документов. Твоя папка — с собой.',
+        opener:{them:'Good morning. Do you have an appointment?', ru:'Доброе утро. Вы записаны на приём?'},
+        nodes:{
+      appoint:{ task:'Ответь, есть ли у тебя запись на приём.', best:'Yes, I have an appointment for today.',
+        judge(w){
+          const iA=w.indexOf('appointment');
+          if(iA>-1&&negatedAt(w,iA)) return {br:'no'}; /* «no appointment» */
+          if(has(w,'no','not')&&!has(w,'appointment','booked','booking')) return {br:'no'};
+          if(has(w,'appointment','booked','booking','yes','yeah','today','here','now','email','letter')) return {br:'yes'};
+          return {huh:1}; },
+        tr:{
+          yes:{them:'Good. Your passport and your papers, please.',ruThem:'Хорошо. Ваш паспорт и документы, пожалуйста.',next:'docs'},
+          no:{them:'Oh. Please take a ticket and wait - it may take some time.',ruThem:'Ой. Возьмите, пожалуйста, талон и подождите — это может занять время.',next:'ticket'} } },
+      ticket:{ task:'Согласись подождать — или скажи, что придёшь завтра.', best:'Ok, I will wait.',
+        judge(w){
+          if(has(w,'tomorrow','later','another','next','come back','back')) return {br:'tomorrow'};
+          if(has(w,'wait','ok','okay','yes','yeah','sure','fine','ticket','sit','time')) return {br:'wait'};
+          return {huh:1}; },
+        tr:{
+          wait:{them:'Take a seat, please. Next, please! Your passport and your papers.',ruThem:'Присядьте, пожалуйста. Следующий! Ваш паспорт и документы.',next:'docs'},
+          tomorrow:{them:'Of course. We open at nine in the morning.',ruThem:'Конечно. Мы открываемся в девять утра.',next:'leave'} } },
+      leave:{ task:'Попрощайся.', best:'Ok. See you tomorrow.',
+        judge(w){
+          if(has(w,'bye','goodbye','ok','okay','thanks','thank','see','tomorrow','day','sure','nine','morning','will')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } },
+      docs:{ task:'Ответь, есть ли у тебя подтверждение адреса (например: договор аренды / письмо из банка).', best:'Yes, here is my rental contract.',
+        judge(w){
+          if(has(w,'forgot','lost','left')) return {br:'no'};
+          if((has(w,'no','not'))&&!has(w,'yes','here','have','sure','course')) return {br:'no'};
+          if(has(w,'yes','yeah','here','have','contract','rent','rental','bank','letter','bill','paper','sure','course','document','address')) return {br:'yes'};
+          return {huh:1}; },
+        tr:{
+          yes:{them:'Thank you. The fee is fifty euros. Cash or card?',ruThem:'Спасибо. Сбор — пятьдесят евро. Наличными или картой?',next:'fee'},
+          no:{them:'We need a paper with your address: a rental contract or a bank letter. Please bring it.',ruThem:'Нам нужна бумага с вашим адресом: договор аренды или письмо из банка. Принесите её, пожалуйста.',next:'leave'} } },
+      fee:{ task:'Скажи, как оплатишь сбор (картой или наличными).', best:'By card, please.',
+        judge(w,mem){
+          if(has(w,'card','cards')) return {br:'card'};
+          if(has(w,'cash','money','coins','notes')) return {br:'cash'};
+          if((mem._digits||[]).length) return {br:'cash'};
+          return {huh:1}; },
+        tr:{
+          card:{them:'Thank you. All paid.',ruThem:'Спасибо. Оплачено.',next:'when'},
+          cash:{them:'Thank you. Here is your receipt.',ruThem:'Спасибо. Вот ваш чек.',next:'when'} } },
+      when:{ task:'Спроси, когда будет готова карточка (или скажи, что вопросов нет).', best:'When will my card be ready?',
+        judge(w){
+          if(has(w,'nothing','all','enough')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* «вопросов нет» */
+          if(has(w,'ready','when','card','time','long','soon','days','weeks')) return {br:'ok'};
+          if(has(w,'what','where','how','why','can','do','does','is','are')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{
+          ok:{them:'In about two weeks. We will send a letter to your address.',ruThem:'Примерно через две недели. Мы отправим письмо на ваш адрес.',next:'notify'},
+          none:{them:'Then that is all. Have a nice day!',ruThem:'Тогда это всё. Хорошего дня!',next:'bye'} } },
+      notify:{ task:'Уточни про уведомление: как узнаешь, что всё готово.', best:'Will you send me a message?',
+        judge(w){
+          if(has(w,'letter','message','call','phone','send','know','notify','contact','email','how','when','come','pick','get')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Yes, a letter to your address. Bring it with you when you come for the card.',ruThem:'Да, письмо на ваш адрес. Принесите его, когда придёте за карточкой.',next:'bye'} } },
+      bye:{ task:'Попрощайся вежливо.', best:'Thank you. Goodbye.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Goodbye! Welcome to the country.',ruThem:'До свидания! Добро пожаловать в страну.',next:null} } }
+        }}
+      },
+      { type:'dialog', variant:'flow', title:'СИМ-карта и контракт', scene:'office', cefr:'A1: Can ask for basic services and understand simple conditions.',
+        intro:'Салон связи. Нужна связь как можно скорее: без неё не работает ничего.',
+        flow:{ title:'СИМ-карта и контракт · ур. 269', start:'need',
+        intro:'Салон связи. Нужна связь как можно скорее: без неё не работает ничего.',
+        opener:{them:'Hi there! Can I help you?', ru:'Привет! Могу чем-то помочь?'},
+        nodes:{
+      need:{ task:'Скажи, что тебе нужно (например: сим-карта / домашний интернет).', best:'I need a SIM card, please.',
+        judge(w){
+          if(has(w,'internet','wifi','wi-fi','home','broadband','router')) return {br:'net'};
+          if(has(w,'sim','card','number','phone','mobile','data','tariff','plan')) return {br:'sim'};
+          return {huh:1}; },
+        tr:{
+          sim:{them:'Of course. Prepaid or a monthly plan?',ruThem:'Конечно. Предоплата или месячный план?',next:'plan'},
+          net:{them:'For home internet I need your address. Do you know your postcode?',ruThem:'Для домашнего интернета нужен ваш адрес. Знаете свой почтовый индекс?',next:'addr'} } },
+      plan:{ task:'Выбери: предоплата или контракт на месяц.', best:'Prepaid, please.',
+        judge(w){
+          if(has(w,'prepaid','pre-paid','pay','first','start','simple','no contract')) return {br:'prepaid'};
+          if(has(w,'monthly','contract','plan','unlimited','month','more','big')) return {br:'contract'};
+          return {huh:1}; },
+        tr:{
+          prepaid:{them:'Good choice. It is twenty euros for ten gigabytes.',ruThem:'Хороший выбор. Десять гигабайт за двадцать евро.',next:'pay'},
+          contract:{them:'For a contract I need your passport. Do you have it?',ruThem:'Для контракта нужен ваш паспорт. Он у вас есть?',next:'pass'} } },
+      pass:{ task:'Ответь, есть ли у тебя паспорт.', best:'Yes, here it is.',
+        judge(w){
+          if(has(w,'forgot','lost','left')) return {br:'no'};
+          if(has(w,'no','not')&&!has(w,'yes','here','have','sure','course')) return {br:'no'};
+          if(has(w,'yes','yeah','here','have','passport','sure','course')) return {br:'yes'};
+          return {huh:1}; },
+        tr:{
+          yes:{them:'Great. Sign here, please. Your plan starts today.',ruThem:'Отлично. Распишитесь здесь, пожалуйста. План начинает действовать сегодня.',next:'pay'},
+          no:{them:'No problem. Take a prepaid SIM for now - no passport needed.',ruThem:'Без проблем. Возьмите пока сим-карту с предоплатой — паспорт не нужен.',next:'pay'} } },
+      addr:{ task:'Скажи, что знаешь адрес, — или спроси, есть ли покрытие у твоего дома.', best:'Yes, I know my postcode.',
+        judge(w,mem){
+          if((mem._digits||[]).length) return {br:'ok'}; /* назвал индекс цифрами */
+          if(has(w,'yes','yeah','know','sure','here','ok','okay')) return {br:'ok'};
+          if(has(w,'no','not','check','coverage','area','where','work')) return {br:'check'};
+          return {huh:1}; },
+        tr:{
+          ok:{them:'Good, we cover your area. It is thirty euros a month, no contract.',ruThem:'Хорошо, ваш район покрыт. Тридцать евро в месяц, без контракта.',next:'pay'},
+          check:{them:'We cover almost everywhere. The first month is free to try.',ruThem:'Мы покрываем почти везде. Первый месяц — бесплатно, на пробу.',next:'pay'} } },
+      pay:{ task:'Оплати покупку.', best:'Here you are.',
+        judge(w,mem){
+          if(has(w,'here','there','take','please','ok','okay','yes','yeah','sure','fine','card','cash','pay')) return {br:'ok'};
+          if((mem._digits||[]).length) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Thank you. Here is your SIM - your new number is on the card.',ruThem:'Спасибо. Вот ваша сим-карта — новый номер написан на карточке.',next:'activate'} } },
+      activate:{ task:'Спроси, как её активировать (или скажи, что вопросов нет).', best:'How do I activate it?',
+        judge(w){
+          if(has(w,'nothing','all','enough','thanks','thank')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'};
+          if(has(w,'activate','start','work','how','use','when','ready','put','restart','help')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{
+          ok:{them:'Put it in your phone and restart it. It works in two minutes.',ruThem:'Вставьте её в телефон и перезагрузите. Через две минуты заработает.',next:'bye'},
+          none:{them:'Great. Enjoy!',ruThem:'Отлично. Пользуйтесь!',next:'bye'} } },
+      bye:{ task:'Попрощайся.', best:'Thank you. Bye.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice','great')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Bye! Come back if you need anything.',ruThem:'Пока! Заходите, если что-то понадобится.',next:null} } }
+        }}
+      }
     ],
     2:[
       { type:'words', title:'Город и дорога', scene:'street', words:[
@@ -6264,10 +6427,10 @@ const COURSE = {
           {who:'them', text:'Two pounds. Anything else?', ru:'Два фунта. Что-нибудь ещё?'},
           {who:'you', ru:'Скажи, что это всё, и попроси чек.', best:1,
             options:['No more. Paper give.','That’s all. Could I have a receipt?','All finish thank you bye.']}
-        ]}
+        ]},
     ],
     3:[
-      { type:'words', title:'Аренда и жильё', scene:'flat', words:[
+            { type:'words', title:'Аренда и жильё', scene:'flat', words:[
         {t:'Lease / Contract',   r:'Договор аренды'},
         {t:'Deposit',            r:'Залог'},
         {t:'Bills included',     r:'Коммунальные включены'},

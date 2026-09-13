@@ -31,7 +31,7 @@ const FLOW_TITLES = ['Первое приветствие', 'Заполнить 
   'Купить куртку', 'Заказать обед', 'У барной стойки',
   'Показать квартиру', 'Что-то сломалось', 'Найти банк',
   'Купить билет', 'Объяснить дорогу', 'Рассказать о работе', 'На языковых курсах',
-  'Оплата на кассе', 'Открыть счёт'];
+  'Оплата на кассе', 'Открыть счёт', 'В аптеке', 'Регистрация после приезда', 'СИМ-карта и контракт'];
 for (const t of FLOW_TITLES) {
   const lv = stage1.find(x => x.type === 'dialog' && x.variant === 'flow' && x.title === t);
   if (!lv) { console.error('нет flow-записи «' + t + '» в курсе'); process.exit(1); }
@@ -43,7 +43,8 @@ const SCENES = { s1: flowBy['Первое приветствие'], s2: flowBy['
   s10: flowBy['Купить куртку'], s11: flowBy['Заказать обед'], s12: flowBy['У барной стойки'],
   s13: flowBy['Показать квартиру'], s14: flowBy['Что-то сломалось'], s15: flowBy['Найти банк'],
   s16: flowBy['Купить билет'], s17: flowBy['Объяснить дорогу'], s18: flowBy['Рассказать о работе'],
-  s19: flowBy['На языковых курсах'], s20: flowBy['Оплата на кассе'], s21: flowBy['Открыть счёт'] };
+  s19: flowBy['На языковых курсах'], s20: flowBy['Оплата на кассе'], s21: flowBy['Открыть счёт'],
+  s22: flowBy['В аптеке'], s23: flowBy['Регистрация после приезда'], s24: flowBy['СИМ-карта и контракт'] };
 const norm = ctxApp.__H.norm, expand = ctxApp.__H.expand;
 const SPEC = JSON.parse(fs.readFileSync('/home/user/сцена-1-живая-логика.json', 'utf8'));
 
@@ -769,9 +770,60 @@ T('S21 короткий путь: без паспорта — уход чере�
 { const s = step(s21, 'ready', 'Nothing, thanks', {});
   T('S21 «вопросов нет» -> ветка none (к благодарности)', !s.err && s.br === 'none' && s.next === 'thanks', s.err || s.br); }
 
+// ---------- партия 8 (очередь по боли): аптека / регистрация / связь ----------
+const s22 = SCENES.s22, s23 = SCENES.s23, s24 = SCENES.s24;
+// s22 В аптеке: голова → температуры нет → спасибо → когда прийти → понял → прощание
+r = run(s22, ['I need something for a headache.', 'No, just my head.', 'Thank you very much.',
+  'When should I come again?', 'One week. I understand.', 'Thank you. Goodbye.']);
+T('S22 полный путь: до конца', r.ok, r.err);
+// живот — ветка без вопроса о температуре (настоящее ветвление)
+{ const s = step(s22, 'need', 'My stomach hurts', {});
+  T('S22 «живот» -> ветка stomach (мимо температуры)', !s.err && s.br === 'stomach' && s.next === 'thanks', s.err || s.br); }
+// температура есть — дополнительное лекарство
+{ const s = step(s22, 'temp', 'Yes, a little, I feel hot', {});
+  T('S22 «температура есть» -> ветка yes', !s.err && s.br === 'yes', s.err || s.br); }
+// вопросов нет — сразу к прощанию
+{ const s = step(s22, 'more', 'Nothing, that is all', {});
+  T('S22 «вопросов нет» -> ветка none (к прощанию)', !s.err && s.br === 'none' && s.next === 'bye', s.err || s.br); }
+
+// s23 Регистрация: есть запись → адрес есть → оплата картой → когда готово → уведомление → прощание
+r = run(s23, ['Yes, I have an appointment for today.', 'Yes, here is my rental contract.', 'By card, please.',
+  'When will my card be ready?', 'Will you send me a message?', 'Thank you. Goodbye.']);
+T('S23 полный путь: до конца', r.ok, r.err);
+// нет записи → талон → согласен ждать → дальше по ветке документов
+{ const s = step(s23, 'appoint', 'No, I do not have one', {});
+  T('S23 «нет записи» -> ветка no (талон)', !s.err && s.br === 'no' && s.next === 'ticket', s.err || s.br); }
+r = run(s23, ['No, I do not have an appointment.', 'Ok, I will wait.', 'Here is my bank letter.', 'Cash.',
+  'When is the card ready?', 'How will I know?', 'Bye, thank you!']);
+T('S23 путь через талон: до конца', r.ok, r.err);
+{ const s = step(s23, 'appoint', 'No appointment, sorry', {});
+  T('S23 «no appointment» -> ветка no (отрицание при слове)', !s.err && s.br === 'no', s.err || s.br); }
+// пришёл завтра вместо ожидания — уход из сцены (ветвление)
+{ const s = step(s23, 'ticket', 'I will come back tomorrow', {});
+  T('S23 «приду завтра» -> ветка tomorrow (уход)', !s.err && s.br === 'tomorrow' && s.next === 'leave', s.err || s.br); }
+// нет подтверждения адреса — честный уход (ветвление)
+{ const s = step(s23, 'docs', 'No, I forgot it at home', {});
+  T('S23 «нет подтверждения адреса» -> ветка no (уход)', !s.err && s.br === 'no' && s.next === 'leave', s.err || s.br); }
+
+// s24 Связь: симка → предоплата → оплата → активация → прощание
+r = run(s24, ['I need a SIM card, please.', 'Prepaid, please.', 'Here you are.',
+  'How do I activate it?', 'Thank you. Bye.']);
+T('S24 полный путь: до конца', r.ok, r.err);
+// домашний интернет — другая ветка старта
+{ const s = step(s24, 'need', 'I want home internet', {});
+  T('S24 «домашний интернет» -> ветка net', !s.err && s.br === 'net' && s.next === 'addr', s.err || s.br); }
+// индекс цифрами — принимается
+{ const s = step(s24, 'addr', 'It is 12345', {});
+  T('S24 индекс цифрами -> ветка ok', !s.err && s.br === 'ok', s.err || s.br); }
+// контракт без паспорта — мягкий откат на предоплату
+{ const s = step(s24, 'pass', 'No, it is at home', {});
+  T('S24 «паспорта нет» -> ветка no (откат на предоплату)', !s.err && s.br === 'no' && s.next === 'pay', s.err || s.br); }
+r = run(s24, ['Internet for my flat, please.', 'Yes, I know my postcode.', 'Card.', 'No questions.', 'Thanks, bye!']);
+T('S24 путь через интернет: до конца', r.ok, r.err);
+
 // «Не знаю»-механика для новых сцен: best каждого узла обязан проходить (кнопка «Дальше»)
 for (const [id, sc] of Object.entries(SCENES)) {
-  if (!['s13','s14','s15','s16','s17','s18','s19','s20','s21'].includes(id)) continue;
+  if (!['s13','s14','s15','s16','s17','s18','s19','s20','s21','s22','s23','s24'].includes(id)) continue;
   const mem = {}; let at = sc.start, ended = false;
   for (let k = 0; k < 300; k++) {
     const n = sc.nodes[at];
