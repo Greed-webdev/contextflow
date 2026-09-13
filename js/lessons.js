@@ -623,7 +623,8 @@ const COURSE = {
           nodes:{
           count:{ task:'Назови, сколько нужно (например: пять, пожалуйста).', best:'Five, please.',
           judge(w,mem){ const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
-          if(n===5) return {br:'five'};
+          if(n===5&&!isNegatedIntent(w,['five'])) return {br:'five'}; /* «не пять» — не подтверждать */
+          if(n===5) return {br:'many'};
           const nums = d.length>0 || w.some(x=>x in NUM);
           if(nums && n===0) return {huh:1};          // ноль — не количество
           if(has(w,'much','cost','price','expensive')) return {br:'price'};
@@ -659,6 +660,7 @@ const COURSE = {
           extra:{ task:'Уточни, что нужно (например: два хлеба, пожалуйста).', best:'Two loaves of bread, please.',
           judge(w,mem){ const n=FLOWNUM(w,(mem._digits||[]).map(Number));
           const bread=has(w,'bread','loaf','loaves');
+          if(bread&&isNegatedIntent(w,['bread','loaf','loaves','need','want'])) return {br:'done'}; /* «хлеб не нужен» */
           if(bread&&n===2) return {br:'two'};
           if(bread) return {br:'loaves'};
           if(has(w,'no','nothing','all','that')) return {br:'done'};
@@ -867,6 +869,7 @@ const COURSE = {
           tr:{ ok:{them:'You are welcome. Anything else?',ruThem:'Пожалуйста. Что-нибудь ещё?',next:'rest'} } },
           rest:{ task:'Ответь, нужно ли что-то ещё (например: нет, это всё, спасибо).', best:'No, that is all, thank you.',
           judge(w){ const extra=has(w,'more','another','also','need','want');
+          if(extra&&isNegatedIntent(w,['need','want','more'])) return {br:'all'}; /* «больше не нужно» — это всё */
           if(extra) return {br:'more'};
           if(has(w,'no','nothing')||has(w,'all','everything','that')) return {br:'all'};
           return {huh:1}; },

@@ -857,7 +857,8 @@ const has = (w,...xs)=> xs.some(x=>w.includes(x));
 const NEG_LEAD=['no','not','never','cannot'];
 const NEG_SKIP=['to','a','an','the','on','in','at','from','want','wants','have','has','had','do','does','did',
 'will','would','can','could','shall','should','am','is','are','be','been','really','just','very','so','think',
-'any','some','plan','plans','planning','going','intention','like','hope','live','lives','living','stay','stays','staying'];
+'any','some','plan','plans','planning','going','intention','like','hope','live','lives','living','stay','stays','staying',
+'need','needs','take','order','want','wants'];
 const negatedWord=(w,i)=>{ let k=i-1,steps=0;
   while(k>=0&&steps<3){ const x=w[k];
     if(NEG_LEAD.includes(x)) return true;

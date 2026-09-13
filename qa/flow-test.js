@@ -1039,6 +1039,25 @@ for (const [id, sc] of Object.entries(SCENES)) {
   expect('Свип: «нет друзей» -> ветка «нет»', s3, 'fr', 'I do not have friends here.', 'no');
 }
 
+// ---------- демо-6 (партия 2): отрицания того же класса ----------
+{
+  const s4 = SCENES.s4, s5 = SCENES.s5;
+  const st = (sc, at, said, mem) => step(sc, at, said, mem || {});
+  const expect = (name, sc, at, said, wantBr) => {
+    const mem = {};
+    const r = st(sc, at, said, mem);
+    const ok = wantBr === 'huh' ? !!r.err : (!r.err && r.br === wantBr);
+    T(name, ok, r.err || ('br=' + r.br));
+  };
+  expect('Д6 «Five, please.» -> five', s4, 'count', 'Five, please.', 'five');
+  expect('Д6 «I do not need five.» -> не five', s4, 'count', 'I do not need five.', 'many');
+  expect('Д6 «Two loaves of bread, please.» -> two', s4, 'extra', 'Two loaves of bread, please.', 'two');
+  expect('Д6 «No, I do not need bread.» -> done', s4, 'extra', 'No, I do not need bread.', 'done');
+  expect('Д6 «No, that is all, thank you.» -> all', s5, 'rest', 'No, that is all, thank you.', 'all');
+  expect('Д6 «I do not need anything more.» -> all', s5, 'rest', 'I do not need anything more.', 'all');
+  expect('Д6 «Yes, I need one more thing.» -> more', s5, 'rest', 'Yes, I need one more thing.', 'more');
+}
+
 // ---------- итог ----------
 console.log(`\nИТОГ: ${pass} pass, ${fail} fail\n`);
 if (fails.length) { console.log('ПРОВАЛЫ:'); fails.forEach(f => console.log(' ✗ ' + f)); process.exitCode = 1; }
