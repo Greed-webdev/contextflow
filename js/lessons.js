@@ -197,6 +197,8 @@ const COURSE = {
              ask:{them:'What can I do for you?',ruThem:'Чем я могу вам помочь?',next:'reason'} } },
       reason:{ task:'Ответь, зачем пришёл (например: я на встречу / жду друга / просто зашёл).', best:'I am here for the meeting.',
         judge(w){ if(has(w,'meeting','meet','appointment')&&!has(w,'no','not')) return {br:'meet'};
+          if(isNegatedIntent(w,['home','leave','going','go'])) return {huh:1}; /* «не иду домой» — не уход */
+          if(isNegatedIntent(w,['help','wait','find'])) return {huh:1};       /* «не нужна помощь» — не помощь */
           if(has(w,'friend','wait','help','need','lost','someone','person','find')) return {br:'help'};
           if(has(w,'question','ask','questions')) return {br:'help'}; /* «у меня вопрос» — не уход */
           if(has(w,'no','nothing','home','leave','bye','going','go','look','looking','fine')) return {br:'home'};
@@ -221,6 +223,7 @@ const COURSE = {
       floor:{ task:'Переспроси, куда идти (например: кабинет 204, второй этаж?).', best:'Room 204, second floor?',
         judge(w,mem){ const d204=(mem._digits||[]).includes('204');
           if(mem._raw&&/(not|isn.t)\s*(room\s+)?204/i.test(mem._raw)) return {huh:1}; /* «не 204» — не подтверждать */
+          if(isNegatedIntent(w,['second','floor'])) return {huh:1}; /* «не второй этаж» — не подтверждать маршрут */
           if(has(w,'second')&&has(w,'floor')) return {br:'ok'};      /* «второй этаж?» */
           if(d204&&has(w,'room','floor','second','lift')) return {br:'ok'}; /* номер сверяется: только 204 */
           if(has(w,'left')&&has(w,'room','floor','second')) return {br:'ok'}; /* left — только в контексте этажа */
@@ -494,21 +497,27 @@ const COURSE = {
         tr:{ ok:{them:'Are your parents here too?',ruThem:'А родители тоже здесь?',next:'parents'},
              alone:{them:'Oh, I see. Do you have friends here?',ruThem:'А, понятно. У тебя здесь есть друзья?',next:'fr'} } },
       fr:{ task:'Ответь, есть ли у тебя здесь друзья (например: да, у меня есть друзья).', best:'Yes, I have friends here.',
-        judge(w){ if(has(w,'no','not','none','nobody')) return {br:'no'};
-          if(has(w,'yes','friends','friend','sure','have','do','ok','okay')) return {br:'ok'};
+        judge(w){
+          if(has(w,'friends','friend')&&!isNegatedIntent(w,['friends','friend'])) return {br:'ok'}; /* позитив раньше «нет» */
+          if(has(w,'no','not','none','nobody')) return {br:'no'};
+          if(has(w,'yes','sure','have','do','ok','okay')) return {br:'ok'};
           return {huh:1}; },
         tr:{ ok:{them:'That is nice! See you at lunch, then.',ruThem:'Отлично! Тогда увидимся за обедом.',next:null},
              no:{them:'That is okay. I am your friend too. See you around!',ruThem:'Ничего страшного. Я тоже твой друг. Увидимся!',next:null} } },
       parents:{ task:'Расскажи про родителей (например: они живут в России).', best:'My parents live in Russia.',
         judge(w){
           /* пять правил, порядок важен:
-             1. явное here — первым («here, not in Russia» закрывается сразу);
-             2. «не в России» без явного here — ветка other (цель ТОЛЬКО russia, не moscow);
-             3. russia/moscow без отрицания страны — russia («Russia, not Moscow» — страна не отрицается);
-             4. остальное — переспрос. */
-          if(has(w,'here')) return {br:'here'};
+             1. явное здесь БЕЗ отрицания -> здесь («здесь, не в России» закрывается сразу);
+             2. «не здесь» + страна/город -> в стране (они НЕ здесь, а в России);
+             3. «не в России» без явного здесь — ветка other (цель ТОЛЬКО russia, не moscow);
+             4. russia/moscow без отрицания страны — russia («Russia, not Moscow» — страна не отрицается);
+             5. «не здесь» без указания места — переспрос где. */
+          const hereNeg=isNegatedIntent(w,['here']);
+          if(has(w,'here')&&!hereNeg) return {br:'here'};
+          if(has(w,'here')&&hereNeg&&has(w,'russia','moscow')) return {br:'russia'};
           if(isNegatedIntent(w,['russia'])) return {br:'other'};
           if(has(w,'russia','moscow')) return {br:'russia'};
+          if(has(w,'here')&&hereNeg) return {br:'other'};
           return {huh:1}; },
         tr:{ russia:{them:'Do you miss them?',ruThem:'Скучаешь по ним?',next:'miss'},
              here:{them:'Oh, that is nice! Do you see them often?',ruThem:'О, здорово! Часто с ними видишься?',next:'often'},

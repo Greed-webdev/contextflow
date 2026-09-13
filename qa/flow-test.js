@@ -1007,6 +1007,38 @@ for (const [id, sc] of Object.entries(SCENES)) {
   expect('R5-014 «I will go soon.» -> ок', s3, 'plan', 'I will go soon.', 'ok');
 }
 
+// ---------- рецензия N5 (2026-09-14): отрицания первых ключей ----------
+{
+  const s1 = SCENES.s1, s3 = SCENES.s3;
+  const st = (sc, at, said, mem) => step(sc, at, said, mem || {});
+  const expect = (name, sc, at, said, wantBr) => {
+    const mem = {};
+    const r = st(sc, at, said, mem);
+    const ok = wantBr === 'huh' ? !!r.err : (!r.err && r.br === wantBr);
+    T(name, ok, r.err || ('br=' + r.br));
+  };
+  expect('N5-001 «room 204 second floor» -> ок', s1, 'floor', 'room 204 second floor', 'ok');
+  expect('N5-001 «Room 204, second floor?» -> ок', s1, 'floor', 'Room 204, second floor?', 'ok');
+  expect('N5-001 «second floor» -> ок', s1, 'floor', 'second floor', 'ok');
+  expect('N5-001 «Room 204, not second floor.» -> переспрос', s1, 'floor', 'Room 204, not second floor.', 'huh');
+  expect('N5-001 «Not the second floor.» -> переспрос', s1, 'floor', 'Not the second floor.', 'huh');
+  expect('N5-001 «Room 999?» -> переспрос', s1, 'floor', 'Room 999?', 'huh');
+  expect('N5-001 «The room is not 204.» -> переспрос', s1, 'floor', 'The room is not 204.', 'huh');
+  expect('N5-001 «I left my bag outside.» -> переспрос', s1, 'floor', 'I left my bag outside.', 'huh');
+  expect('N5-002 «My parents are here.» -> here', s3, 'parents', 'My parents are here.', 'here');
+  expect('N5-002 «here, not in Russia» -> here', s3, 'parents', 'My parents are here, not in Russia.', 'here');
+  expect('N5-002 «not here, they live in Russia» -> russia', s3, 'parents', 'My parents are not here, they live in Russia.', 'russia');
+  expect('N5-002 «My parents are not here.» -> other', s3, 'parents', 'My parents are not here.', 'other');
+  expect('N5-002 «live in Russia» -> russia', s3, 'parents', 'My parents live in Russia.', 'russia');
+  expect('N5-002 «Russia, not Moscow» -> russia', s3, 'parents', 'My parents live in Russia, not Moscow.', 'russia');
+  expect('N5-002 «do not live in Russia» -> other', s3, 'parents', 'My parents do not live in Russia.', 'other');
+  expect('N5-002 «are not in Russia» -> other', s3, 'parents', 'My parents are not in Russia.', 'other');
+  expect('Свип: «не иду домой» в reason -> не уход', s1, 'reason', 'I am not going home.', 'huh');
+  expect('Свип: «у меня вопрос» в reason -> помощь', s1, 'reason', 'I just have a question.', 'help');
+  expect('Свип: «Нет, есть друзья» -> ок', s3, 'fr', 'No, I have friends here.', 'ok');
+  expect('Свип: «нет друзей» -> ветка «нет»', s3, 'fr', 'I do not have friends here.', 'no');
+}
+
 // ---------- итог ----------
 console.log(`\nИТОГ: ${pass} pass, ${fail} fail\n`);
 if (fails.length) { console.log('ПРОВАЛЫ:'); fails.forEach(f => console.log(' ✗ ' + f)); process.exitCode = 1; }
