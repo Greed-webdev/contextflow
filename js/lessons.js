@@ -3998,28 +3998,55 @@ const COURSE = {
         {ru:'Позвони мне по видео.', parts:['Call','me','on','video'], answer:'Call me on video', full:'Call me on video.',
          whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
       ]},
-      { type:'dialog', title:'Проблема с интернетом', scene:'office', cefr:'A1: Can use simple digital vocabulary.',
-        intro:'Ты звонишь хозяину квартиры.',
-        turns:[
-          {who:'them', text:'Hello, what is the matter?', ru:'Здравствуйте, что случилось?'},
-          {who:'you', ru:'Скажи, что интернет не работает.', best:1,
-            options:['Internet no go bad.','The internet does not work.','No internet have me now.']},
-          {who:'them', text:'Did you check the router?', ru:'Роутер проверяли?'},
-          {who:'you', ru:'Скажи «да, я проверил».', best:0,
-            options:['Yes, I checked it.','Check yes me do.','Look it me yes have.']},
-          {who:'them', text:'I will send someone today.', ru:'Пришлю кого-нибудь сегодня.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok today come man.','Send yes good today.','Thank you very much.']},
-          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
-          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
-            options:['When will I know?','Answer when have me?','Time answer what is?']},
-          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
-          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
-            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
-          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
-          {who:'you', ru:'Попрощайся вежливо.', best:1,
-            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
-        ]},
+      { type:'dialog', variant:'flow', title:'Проблема с интернетом', scene:'office', cefr:'A1: Can use simple digital vocabulary.',
+        intro:'Вечер, а у тебя не работает интернет. Ты звонишь хозяину квартиры.',
+        flow:{ title:'Проблема с интернетом · ур. 142', start:'problem',
+        intro:'Вечер, а у тебя не работает интернет. Ты звонишь хозяину квартиры.',
+        opener:{them:'Hello, what is the matter?', ru:'Здравствуйте, что случилось?'},
+        nodes:{
+      problem:{ task:'Скажи, что случилось с интернетом (не работает / очень медленный).', best:'The internet does not work.',
+        judge(w){
+          if(has(w,'internet','wifi','wi-fi','connection','router','online','network')) return {br:'net'};
+          return {huh:1}; },
+        tr:{ net:{them:'I see. Did you check the router?',ruThem:'Понимаю. Роутер проверяли?',next:'router'} } },
+      router:{ task:'Ответь, проверял ли ты роутер.', best:'Yes, I checked it.',
+        judge(w){
+          if(has(w,'no','not')&&!has(w,'yes','checked','restarted')) return {br:'no'};
+          if(has(w,'yes','yeah','checked','did','restarted','restart','lights','red','looked')) return {br:'yes'};
+          return {huh:1}; },
+        tr:{
+          yes:{them:'Ok, the problem is clear. I will send someone today.',ruThem:'Хорошо, проблема ясна. Пришлю кого-нибудь сегодня.',next:'send'},
+          no:{them:'Try to restart it: off for ten seconds, then on again.',ruThem:'Попробуйте перезагрузить: выключите на десять секунд, потом включите.',next:'restart'} } },
+      restart:{ task:'Скажи, помогла ли перезагрузка.', best:'No, it still does not work.',
+        judge(w){
+          if(has(w,'no','not','still','nothing','same','broken','not work','nope')) return {br:'still'};
+          if(has(w,'works','working','ok now','fine','helped','yes','yeah','better','good')) return {br:'helped'};
+          return {huh:1}; },
+        tr:{
+          still:{them:'Ok. I will send someone today.',ruThem:'Хорошо. Пришлю кого-нибудь сегодня.',next:'send'},
+          helped:{them:'Great! Then we are all set. Have a good evening!',ruThem:'Отлично! Тогда всё в порядке. Хорошего вечера!',next:'bye'} } },
+      send:{ task:'Поблагодари и спроси, когда ждать мастера.', best:'Thank you. What time should I expect him?',
+        judge(w){
+          if(has(w,'nothing','all','enough')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* вопросов нет */
+          if(has(w,'when','time','what time','afternoon','today','expect','come','who','where')) return {br:'when'};
+          if(has(w,'thank','thanks','ok','okay','good','great','sure','fine')) return {br:'when'};
+          return {huh:1}; },
+        tr:{
+          when:{them:'In the afternoon, between two and five.',ruThem:'Днём, между двумя и пятью.',next:'wait'},
+          none:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:'bye'} } },
+      wait:{ task:'Подтверди, что будешь дома.', best:'Ok, I will be at home.',
+        judge(w){
+          if(has(w,'home','house','wait','ok','okay','yes','yeah','sure','fine','will','be','there','good','thanks','thank')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Thank you. See you today.',ruThem:'Спасибо. До встречи сегодня.',next:'bye'} } },
+      bye:{ task:'Попрощайся вежливо.', best:'Thank you. Have a good day.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice','evening')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Bye!',ruThem:'Пока!',next:null} } }
+        }}
+      },
       { type:'words', title:'Контроль: темы 29–32', scene:'office', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
         {t:'Talk', r:'Разговаривать', rev:true},
         {t:'Visit', r:'Навещать', rev:true},
@@ -4326,28 +4353,59 @@ const COURSE = {
         {ru:'В апреле я уезжаю.', parts:['In','April','I','am','leaving'], answer:'In April I am leaving', full:'In April I am leaving.',
          whyT:'Present Continuous: происходит сейчас', why:'am/is/are + глагол с -ing. «I am waiting» — жду прямо сейчас, в отличие от «I wait» — вообще, обычно.'}
       ]},
-      { type:'dialog', title:'Перевод денег', scene:'bank', cefr:'A1: Can handle larger numbers and dates.',
-        intro:'Ты в банке оформляешь перевод.',
-        turns:[
-          {who:'them', text:'How much would you like to send?', ru:'Сколько хотите отправить?'},
-          {who:'you', ru:'Скажи: тысяча триста евро.', best:1,
-            options:['Money thousand three hundred.','One thousand three hundred euros.','Send big money me want.']},
-          {who:'them', text:'And when do you need it there?', ru:'И когда должно прийти?'},
-          {who:'you', ru:'Скажи: до девятнадцатого ноября.', best:0,
-            options:['Before the nineteenth of November.','November nineteen day before.','Time November go fast.']},
-          {who:'them', text:'That is fine.', ru:'Хорошо.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok money go now.','Send yes good time.','Thank you very much.']},
-          {who:'them', text:'Do you have any other questions?', ru:'Ещё вопросы есть?'},
-          {who:'you', ru:'Спроси, когда всё будет готово.', best:1,
-            options:['Ready when is?','When will it be ready?','Time ready what say?']},
-          {who:'them', text:'In about five working days.', ru:'Примерно пять рабочих дней.'},
-          {who:'you', ru:'Спроси, позвонят ли тебе.', best:0,
-            options:['Will you call me?','Phone me you can?','Call have me yes no?']},
-          {who:'them', text:'Yes, we will send a message.', ru:'Да, отправим сообщение.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok message wait.','Good send yes me.','Thank you very much for your help.']}
-        ]},
+      { type:'dialog', variant:'flow', title:'Перевод денег', scene:'bank', cefr:'A1: Can handle larger numbers and dates.',
+        intro:'Ты в банке оформляешь перевод домой.',
+        flow:{ title:'Перевод денег · ур. 160', start:'amount',
+        intro:'Ты в банке оформляешь перевод домой.',
+        opener:{them:'How much would you like to send?', ru:'Сколько хотите отправить?'},
+        nodes:{
+      amount:{ task:'Назови сумму перевода (например: тысяча триста евро).', best:'One thousand three hundred euros, please.',
+        judge(w,mem){
+          if((mem._digits||[]).length) return {br:'ok'};
+          if(numOf(w)!==null) return {br:'ok'};
+          if(has(w,'euro','euros','hundred','thousand','dollar','dollars')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'And when do you need it there?',ruThem:'И когда деньги должны прийти?',next:'when'} } },
+      when:{ task:'Скажи, к какому числу должны прийти деньги (например: до девятнадцатого ноября / как можно быстрее).', best:'Before the nineteenth of November.',
+        judge(w){
+          if(has(w,'today','tomorrow','urgent','urgently','asap','now','right away','fast','quick')) return {br:'urgent'};
+          if(has(w,'before','january','february','march','april','may','june','july','august','september','october','november','december','monday','tuesday','wednesday','thursday','friday','saturday','sunday','week','month','soon','date')) return {br:'date'};
+          return {huh:1}; },
+        tr:{
+          urgent:{them:'Today is possible, but the fee is higher - twenty euros.',ruThem:'Сегодня возможно, но комиссия выше — двадцать евро.',next:'fee'},
+          date:{them:'That is fine. The fee is twelve euros.',ruThem:'Хорошо. Комиссия — двенадцать евро.',next:'fee'} } },
+      fee:{ task:'Согласись на комиссию — или уточни, кто её платит.', best:'Ok, I agree.',
+        judge(w){
+          if(has(w,'who','pays','payer','receiver','gets','why')) return {br:'who'};
+          if(has(w,'ok','okay','yes','yeah','agree','sure','fine','good','alright','no problem','thanks','thank')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{
+          ok:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
+          who:{them:'You pay it now. The receiver gets the full amount.',ruThem:'Вы платите её сейчас. Получатель получит всю сумму целиком.',next:'more'} } },
+      more:{ task:'Спроси, когда придут деньги или как проверить перевод. Если вопросов нет — так и скажи.', best:'When will it be ready?',
+        judge(w){
+          if(has(w,'nothing','all','enough')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* «вопросов нет» */
+          if(has(w,'track','tracking','status','check','where','app','online')) return {br:'track'};
+          if(has(w,'ready','when','time','long','soon','days','arrive')) return {br:'ready'};
+          if(has(w,'what','where','how','why','can','do','does','is','are')) return {br:'ready'};
+          return {huh:1}; },
+        tr:{
+          ready:{them:'In about five working days.',ruThem:'Примерно пять рабочих дней.',next:'notify'},
+          track:{them:'You can check the status in our app, any time.',ruThem:'Статус можно в любой момент проверить в нашем приложении.',next:'notify'},
+          none:{them:'Thank you. Have a nice day!',ruThem:'Спасибо. Хорошего дня!',next:'bye'} } },
+      notify:{ task:'Спроси, сообщат ли тебе, когда деньги дойдут.', best:'Will you send me a message?',
+        judge(w){
+          if(has(w,'message','call','phone','send','know','notify','contact','email','letter','how','when')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Yes, we will send a message when it arrives.',ruThem:'Да, мы отправим сообщение, когда деньги дойдут.',next:'bye'} } },
+      bye:{ task:'Поблагодари и попрощайся.', best:'Thank you very much. Goodbye.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
+        }}
+      },
       { type:'words', title:'Контроль: темы 33–36', scene:'bank', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
         {t:'High', r:'Высокий', rev:true},
         {t:'Common', r:'Обычный', rev:true},
@@ -4509,28 +4567,53 @@ const COURSE = {
         {ru:'Что означает это слово?', parts:['What','does','this','word','mean'], answer:'What does this word mean', full:'What does this word mean?',
          whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'}
       ]},
-      { type:'dialog', title:'Не расслышал', scene:'street', cefr:'A1: Can ask for repetition and clarification.',
-        intro:'Тебе быстро объясняют, ты теряешь нить.',
-        turns:[
-          {who:'them', text:'So you take the second left after the lights.', ru:'Значит, второй поворот налево после светофора.'},
-          {who:'you', ru:'Попроси повторить медленнее.', best:1,
-            options:['Again slow say you.','Sorry, could you repeat that more slowly?','Repeat me not understand fast.']},
-          {who:'them', text:'Of course. Second left, after the traffic lights.', ru:'Конечно. Второй налево, после светофора.'},
-          {who:'you', ru:'Переспроси: второй налево?', best:0,
-            options:['The second left, right?','Two left yes is?','Left second you say me?']},
-          {who:'them', text:'Exactly.', ru:'Именно.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok understand now go.','Good know me now.','Now I understand. Thank you.']},
-          {who:'them', text:'Do you need anything else?', ru:'Ещё что-то нужно?'},
-          {who:'you', ru:'Спроси, есть ли рядом кафе.', best:1,
-            options:['Cafe near have?','Is there a cafe near here?','Coffee place where is?']},
-          {who:'them', text:'Yes, just around the corner.', ru:'Да, прямо за углом.'},
-          {who:'you', ru:'Уточни направление.', best:0,
-            options:['Left or right?','Way what go me?','Which side is it?']},
-          {who:'them', text:'On your right, next to the shop.', ru:'Справа, рядом с магазином.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok right go now.','Shop right yes see.','Thank you, that is very helpful.']}
-        ]},
+      { type:'dialog', variant:'flow', title:'Не расслышал', scene:'street', cefr:'A1: Can ask for repetition and clarification.',
+        intro:'Прохожий объясняет тебе дорогу быстро и с акцентом. Ты теряешь нить.',
+        flow:{ title:'Не расслышал · ур. 170', start:'ask1',
+        intro:'Прохожий объясняет тебе дорогу быстро и с акцентом. Ты теряешь нить.',
+        opener:{them:'So you take the second left after the lights.', ru:'Значит, второй поворот налево после светофора.'},
+        nodes:{
+      ask1:{ task:'Попроси повторить медленнее или ещё раз.', best:'Sorry, could you repeat that more slowly?',
+        judge(w){
+          if(has(w,'slow','slower','slowly')) return {br:'slow'};
+          if(has(w,'repeat','again','once','more','pardon','sorry','what','huh','understand','catch','say')) return {br:'again'};
+          return {huh:1}; },
+        tr:{
+          slow:{them:'Of course. Second left - after the traffic lights.',ruThem:'Конечно. Второй налево — после светофора.',next:'check'},
+          again:{them:'Sure. The second left, after the lights.',ruThem:'Конечно. Второй налево, после светофора.',next:'check'} } },
+      check:{ task:'Переспрось, правильно ли ты понял (например: второй налево?).', best:'The second left, right?',
+        judge(w){
+          if(has(w,'second','left','right','lights','after','correct','yes','no','really','so')) return {br:'ok'};
+          if(has(w,'understand','got','ok','okay','clear','sure','fine')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Exactly.',ruThem:'Именно так.',next:'thanks'} } },
+      thanks:{ task:'Поблагодари.', best:'Now I understand. Thank you.',
+        judge(w){
+          if(has(w,'thank','thanks','ok','okay','good','great','sure','fine','understand','got','nice')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Do you need anything else?',ruThem:'Ещё что-то нужно?',next:'extra'} } },
+      extra:{ task:'Спроси о чём-нибудь ещё (например: есть ли рядом кафе?) или скажи, что всё.', best:'Is there a cafe near here?',
+        judge(w){
+          if(has(w,'nothing','all','enough','nope')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* «всё, спасибо» */
+          if(has(w,'cafe','coffee','shop','supermarket','bank','pharmacy','restaurant','bar','atm','near','around','here','close')) return {br:'place'};
+          if(has(w,'what','where','is','are','do','does','can','how','any')) return {br:'place'};
+          return {huh:1}; },
+        tr:{
+          place:{them:'Yes, just around the corner.',ruThem:'Да, прямо за углом.',next:'which'},
+          none:{them:'You are welcome. Have a good day!',ruThem:'Пожалуйста. Хорошего дня!',next:'bye'} } },
+      which:{ task:'Уточни направление: налево или направо.', best:'Left or right?',
+        judge(w){
+          if(has(w,'left','right','which','side','where','direction','way','turn')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'On your right, next to the shop.',ruThem:'Справа, рядом с магазином.',next:'bye'} } },
+      bye:{ task:'Поблагодари и попрощайся.', best:'Thank you, that is very helpful. Bye!',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice','helpful','great')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'No problem. Bye!',ruThem:'Без проблем. Пока!',next:null} } }
+        }}
+      },
       { type:'words', title:'Отпуск и путешествие · 1', scene:'airport', cefr:'A1: Can talk about travel and holidays.', newCount:10, words:[
         {t:'Holiday', r:'Отпуск'},
         {t:'Vacation', r:'Отпуск'},

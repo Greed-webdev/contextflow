@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Партия 9 ветвей · ур. 160, 142, 170</title>
+<style>
+:root{--bg:#101416;--card:#181e21;--line:#2a3237;--text:#e8edef;--text2:#9aa5ab;--text3:#6b757b;
+--moss:#6f9c78;--clay:#b26856;--amber:#c8933f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:14px}
+.wrap{max-width:560px;margin:0 auto}
+h1{font-size:18px;margin-bottom:4px}
+.sub{color:var(--text2);font-size:13px;margin-bottom:12px}
+.pick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.pick button{flex:1;min-width:150px;border:1px solid var(--line);background:var(--card);color:var(--text);
+border-radius:12px;padding:10px;font:600 13px inherit;cursor:pointer}
+.pick button.on{border-color:var(--moss);color:var(--moss)}
+.col{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.chat{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;max-height:300px;overflow-y:auto}
+.bub{max-width:88%;padding:9px 12px;border-radius:16px;font-size:13.5px;background:rgba(255,255,255,.06)}
+.bub.you{align-self:flex-end;background:rgba(111,156,120,.22)}
+.bub .tr{display:block;font-size:11.5px;color:var(--text3);margin-top:2px}
+.ctx{font-size:12px;color:var(--text3);font-style:italic;padding:0 4px}
+.task{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:8px;font-size:13px}
+.task b{color:var(--amber);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:3px}
+textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;
+padding:11px 13px;color:var(--text);font:14px/1.45 inherit;resize:vertical;min-height:52px}
+textarea:focus{outline:none;border-color:var(--moss)}
+.row{display:flex;gap:8px;margin-top:8px}
+button{flex:1;border:none;border-radius:12px;padding:11px;font:600 14px inherit;cursor:pointer;background:var(--moss);color:#fff}
+button.g{background:rgba(255,255,255,.06);color:var(--text)}
+button:disabled{opacity:.5;cursor:default}
+.v{margin-top:10px;font-size:13px}
+.v b.g{color:var(--moss)} .v b.a{color:var(--amber)}
+.hint{color:var(--amber);font-size:12.5px;margin-top:5px}
+.v ul{margin:6px 0 0 16px;color:var(--text2)} .v li{margin-bottom:2px}
+.note-end{color:var(--moss);font-size:14px;margin-top:8px;font-weight:600}
+</style></head><body><div class="wrap">
+<h1>Партия 9: разговор идёт за тобой</h1>
+<p class="sub">Три сцены с ветвями (ур. 160, 142, 170). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
+
+<div class="pick" id="pick"></div>
+
+<div class="col" id="stage" style="display:none">
+  <div class="chat" id="chat"></div>
+  <div class="task"><b>Твой ход</b><p id="ru">—</p></div>
+  <textarea id="in" placeholder="Ответь своими словами…"></textarea>
+  <div class="row">
+    <button onclick="D.go()">Ответить</button>
+    <button class="g" onclick="D.again()">Заново</button>
+  </div>
+  <div class="row" style="margin-top:0">
+    <button class="g" id="dunno" style="display:none" onclick="D.opts()">Не знаю</button>
+  </div>
+  <div id="out"></div>
+</div>
+</div>
+
+<script>
+/* ================= ЯДРО (без DOM) ================= */
+const norm = t => (t||'').toLowerCase().replace(/[\u2019']/g,"'").replace(/[^a-z' ]/g,' ').split(/\s+/).filter(Boolean);
+const EXP={"i'm":['i','am'],"it's":['it','is'],"don't":['do','not'],"can't":['can','not'],"i've":['i','have'],
+"what's":['what','is'],"i'll":['i','will'],"there's":['there','is'],"we're":['we','are'],"you're":['you','are'],
+"that's":['that','is'],"doesn't":['does','not'],"isn't":['is','not'],"won't":['will','not']};
+const expand = a => { const o=[]; a.forEach(x=>{ if(EXP[x]) o.push(...EXP[x]); else o.push(x.replace(/'/g,'')); }); return o; };
+const NUM={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,
+thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,
+fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,hundred:100};
+const numOf = a => { let tot=0,cur=0,any=false; a.forEach(x=>{ if(/^\d+$/.test(x)){tot+=parseInt(x,10);any=true;return;}
+  if(x in NUM){any=true;cur+=NUM[x];} }); return any?tot+cur:null; };
+const has = (w,...xs)=> xs.some(x=>w.includes(x));
+const SVC=['a','an','the','to','of','and','my','i','you','it','in','on','at','for','with','this','that','have',
+'has','can','will','would','please','me','we','they','is','am','are','be','do','does','did','not','no','yes',
+'thanks','thank','goodbye','bye','see','very','much','really','sorry','right','ok','okay','sure','here',
+'there','now','then','good','fine','great','nice','just','about','all','too','also','up','down','left',
+'day','night','back','soon','later','again','more','some','any','lot','so','but','or','if','from','out'];
+/* Единый стоп-лист: эти слова никогда не бывают именем игрока.
+   Раньше список жил внутри одного узла — баг с «Late/Sir/Excuse» возвращался в других. */
+const NAME_STOP=['hi','hello','hey','good','morning','afternoon','evening','late','sorry','excuse','waiting','wait',
+'leaving','looking','sir','madam','maam','mr','mrs','ms','miss','there','from','with','about','name','my','me','i',
+'am','im','please','nice','to','meet','meeting','appointment','help','need','friend','lost','person','someone','just','call',
+'no','not','thanks','thank','fine','nothing','bye','goodbye','see','later','today','sure','yes','yeah','have','has',
+'an','a','the','for','here','what','your','can','you','may','of','course','going','home','go','it','problem','worries',
+'worry','know','yet','hope','matter','room','floor','lift','ok','okay','come','coming','visit','back','now','then',
+'right','left','after','before','so','but','or','and','too','also','only','very','much','really','again','soon','day',
+'do','does','did','is','are','be','we','they','this','that','these','those','all','any','some','more','out','if','at',
+'on','in','up','down','an','a'];
+/* --- имя: белый список + правдоподобность, а не только чёрный список ---
+   Раньше именем считалось любое слово, которого нет в NAME_STOP:
+   «banana», «pizza», «asdfgh», мат — всё проходило как имя. */
+const NAME_OK=new Set(['anna','anne','ann','maria','marie','mary','kate','katie','john','jane','tom','tim','sam',
+'alex','max','nick','mike','peter','paul','david','daniel','james','robert','george','helen','laura','julia',
+'olivia','emma','sophie','sofia','clara','lucy','sarah','rachel','ruth','grace','faith','hope','may','june',
+'rose','lily','iris','ruby','pearl','olive','daisy','amber','joy','dawn','summer','wren','eve','ivy','ada',
+'mark','frank','miles','ray','will','jack','ben','matt','rob','bill','joe','leo','hugo','oscar','felix',
+'masha','maria','ekaterina','katya','sasha','dasha','nastya','olga','svetlana','sveta','natasha','natalia',
+'irina','ira','tatiana','tanya','lyudmila','oksana','yulia','julia','alyona','ksenia','vera','nadezhda',
+'nadya','lyubov','galina','zinaida','zhanna','elizaveta','liza','margarita','rita','polina','arina','sonya',
+'dmitry','dima','sergey','seryozha','andrey','alexey','lyosha','nikolay','kolya','vladimir','vova','mikhail',
+'misha','evgeny','zhenya','igor','oleg','boris','artyom','timur','ruslan','vadim','lev','ivan','vanya',
+'pavel','pasha','denis','egor','yaroslav','stanislav','vyacheslav','anatoly','gennady','valery','arkady',
+'roman','roma','kirill','nikita','anton','maxim','stepan','fyodor','grigory','konstantin','viktor','yuri',
+'petrova','ivanova','sokolova','smirnov','popov','kuznetsov','brown','smith','jones','wilson','taylor']);
+
+/* явный мусор, который люди вбивают при проверке «а что будет» */
+const NOT_NAME=new Set(['banana','pizza','apple','orange','potato','tomato','burger','coffee','water','bread',
+'cat','dog','fish','bird','horse','mouse','table','chair','door','window','book','phone','car','house','tree',
+'lorem','ipsum','dolor','test','testing','asdf','asdfgh','qwerty','xyz','abc','blah','hmm','uh','um','eh',
+'why','who','when','where','which','because','maybe','nothing','something','anything','everything','nobody',
+'fuck','fucking','shit','damn','bitch','ass','crap','hell','idiot','stupid']);
+
+const looksLikeName = x =>
+  x.length>=2 && x.length<=15 &&
+  /^[a-z']+$/.test(x) &&
+  /[aeiouy]/.test(x) &&                 // без гласной — не слово
+  !/(.)\1\1/.test(x) &&                // ааа, ррр
+  !/[bcdfghjklmnpqrstvwxz]{4}/.test(x) && // asdfgh, qwrtp
+  !/(ing|ed|ly|tion|ness|ment)$/.test(x); // waiting, leaving, quickly
+
+/* strict=true — слово обязано быть в белом списке (голый ввод без «my name is»)
+   strict=false — достаточно правдоподобности (игрок явно представился) */
+const cap = x => x.charAt(0).toUpperCase()+x.slice(1);
+const pickName = (w, skip, strict)=>{
+  /* 1) слово сразу после «my name is» / «i am» / «call me» / «this is».
+     Так Hope, Will, May, Grace распознаются, хотя они же служебные слова,
+     а «I hope I am not late» именем не становится. */
+  for(let i=0;i<w.length-1;i++){
+    const pair=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='i'&&w[i+1]==='am')||
+               (w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
+    if(pair){ const x=w[i+2];
+      if(x&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)&&
+         (NAME_OK.has(x)||(!SVC.includes(x)&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
+  }
+  /* 2) обычный поиск */
+  const s=new Set([...SVC,...skip]);
+  const c=w.find(x=>{
+    if(s.has(x)||NUM.hasOwnProperty(x)||NOT_NAME.has(x)) return false;
+    if(NAME_OK.has(x)) return true;
+    return strict ? false : looksLikeName(x);
+  });
+  return c ? cap(c) : null;
+};
+/* игрок явно представляется: «my name is X», «i am X», «call me X», «this is X» */
+const introduced = w => {
+  for(let i=0;i<w.length-1;i++){
+    if(w[i]==='name'&&w[i+1]==='is') return true;
+    if(w[i]==='i'&&w[i+1]==='am') return true;
+    if(w[i]==='call'&&w[i+1]==='me') return true;
+    if(w[i]==='this'&&w[i+1]==='is') return true;
+  }
+  return false;
+};
+const sigWords = (w, extra)=>{
+  const ex = extra || [];
+  return w.filter(x=> x.length>1 && !SVC.includes(x) && !ex.includes(x));
+};
+/* --- помощники судей ветвящихся диалогов (партия 2+) --- */
+const DAY_IN = w => {
+  const D=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  for (const x of w) if (D.includes(x)) return x;
+  return null;
+};
+const FLOWNUM = (w, digits) => {
+  if (digits && digits.length === 1) return digits[0];
+  if (digits && digits.length > 1) return null;      // несколько чисел — неоднозначно
+  const seq = [];
+  w.forEach(x => { if (x in NUM) seq.push(x); });    // слова-числительные по порядку
+  if (!seq.length) return null;
+  let cur = 0;
+  for (const x of seq) {
+    const v = NUM[x];
+    if (x === 'hundred' || x === 'thousand'){ cur = cur ? cur * v : v; }
+    else if (cur === 0) cur = v;
+    else if (cur % 10 === 0 && cur < 100 && v < 10) cur += v;      // twenty five = 25
+    else if (cur >= 100 && v < 100) cur += v;                      // one hundred (and) five = 105
+    else return null;                                              // two and three — неоднозначно
+  }
+  return cur;
+};
+/* Отрицание липнет к ближайшему содержательному слову справа.
+   «not black, red» -> отрицается black, red выбран. «no red» -> red НЕ выбран. */
+const NEGLEAD=['no','not','never','without'];
+const NEGPASS=['to','a','an','the','and','or','any','it','this','that','one','really','just','very','so',
+'want','need','take','have','get','choose','prefer','buy','think','do','does','did',
+'would','will','can','could','should','am','is','are','be'];
+const negatedAt = (w,i) => {
+  for (let j=0;j<w.length;j++){
+    if(!NEGLEAD.includes(w[j])) continue;
+    let k=j+1;
+    while(k<i && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени, но не мимо неё
+    if(k===i) return true;
+  }
+  return false;
+};
+const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
+
+/* ============ ПАРТИЯ 6 · ур. 67, 73, 77 ============ */
+
+const S1 = { title:'Перевод денег · ур. 160', start:'amount',
+        intro:'Ты в банке оформляешь перевод домой.',
+        opener:{them:'How much would you like to send?', ru:'Сколько хотите отправить?'},
+        nodes:{
+      amount:{ task:'Назови сумму перевода (например: тысяча триста евро).', best:'One thousand three hundred euros, please.',
+        judge(w,mem){
+          if((mem._digits||[]).length) return {br:'ok'};
+          if(numOf(w)!==null) return {br:'ok'};
+          if(has(w,'euro','euros','hundred','thousand','dollar','dollars')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'And when do you need it there?',ruThem:'И когда деньги должны прийти?',next:'when'} } },
+      when:{ task:'Скажи, к какому числу должны прийти деньги (например: до девятнадцатого ноября / как можно быстрее).', best:'Before the nineteenth of November.',
+        judge(w){
+          if(has(w,'today','tomorrow','urgent','urgently','asap','now','right away','fast','quick')) return {br:'urgent'};
+          if(has(w,'before','january','february','march','april','may','june','july','august','september','october','november','december','monday','tuesday','wednesday','thursday','friday','saturday','sunday','week','month','soon','date')) return {br:'date'};
+          return {huh:1}; },
+        tr:{
+          urgent:{them:'Today is possible, but the fee is higher - twenty euros.',ruThem:'Сегодня возможно, но комиссия выше — двадцать евро.',next:'fee'},
+          date:{them:'That is fine. The fee is twelve euros.',ruThem:'Хорошо. Комиссия — двенадцать евро.',next:'fee'} } },
+      fee:{ task:'Согласись на комиссию — или уточни, кто её платит.', best:'Ok, I agree.',
+        judge(w){
+          if(has(w,'who','pays','payer','receiver','gets','why')) return {br:'who'};
+          if(has(w,'ok','okay','yes','yeah','agree','sure','fine','good','alright','no problem','thanks','thank')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{
+          ok:{them:'Anything else?',ruThem:'Что-нибудь ещё?',next:'more'},
+          who:{them:'You pay it now. The receiver gets the full amount.',ruThem:'Вы платите её сейчас. Получатель получит всю сумму целиком.',next:'more'} } },
+      more:{ task:'Спроси, когда придут деньги или как проверить перевод. Если вопросов нет — так и скажи.', best:'When will it be ready?',
+        judge(w){
+          if(has(w,'nothing','all','enough')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* «вопросов нет» */
+          if(has(w,'track','tracking','status','check','where','app','online')) return {br:'track'};
+          if(has(w,'ready','when','time','long','soon','days','arrive')) return {br:'ready'};
+          if(has(w,'what','where','how','why','can','do','does','is','are')) return {br:'ready'};
+          return {huh:1}; },
+        tr:{
+          ready:{them:'In about five working days.',ruThem:'Примерно пять рабочих дней.',next:'notify'},
+          track:{them:'You can check the status in our app, any time.',ruThem:'Статус можно в любой момент проверить в нашем приложении.',next:'notify'},
+          none:{them:'Thank you. Have a nice day!',ruThem:'Спасибо. Хорошего дня!',next:'bye'} } },
+      notify:{ task:'Спроси, сообщат ли тебе, когда деньги дойдут.', best:'Will you send me a message?',
+        judge(w){
+          if(has(w,'message','call','phone','send','know','notify','contact','email','letter','how','when')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Yes, we will send a message when it arrives.',ruThem:'Да, мы отправим сообщение, когда деньги дойдут.',next:'bye'} } },
+      bye:{ task:'Поблагодари и попрощайся.', best:'Thank you very much. Goodbye.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
+        }};
+const S2 = { title:'Проблема с интернетом · ур. 142', start:'problem',
+        intro:'Вечер, а у тебя не работает интернет. Ты звонишь хозяину квартиры.',
+        opener:{them:'Hello, what is the matter?', ru:'Здравствуйте, что случилось?'},
+        nodes:{
+      problem:{ task:'Скажи, что случилось с интернетом (не работает / очень медленный).', best:'The internet does not work.',
+        judge(w){
+          if(has(w,'internet','wifi','wi-fi','connection','router','online','network')) return {br:'net'};
+          return {huh:1}; },
+        tr:{ net:{them:'I see. Did you check the router?',ruThem:'Понимаю. Роутер проверяли?',next:'router'} } },
+      router:{ task:'Ответь, проверял ли ты роутер.', best:'Yes, I checked it.',
+        judge(w){
+          if(has(w,'no','not')&&!has(w,'yes','checked','restarted')) return {br:'no'};
+          if(has(w,'yes','yeah','checked','did','restarted','restart','lights','red','looked')) return {br:'yes'};
+          return {huh:1}; },
+        tr:{
+          yes:{them:'Ok, the problem is clear. I will send someone today.',ruThem:'Хорошо, проблема ясна. Пришлю кого-нибудь сегодня.',next:'send'},
+          no:{them:'Try to restart it: off for ten seconds, then on again.',ruThem:'Попробуйте перезагрузить: выключите на десять секунд, потом включите.',next:'restart'} } },
+      restart:{ task:'Скажи, помогла ли перезагрузка.', best:'No, it still does not work.',
+        judge(w){
+          if(has(w,'no','not','still','nothing','same','broken','not work','nope')) return {br:'still'};
+          if(has(w,'works','working','ok now','fine','helped','yes','yeah','better','good')) return {br:'helped'};
+          return {huh:1}; },
+        tr:{
+          still:{them:'Ok. I will send someone today.',ruThem:'Хорошо. Пришлю кого-нибудь сегодня.',next:'send'},
+          helped:{them:'Great! Then we are all set. Have a good evening!',ruThem:'Отлично! Тогда всё в порядке. Хорошего вечера!',next:'bye'} } },
+      send:{ task:'Поблагодари и спроси, когда ждать мастера.', best:'Thank you. What time should I expect him?',
+        judge(w){
+          if(has(w,'nothing','all','enough')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* вопросов нет */
+          if(has(w,'when','time','what time','afternoon','today','expect','come','who','where')) return {br:'when'};
+          if(has(w,'thank','thanks','ok','okay','good','great','sure','fine')) return {br:'when'};
+          return {huh:1}; },
+        tr:{
+          when:{them:'In the afternoon, between two and five.',ruThem:'Днём, между двумя и пятью.',next:'wait'},
+          none:{them:'Ok. Have a good day!',ruThem:'Хорошо. Хорошего дня!',next:'bye'} } },
+      wait:{ task:'Подтверди, что будешь дома.', best:'Ok, I will be at home.',
+        judge(w){
+          if(has(w,'home','house','wait','ok','okay','yes','yeah','sure','fine','will','be','there','good','thanks','thank')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Thank you. See you today.',ruThem:'Спасибо. До встречи сегодня.',next:'bye'} } },
+      bye:{ task:'Попрощайся вежливо.', best:'Thank you. Have a good day.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice','evening')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Bye!',ruThem:'Пока!',next:null} } }
+        }};
+const S3 = { title:'Не расслышал · ур. 170', start:'ask1',
+        intro:'Прохожий объясняет тебе дорогу быстро и с акцентом. Ты теряешь нить.',
+        opener:{them:'So you take the second left after the lights.', ru:'Значит, второй поворот налево после светофора.'},
+        nodes:{
+      ask1:{ task:'Попроси повторить медленнее или ещё раз.', best:'Sorry, could you repeat that more slowly?',
+        judge(w){
+          if(has(w,'slow','slower','slowly')) return {br:'slow'};
+          if(has(w,'repeat','again','once','more','pardon','sorry','what','huh','understand','catch','say')) return {br:'again'};
+          return {huh:1}; },
+        tr:{
+          slow:{them:'Of course. Second left - after the traffic lights.',ruThem:'Конечно. Второй налево — после светофора.',next:'check'},
+          again:{them:'Sure. The second left, after the lights.',ruThem:'Конечно. Второй налево, после светофора.',next:'check'} } },
+      check:{ task:'Переспрось, правильно ли ты понял (например: второй налево?).', best:'The second left, right?',
+        judge(w){
+          if(has(w,'second','left','right','lights','after','correct','yes','no','really','so')) return {br:'ok'};
+          if(has(w,'understand','got','ok','okay','clear','sure','fine')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Exactly.',ruThem:'Именно так.',next:'thanks'} } },
+      thanks:{ task:'Поблагодари.', best:'Now I understand. Thank you.',
+        judge(w){
+          if(has(w,'thank','thanks','ok','okay','good','great','sure','fine','understand','got','nice')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Do you need anything else?',ruThem:'Ещё что-то нужно?',next:'extra'} } },
+      extra:{ task:'Спроси о чём-нибудь ещё (например: есть ли рядом кафе?) или скажи, что всё.', best:'Is there a cafe near here?',
+        judge(w){
+          if(has(w,'nothing','all','enough','nope')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* «всё, спасибо» */
+          if(has(w,'cafe','coffee','shop','supermarket','bank','pharmacy','restaurant','bar','atm','near','around','here','close')) return {br:'place'};
+          if(has(w,'what','where','is','are','do','does','can','how','any')) return {br:'place'};
+          return {huh:1}; },
+        tr:{
+          place:{them:'Yes, just around the corner.',ruThem:'Да, прямо за углом.',next:'which'},
+          none:{them:'You are welcome. Have a good day!',ruThem:'Пожалуйста. Хорошего дня!',next:'bye'} } },
+      which:{ task:'Уточни направление: налево или направо.', best:'Left or right?',
+        judge(w){
+          if(has(w,'left','right','which','side','where','direction','way','turn')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'On your right, next to the shop.',ruThem:'Справа, рядом с магазином.',next:'bye'} } },
+      bye:{ task:'Поблагодари и попрощайся.', best:'Thank you, that is very helpful. Bye!',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice','helpful','great')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'No problem. Bye!',ruThem:'Без проблем. Пока!',next:null} } }
+        }};
+const SCENES={ s1:S1, s2:S2, s3:S3 };
+try{ if(typeof module!=='undefined' && module.exports) module.exports={SCENES}; }catch(e){}
+
+/* ================= UI ================= */
+const fmt = s => (s||'').replace(/\{name\}/g, (D.mem && D.mem.name)||'…')
+  .replace(/\{day\}/g, (D.mem && D.mem.day) ? cap(D.mem.day) : '…');
+const D = {
+  mem:{}, scene:null, at:null, tries:0,
+  open(id){ D.scene=SCENES[id]; D.again();
+    [...document.querySelectorAll('#pick button')].forEach(b=>b.classList.toggle('on',b.dataset.id===id)); },
+  again(){ D.mem={}; D.at=D.scene.start; D.tries=0; D._hint=null;
+    const chat=document.getElementById('chat'); chat.innerHTML='';
+    if(D.scene.intro){ const c=document.createElement('div'); c.className='ctx'; c.textContent=D.scene.intro; chat.appendChild(c); }
+    if(D.scene.opener) D.bub('them', D.scene.opener.them, D.scene.opener.ru);
+    document.getElementById('out').innerHTML=''; document.getElementById('in').value='';
+    document.getElementById('stage').style.display='block';
+    document.getElementById('in').disabled=false;
+    document.querySelector('.row button').disabled=false;
+    D.step(); },
+  step(){
+    const n=D.scene.nodes[D.at];
+    document.getElementById('ru').textContent = n.task;
+    document.querySelector('.row button').disabled=false;
+    document.getElementById('in').disabled=false;
+    document.getElementById('dunno').style.display='';
+    document.getElementById('out').innerHTML='';
+    if(D._hint){ document.getElementById('out').innerHTML=`<div class="hint">Правильно говорить: «${D._hint}».</div>`; }
+  },
+  bub(who,en,ru){ const c=document.getElementById('chat');
+    [...c.children].forEach(x=>x.classList.add('old'));
+    const b=document.createElement('div'); b.className='bub '+who;
+    b.innerHTML=en+(ru?`<span class="tr">${ru}</span>`:'');
+    c.appendChild(b); c.scrollTop=c.scrollHeight; },
+  go(){
+    const n=D.scene.nodes[D.at];
+    const said=document.getElementById('in').value.trim();
+    if(!said) return;
+    const w=expand(norm(said));
+    D.mem._digits=(said.match(/\d+/g)||[]); D.mem._raw=said;
+    let res;
+    if(!w.length && !D.mem._digits.length){ res={huh:1, note:/[а-яё]/i.test(said)?'Похоже на русский — попробуй по-английски.':'Пусто.'}; }
+    else res=n.judge(w,D.mem);
+    document.getElementById('in').value='';
+    if(res.huh){
+      D.tries++;
+      D.bub('you',said,'');
+      const out=document.getElementById('out');
+      if(D.tries>=2){
+        document.getElementById('dunno').style.display='none';
+        out.innerHTML=`<div class="v"><b class="a">Собеседник не понял.</b><ul><li>Скажи, например: <b>${n.best}</b></li></ul></div>`;
+        D.bub('them','Sorry, I did not understand.','Простите, я не понял.');
+        const b=document.createElement('button'); b.className='g'; b.textContent='Дальше';
+        b.onclick=()=>{ const w2=expand(norm(n.best)); D.branch(n,n.judge(w2,D.mem)); };
+        const row=document.createElement('div'); row.className='row'; row.appendChild(b);
+        out.appendChild(row);
+        return;
+      }
+      out.innerHTML=`<div class="v"><b class="a">Собеседник не понял.</b><ul><li>Скажи иначе — или жми «Не знаю».</li></ul></div>`;
+      D.bub('them','Sorry, I did not understand. Could you say it again?','Простите, не понял. Повторите, пожалуйста.');
+      const b=document.createElement('button'); b.className='g'; b.textContent='Исправить ответ';
+      b.onclick=()=>{ b.remove(); out.innerHTML=''; document.getElementById('in').disabled=false;
+        document.querySelector('.row button').disabled=false; d.style.display=''; };
+      document.querySelector('.row button').disabled=true; document.getElementById('in').disabled=true;
+      out.appendChild(b);
+      return;
+    }
+    D.tries=0;
+    D.bub('you',said,'');
+    D.branch(n,res);
+  },
+  branch(n,res){
+    const tr=n.tr[res.br];
+    const out=document.getElementById('out');
+    D._hint=(tr&&tr.note)||null;
+    const note=D._hint?`<div class="hint">Правильно говорить: «${D._hint}».</div>`:'';
+    out.innerHTML='<div class="v"><b class="g">Тебя поняли.</b></div>'+note;
+    const d=document.getElementById('dunno'); d.style.display='none';
+    document.querySelector('.row button').disabled=true; document.getElementById('in').disabled=true;
+    setTimeout(()=>{
+      if(!tr){ D.end(); return; }
+      D.bub('them', fmt(tr.them), fmt(tr.ruThem));
+      if(!tr.next){ D.end(); return; }
+      D.at=tr.next; D.step();
+    }, 700);
+  },
+  opts(){
+    const n=D.scene.nodes[D.at];
+    document.getElementById('dunno').style.display='none';
+    const out=document.getElementById('out');
+    out.innerHTML='<div class="v"><b class="a">Как сказать</b></div>';
+    const row=document.createElement('div'); row.className='row';
+    const b=document.createElement('button'); b.className='g'; b.textContent=n.best;
+    b.onclick=()=>{ row.remove(); const w=expand(norm(n.best)); D.bub('you',n.best,''); D.branch(n,n.judge(w,D.mem)); };
+    row.appendChild(b); out.appendChild(row);
+  },
+  end(){
+    document.getElementById('ru').textContent='—';
+    const d=document.getElementById('dunno'); d.style.display='none';
+    document.querySelector('.row button').disabled=true;
+    document.getElementById('in').disabled=true;
+    const out=document.getElementById('out');
+    out.innerHTML=`<div class="note-end">Сцена завершена.</div>
+      <div class="v"><ul><li>Пройди ещё раз с другим ответом — собеседник среагирует иначе.</li></ul></div>`;
+  }
+};
+(function init(){
+  const pick=document.getElementById('pick');
+  Object.keys(SCENES).forEach(id=>{
+    const b=document.createElement('button'); b.dataset.id=id; b.textContent=SCENES[id].title;
+    b.onclick=()=>D.open(id); pick.appendChild(b);
+  });
+  D.scene=S1; D.open('s1');
+})();
+</script></body></html>

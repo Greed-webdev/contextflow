@@ -31,7 +31,8 @@ const FLOW_TITLES = ['Первое приветствие', 'Заполнить 
   'Купить куртку', 'Заказать обед', 'У барной стойки',
   'Показать квартиру', 'Что-то сломалось', 'Найти банк',
   'Купить билет', 'Объяснить дорогу', 'Рассказать о работе', 'На языковых курсах',
-  'Оплата на кассе', 'Открыть счёт', 'В аптеке', 'Регистрация после приезда', 'СИМ-карта и контракт'];
+  'Оплата на кассе', 'Открыть счёт', 'В аптеке', 'Регистрация после приезда', 'СИМ-карта и контракт',
+  'Перевод денег', 'Проблема с интернетом', 'Не расслышал'];
 for (const t of FLOW_TITLES) {
   const lv = stage1.find(x => x.type === 'dialog' && x.variant === 'flow' && x.title === t);
   if (!lv) { console.error('нет flow-записи «' + t + '» в курсе'); process.exit(1); }
@@ -44,7 +45,8 @@ const SCENES = { s1: flowBy['Первое приветствие'], s2: flowBy['
   s13: flowBy['Показать квартиру'], s14: flowBy['Что-то сломалось'], s15: flowBy['Найти банк'],
   s16: flowBy['Купить билет'], s17: flowBy['Объяснить дорогу'], s18: flowBy['Рассказать о работе'],
   s19: flowBy['На языковых курсах'], s20: flowBy['Оплата на кассе'], s21: flowBy['Открыть счёт'],
-  s22: flowBy['В аптеке'], s23: flowBy['Регистрация после приезда'], s24: flowBy['СИМ-карта и контракт'] };
+  s22: flowBy['В аптеке'], s23: flowBy['Регистрация после приезда'], s24: flowBy['СИМ-карта и контракт'],
+  s25: flowBy['Перевод денег'], s26: flowBy['Проблема с интернетом'], s27: flowBy['Не расслышал'] };
 const norm = ctxApp.__H.norm, expand = ctxApp.__H.expand;
 const SPEC = JSON.parse(fs.readFileSync('/home/user/сцена-1-живая-логика.json', 'utf8'));
 
@@ -821,9 +823,50 @@ T('S24 полный путь: до конца', r.ok, r.err);
 r = run(s24, ['Internet for my flat, please.', 'Yes, I know my postcode.', 'Card.', 'No questions.', 'Thanks, bye!']);
 T('S24 путь через интернет: до конца', r.ok, r.err);
 
+// ---------- партия 9: перевод денег / проблема с интернетом / не расслышал ----------
+const s25 = SCENES.s25, s26 = SCENES.s26, s27 = SCENES.s27;
+// s25 Перевод денег: сумма словами → к дате → комиссия ок → когда готово → уведомление → прощание
+r = run(s25, ['One thousand three hundred euros, please.', 'Before the nineteenth of November.',
+  'Ok, I agree.', 'When will it be ready?', 'Will you send me a message?', 'Thank you very much. Goodbye.']);
+T('S25 полный путь: до конца', r.ok, r.err);
+// сумма цифрами — тоже принимается
+{ const s = step(s25, 'amount', '500 euros', {});
+  T('S25 сумма цифрами -> ветка ok', !s.err && s.br === 'ok', s.err || s.br); }
+// срочно сегодня — другая комиссия (ветвление)
+{ const s = step(s25, 'when', 'Today please, it is urgent', {});
+  T('S25 «срочно сегодня» -> ветка urgent', !s.err && s.br === 'urgent', s.err || s.br); }
+// вопрос «кто платит комиссию» — отдельная ветка
+{ const s = step(s25, 'fee', 'Who pays the fee, me or the receiver?', {});
+  T('S25 «кто платит» -> ветка who', !s.err && s.br === 'who', s.err || s.br); }
+// вопросов нет — сразу к прощанию
+{ const s = step(s25, 'more', 'Nothing, that is all', {});
+  T('S25 «вопросов нет» -> ветка none (к прощанию)', !s.err && s.br === 'none' && s.next === 'bye', s.err || s.br); }
+
+// s26 Проблема с интернетом: не работает → роутер проверял → когда мастер → буду дома → прощание
+r = run(s26, ['The internet does not work.', 'Yes, I checked it.', 'Thank you. What time should I expect him?',
+  'Ok, I will be at home.', 'Thank you. Have a good day.']);
+T('S26 полный путь: до конца', r.ok, r.err);
+// роутер не проверял → перезагрузка → помогло → сразу прощание (ветвление)
+r = run(s26, ['My wifi is not working.', 'No, I did not.', 'Yes, now it works.', 'Thanks, bye!']);
+T('S26 короткий путь: перезагрузка помогла', r.ok, r.err);
+{ const s = step(s26, 'restart', 'No, it still does not work', {});
+  T('S26 «не помогло» -> ветка still (мастер)', !s.err && s.br === 'still' && s.next === 'send', s.err || s.br); }
+
+// s27 Не расслышал: повтори медленнее → переспрос → спасибо → кафе → налево/направо → прощание
+r = run(s27, ['Sorry, could you repeat that more slowly?', 'The second left, right?',
+  'Now I understand. Thank you.', 'Is there a cafe near here?', 'Left or right?',
+  'Thank you, that is very helpful. Bye!']);
+T('S27 полный путь: до конца', r.ok, r.err);
+// просто «что?» — тоже принимается
+{ const s = step(s27, 'ask1', 'Sorry, what?', {});
+  T('S27 «что?» -> ветка again', !s.err && s.br === 'again', s.err || s.br); }
+// вопросов больше нет — сразу прощание
+{ const s = step(s27, 'extra', 'Nothing, thanks', {});
+  T('S27 «всё, спасибо» -> ветка none (к прощанию)', !s.err && s.br === 'none' && s.next === 'bye', s.err || s.br); }
+
 // «Не знаю»-механика для новых сцен: best каждого узла обязан проходить (кнопка «Дальше»)
 for (const [id, sc] of Object.entries(SCENES)) {
-  if (!['s13','s14','s15','s16','s17','s18','s19','s20','s21','s22','s23','s24'].includes(id)) continue;
+  if (!['s13','s14','s15','s16','s17','s18','s19','s20','s21','s22','s23','s24','s25','s26','s27'].includes(id)) continue;
   const mem = {}; let at = sc.start, ended = false;
   for (let k = 0; k < 300; k++) {
     const n = sc.nodes[at];
