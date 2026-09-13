@@ -162,6 +162,7 @@ function step(scene, at, said, mem) {
   const n = scene.nodes[at];
   if (!n) return { err: 'нет узла ' + at };
   mem._digits = said.match(/\d+/g) || [];
+  mem._raw = said;
   const w = expand(norm(said));
   const r = n.judge ? n.judge(w, mem) : null;
   if (!r || r.huh) return { err: 'huh на «' + said + '» (узел ' + at + ')' + (r && r.note ? ': ' + r.note : '') };
@@ -169,15 +170,32 @@ function step(scene, at, said, mem) {
   if (!t) return { err: 'нет ветки "' + r.br + '" для «' + said + '» (узел ' + at + ')' };
   return { br: r.br, them: fmt(t.them, mem), ru: fmt(t.ruThem, mem), note: t.note || null, next: t.next };
 }
+/* Дыра QA-021: «next === null» в ЛЮБОМ узле раньше считался успехом, и ранний
+   обрыв (отказ/тупик) маскировался под «путь до конца». Теперь для сцен с явным
+   финалом обрыв в узле не из белого списка = ошибка «ранний END». */
+const FINALS = {
+  'Первое приветствие': ['bye', 'byehome', 'lift', 'wait'],
+  'Заполнить анкету':   ['thx'],
+  'Разговор о семье':    ['plan', 'fr'],
+};
+function finalsOf(scene) {
+  for (const [k, v] of Object.entries(FINALS)) if (scene.title && scene.title.startsWith(k)) return v;
+  return null; /* сцена без белого списка — старое поведение */
+}
+
 function run(scene, phrases, mem) {
   mem = mem || {};
   let at = scene.start;
   const log = [];
+  const finals = finalsOf(scene);
   for (const ph of phrases) {
     const s = step(scene, at, ph, mem);
     if (s.err) return { ok: false, log, err: s.err, at };
     log.push({ at, ph, br: s.br, them: s.them, note: s.note });
-    if (s.next === null || s.next === undefined) return { ok: true, end: at, log, mem };
+    if (s.next === null || s.next === undefined) {
+      if (finals && !finals.includes(at)) return { ok: false, log, err: 'ранний END в узле «' + at + '» на «' + ph + '»', at };
+      return { ok: true, end: at, log, mem };
+    }
     if (!scene.nodes[s.next]) return { ok: false, log, err: 'next «' + s.next + '» не существует (из ' + at + ')' };
     at = s.next;
   }
@@ -430,7 +448,7 @@ for (const [ph,want] of [['of course','yes'],['a little','yes'],['sometimes','ye
 { const s=step(s3,'miss','yes I do not miss them',{}); T('QA4-2 miss «yes I do not miss them» -> no', !s.err&&s.br==='no', s.err||s.br); }
 { const s=step(s3,'miss','no not really',{}); T('QA4-3 miss «no not really» -> no', !s.err&&s.br==='no', s.err||s.br); }
 { const s=step(s3,'miss','of course',{}); T('QA4-4 miss «of course» -> yes', !s.err&&s.br==='yes', s.err||s.br); }
-{ const s=step(s1,'wait','no',{}); T('QA4-5 wait «no» -> ok (не застревает)', !s.err&&s.br==='ok', s.err||s.br); }
+{ const s=step(s1,'wait','no',{}); T('QA4-5 wait «no» -> отказ, диалог продолжается (рецензия 002)', !s.err&&s.br==='refuse'&&s.next==='bye', s.err||s.br); }
 { const s=step(s1,'wait','thanks',{}); T('QA4-6 wait «thanks» -> ok', !s.err&&s.br==='ok', s.err||s.br); }
 // 5. call me Anna -> fix + имя Anna
 { const m={}; const s=step(s1,'n0','call me Anna',m);
@@ -876,6 +894,58 @@ for (const [id, sc] of Object.entries(SCENES)) {
     at = r2.next;
   }
   T(`${id} «Не знаю»-проход (best каждого узла) до конца`, ended);
+}
+
+// ---------- рецензия демо-5 (2026-09-13): регресс-набор по каждому пункту ----------
+{
+  const s1 = SCENES.s1, s2 = SCENES.s2, s3 = SCENES.s3;
+  const st = (sc, at, said, mem) => step(sc, at, said, mem || {});
+  const expect = (name, sc, at, said, wantBr, extra) => {
+    const mem = {};
+    const r = st(sc, at, said, mem);
+    let ok = wantBr === 'huh' ? !!r.err : (!r.err && r.br === wantBr);
+    if (ok && extra) ok = extra(mem, r);
+    T(name, ok, r.err || ('br=' + r.br + ' name=' + mem.name));
+  };
+  // P0 — отрицания
+  expect('Р001 имя: «My name is Anna.» -> имя Anna', s1, 'name0', 'My name is Anna.', 'ok', m => m.name === 'Anna');
+  expect('Р001 имя: «My name is not Anna.» -> переспрос, имя не сохранено', s1, 'name0', 'My name is not Anna.', 'huh', m => !m.name);
+  expect('Имя: «My name is Hope.» -> имя Hope', s1, 'name0', 'My name is Hope.', 'ok', m => m.name === 'Hope');
+  expect('Имя: «My name is Will.» -> имя Will', s1, 'name0', 'My name is Will.', 'ok', m => m.name === 'Will');
+  expect('Имя: «My name is May.» -> имя May', s1, 'name0', 'My name is May.', 'ok', m => m.name === 'May');
+  expect('Р002 отказ ждать -> ветка, не конец', s1, 'wait', 'I do not want to wait.', 'refuse', (m, r) => r.next === 'bye');
+  expect('Р002 «no problem» на узле ожидания -> ок', s1, 'wait', 'No problem.', 'ok');
+  expect('Р003 «I can\'t write it here.» -> отказ/уточнение', s2, 'phone', 'I can\'t write it here.', 'cant');
+  expect('Р004 «нет брата или сестры» -> ветка отсутствия', s3, 'n0', 'I don\'t have a brother or sister.', 'nosib');
+  expect('Р005 «здесь, не в России» -> ветка here', s3, 'parents', 'My parents are here, not in Russia.', 'here');
+  expect('Р006 «I do miss them.» -> позитивная ветка', s3, 'miss', 'Yes, I do miss them.', 'yes');
+  expect('Р006 «I don\'t miss them.» -> отказ', s3, 'miss', 'I don\'t miss them.', 'no');
+  expect('Р006 «No, I really miss them.» -> позитивная ветка', s3, 'miss', 'No, I really miss them.', 'yes');
+  expect('Р007 «I will not go soon.» -> отказ', s3, 'plan', 'I will not go soon.', 'notyet');
+  expect('Р007 «I will go soon.» -> ок', s3, 'plan', 'I will go soon.', 'ok');
+  expect('Р008 «нет семьи» -> ветка отсутствия', s3, 'n0', 'I don\'t have a family.', 'nofam');
+  expect('Р009 «я один» -> ветка alone', s3, 'who', 'I have no brother. I am alone.', 'alone');
+  expect('Р010 «не на бумаге» -> уточнение', s2, 'mail', 'It is not on the paper.', 'huh');
+  // P1
+  expect('Р011 «у меня вопрос» -> не ветка ухода', s1, 'reason', 'I just have a question.', 'help');
+  expect('Р013 «I live at Park Street.» -> не имя', s2, 'n0', 'I live at Park Street.', 'huh', m => !m.name);
+  expect('Р013 «My name is Anna Petrova.» -> имя Anna', s2, 'n0', 'My name is Anna Petrova.', 'full', m => m.name === 'Anna');
+  expect('Р014 голое «Street.» -> переспрос', s2, 'numS', 'Street.', 'huh');
+  expect('Р014 «Park Street» -> ок', s2, 'numS', 'Park Street', 'ok');
+  expect('Р015 e-mail адресом -> принято', s2, 'mail', 'anna@example.com', 'ok');
+  expect('Р015 «It is on the paper too.» -> ок', s2, 'mail', 'It is on the paper too.', 'ok');
+  expect('Р016 «Will you help me?» -> переспрос', s2, 'ready', 'Will you help me?', 'huh');
+  expect('Р016 «When will it be ready?» -> ок', s2, 'ready', 'When will it be ready?', 'ok');
+  expect('Р017 «два брата» -> не номер дома', s2, 'numH', 'I have two brothers.', 'huh');
+  expect('Р017 «twelve» -> ок', s2, 'numH', 'twelve', 'ok');
+  expect('Сверх: «777» -> не номер дома', s2, 'numH', '777', 'huh');
+  expect('Сверх: «777» -> не возраст', s2, 'age', '777', 'huh');
+  expect('Р019 «не гостили неделю» -> переспрос', s3, 'stay', 'They did not stay a week.', 'huh');
+  expect('Р019 «Two weeks.» -> ок', s3, 'stay', 'Two weeks.', 'ok');
+  expect('Р020 «I left my bag outside.» -> переспрос', s1, 'floor', 'I left my bag outside.', 'huh');
+  expect('Р020 «room 204 second floor» -> ок', s1, 'floor', 'room 204 second floor', 'ok');
+  expect('Родители в России -> ветка russia', s3, 'parents', 'My parents live in Russia.', 'russia');
+  expect('Семья: «брат и сестра» -> ветка sib', s3, 'n0', 'I have a brother and a sister.', 'sib');
 }
 
 // ---------- итог ----------

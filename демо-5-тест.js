@@ -23,6 +23,7 @@ function step(scene, at, said, mem) {
   const n = scene.nodes[at];
   if (!n) return { err: `нет узла ${at}` };
   mem._digits = said.match(/\d+/g) || [];
+  mem._raw = said;
   const w = expand(norm(said));
   const r = n.judge ? n.judge(w, mem) : null;
   if (!r || r.huh) return { err: `huh на «${said}» (узел ${at})` };
@@ -30,15 +31,31 @@ function step(scene, at, said, mem) {
   if (!t) return { err: `нет ветки "${r.br}" для «${said}» (узел ${at})` };
   return { br: r.br, them: fmt(t.them, mem), ru: fmt(t.ruThem, mem), note: t.note || null, next: t.next };
 }
+/* Фикс QA-021 (рецензия 2026-09-13): раньше любой «next === null» считался
+   успехом, и ранний обрыв (отказ/тупик) маскировался под «путь до конца».
+   Теперь для сцен с явным финалом обрыв в узле не из белого списка = ошибка. */
+const FINALS = {
+  'Первое приветствие': ['bye', 'byehome', 'lift', 'wait'],
+  'Заполнить анкету':   ['thx'],
+  'Разговор о семье':    ['plan', 'fr'],
+};
+function finalsOf(scene) {
+  for (const [k, v] of Object.entries(FINALS)) if (scene.title && scene.title.startsWith(k)) return v;
+  return null;
+}
 function run(scene, phrases, mem) {
   mem = mem || {};
   let at = scene.start;
   const log = [];
+  const finals = finalsOf(scene);
   for (const ph of phrases) {
     const s = step(scene, at, ph, mem);
     if (s.err) return { ok: false, log, err: s.err, at };
     log.push({ at, ph, br: s.br, them: s.them, note: s.note });
-    if (s.next === null || s.next === undefined) return { ok: true, end: at, log, mem };
+    if (s.next === null || s.next === undefined) {
+      if (finals && !finals.includes(at)) return { ok: false, log, err: `ранний END в узле «${at}» на «${ph}»`, at };
+      return { ok: true, end: at, log, mem };
+    }
     if (!scene.nodes[s.next]) return { ok: false, log, err: `next «${s.next}» не существует (из ${at})` };
     at = s.next;
   }
@@ -291,7 +308,7 @@ for (const [ph,want] of [['of course','yes'],['a little','yes'],['sometimes','ye
 { const s=step(s3,'miss','yes I do not miss them',{}); T('QA4-2 miss «yes I do not miss them» -> no', !s.err&&s.br==='no', s.err||s.br); }
 { const s=step(s3,'miss','no not really',{}); T('QA4-3 miss «no not really» -> no', !s.err&&s.br==='no', s.err||s.br); }
 { const s=step(s3,'miss','of course',{}); T('QA4-4 miss «of course» -> yes', !s.err&&s.br==='yes', s.err||s.br); }
-{ const s=step(s1,'wait','no',{}); T('QA4-5 wait «no» -> ok (не застревает)', !s.err&&s.br==='ok', s.err||s.br); }
+{ const s=step(s1,'wait','no',{}); T('QA4-5 wait «no» -> отказ, диалог продолжается (рецензия 002)', !s.err&&s.br==='refuse'&&s.next==='bye', s.err||s.br); }
 { const s=step(s1,'wait','thanks',{}); T('QA4-6 wait «thanks» -> ok', !s.err&&s.br==='ok', s.err||s.br); }
 // 5. call me Anna -> fix + имя Anna
 { const m={}; const s=step(s1,'n0','call me Anna',m);

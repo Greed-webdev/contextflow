@@ -27,7 +27,7 @@ const mkDunno = () => { const b = el('button','btn dunno wide'); b.innerHTML = d
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v28';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v29';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -848,6 +848,41 @@ fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,hundred:100};
 const numOf = a => { let tot=0,cur=0,any=false; a.forEach(x=>{ if(/^\d+$/.test(x)){tot+=parseInt(x,10);any=true;return;}
   if(x in NUM){any=true;cur+=NUM[x];} }); return any?tot+cur:null; };
 const has = (w,...xs)=> xs.some(x=>w.includes(x));
+/* Близкое отрицание: «no/not/never/cannot» в 1–3 словах ПЕРЕД цель-словом,
+   служебные пропускаются. Звать ДО позитивных проверок в каждом судье.
+   «I do miss them» — не отрицание (между do и miss нет not). */
+const NEG_LEAD=['no','not','never','cannot'];
+const NEG_SKIP=['to','a','an','the','on','in','at','from','want','wants','have','has','had','do','does','did',
+'will','would','can','could','shall','should','am','is','are','be','been','really','just','very','so','think'];
+const negatedWord=(w,i)=>{ let k=i-1,steps=0;
+  while(k>=0&&steps<3){ const x=w[k];
+    if(NEG_LEAD.includes(x)) return true;
+    if(!NEG_SKIP.includes(x)) return false;
+    k--; steps++; }
+  return false; };
+const isNegatedIntent=(w,targets)=>{ for(let i=0;i<w.length;i++){ if(targets.includes(w[i])&&negatedWord(w,i)) return true; } return false; };
+/* Имя из явного представления: «my name is X [Y]», «i am X», «i'm X», «call me X».
+   Возвращает до двух слов (имя + фамилия). После «my name is» берёт даже
+   стоп-слова (Hope, Will, May — живые имена); после «i am» — только белый список. */
+const introNames = w => {
+  for (let i=0;i<w.length;i++){
+    const a=w[i], b=w[i+1];
+    let strong=false, j=-1;
+    if(a==='name'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='call'&&b==='me'){ strong=true; j=i+2; }
+    else if(a==='this'&&b==='is'){ strong=true; j=i+2; }
+    else if((a==='i'&&b==='am')||a==='im'){ j=(a==='im')?i+1:i+2; }
+    if(j<0) continue;
+    const ok=x=>x&&/^[a-z']+$/.test(x)&&x.length>=2&&x.length<=15
+       &&!NEG_LEAD.includes(x)&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)
+       &&(NAME_OK.has(x)||(strong&&!NAME_STOP.includes(x)&&!SVC.includes(x)&&looksLikeName(x)));
+    if(w[j]&&NEG_LEAD.includes(w[j])) return []; /* «my name is not ...» */
+    if(!ok(w[j])) continue;
+    const out=[w[j]];
+    if(ok(w[j+1])) out.push(w[j+1]);
+    return out;
+  }
+  return []; };
 const SVC=['a','an','the','to','of','and','my','i','you','it','in','on','at','for','with','this','that','have',
 'has','can','will','would','please','me','we','they','is','am','are','be','do','does','did','not','no','yes',
 'thanks','thank','goodbye','bye','see','very','much','really','sorry','right','ok','okay','sure','here',
@@ -893,8 +928,12 @@ const pickName = (w, skip, strict)=>{
     const pair=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='i'&&w[i+1]==='am')||
                (w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
     if(pair){ const x=w[i+2];
+      const strong=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
+      if(x&&NEG_LEAD.includes(x)) return null; /* «my name is not ...» — имя не названо */
+      /* после «my name is» берём даже стоп-слова (Hope, Will, May);
+         после «i am» — только белый список, иначе «i am late/here» становилось именем */
       if(x&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)&&
-         (NAME_OK.has(x)||(!SVC.includes(x)&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
+         (NAME_OK.has(x)||(strong&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
   }
   const s=new Set([...SVC,...skip]);
   const c=w.find(x=>{

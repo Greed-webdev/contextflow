@@ -68,6 +68,41 @@ fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,hundred:100};
 const numOf = a => { let tot=0,cur=0,any=false; a.forEach(x=>{ if(/^\d+$/.test(x)){tot+=parseInt(x,10);any=true;return;}
   if(x in NUM){any=true;cur+=NUM[x];} }); return any?tot+cur:null; };
 const has = (w,...xs)=> xs.some(x=>w.includes(x));
+/* Близкое отрицание: «no/not/never/cannot» в 1–3 словах ПЕРЕД цель-словом,
+   служебные пропускаются. Звать ДО позитивных проверок в каждом судье.
+   «I do miss them» — не отрицание (между do и miss нет not). */
+const NEG_LEAD=['no','not','never','cannot'];
+const NEG_SKIP=['to','a','an','the','on','in','at','from','want','wants','have','has','had','do','does','did',
+'will','would','can','could','shall','should','am','is','are','be','been','really','just','very','so','think'];
+const negatedWord=(w,i)=>{ let k=i-1,steps=0;
+  while(k>=0&&steps<3){ const x=w[k];
+    if(NEG_LEAD.includes(x)) return true;
+    if(!NEG_SKIP.includes(x)) return false;
+    k--; steps++; }
+  return false; };
+const isNegatedIntent=(w,targets)=>{ for(let i=0;i<w.length;i++){ if(targets.includes(w[i])&&negatedWord(w,i)) return true; } return false; };
+/* Имя из явного представления: «my name is X [Y]», «i am X», «i'm X», «call me X».
+   Возвращает до двух слов (имя + фамилия). После «my name is» берёт даже
+   стоп-слова (Hope, Will, May — живые имена); после «i am» — только белый список. */
+const introNames = w => {
+  for (let i=0;i<w.length;i++){
+    const a=w[i], b=w[i+1];
+    let strong=false, j=-1;
+    if(a==='name'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='call'&&b==='me'){ strong=true; j=i+2; }
+    else if(a==='this'&&b==='is'){ strong=true; j=i+2; }
+    else if((a==='i'&&b==='am')||a==='im'){ j=(a==='im')?i+1:i+2; }
+    if(j<0) continue;
+    const ok=x=>x&&/^[a-z']+$/.test(x)&&x.length>=2&&x.length<=15
+       &&!NEG_LEAD.includes(x)&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)
+       &&(NAME_OK.has(x)||(strong&&!NAME_STOP.includes(x)&&!SVC.includes(x)&&looksLikeName(x)));
+    if(w[j]&&NEG_LEAD.includes(w[j])) return []; /* «my name is not ...» */
+    if(!ok(w[j])) continue;
+    const out=[w[j]];
+    if(ok(w[j+1])) out.push(w[j+1]);
+    return out;
+  }
+  return []; };
 const SVC=['a','an','the','to','of','and','my','i','you','it','in','on','at','for','with','this','that','have',
 'has','can','will','would','please','me','we','they','is','am','are','be','do','does','did','not','no','yes',
 'thanks','thank','goodbye','bye','see','very','much','really','sorry','right','ok','okay','sure','here',
@@ -120,17 +155,17 @@ const looksLikeName = x =>
    strict=false — достаточно правдоподобности (игрок явно представился) */
 const cap = x => x.charAt(0).toUpperCase()+x.slice(1);
 const pickName = (w, skip, strict)=>{
-  /* 1) слово сразу после «my name is» / «i am» / «call me» / «this is».
-     Так Hope, Will, May, Grace распознаются, хотя они же служебные слова,
-     а «I hope I am not late» именем не становится. */
   for(let i=0;i<w.length-1;i++){
     const pair=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='i'&&w[i+1]==='am')||
                (w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
     if(pair){ const x=w[i+2];
+      const strong=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
+      if(x&&NEG_LEAD.includes(x)) return null; /* «my name is not ...» — имя не названо */
+      /* после «my name is» берём даже стоп-слова (Hope, Will, May);
+         после «i am» — только белый список, иначе «i am late/here» становилось именем */
       if(x&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)&&
-         (NAME_OK.has(x)||(!SVC.includes(x)&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
+         (NAME_OK.has(x)||(strong&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
   }
-  /* 2) обычный поиск */
   const s=new Set([...SVC,...skip]);
   const c=w.find(x=>{
     if(s.has(x)||NUM.hasOwnProperty(x)||NOT_NAME.has(x)) return false;
@@ -138,7 +173,7 @@ const pickName = (w, skip, strict)=>{
     return strict ? false : looksLikeName(x);
   });
   return c ? cap(c) : null;
-};
+};;
 /* игрок явно представляется: «my name is X», «i am X», «call me X», «this is X» */
 const introduced = w => {
   for(let i=0;i<w.length-1;i++){
@@ -155,215 +190,251 @@ const sigWords = (w, extra)=>{
 };
 
 /* ============ СЦЕНА 1 · ур.3 «Первое приветствие» (офис) — живая логика ============ */
-
-
-
 const S1 = { title:'Первое приветствие · ур. 3', start:'n0',
-  intro:'Ты заходишь в офис. Человек за стойкой поднимает голову.',
-  opener:{them:'Hello! Can I help you?', ru:'Здравствуйте! Чем могу помочь?'},
-  nodes:{
-n0:{ task:'Поздоровайся, представься и скажи, зачем пришёл (например: привет, я Анна, у меня встреча).', best:'Hi, my name is Anna. I have a meeting.',
-  judge(w,mem){
-    let lim=w.length; ['with','see'].forEach(k=>{ const i=w.indexOf(k); if(i!==-1&&i<lim) lim=i; });
-    const nm=pickName(w.slice(0,lim),NAME_STOP,!introduced(w));
-    const meeting=has(w,'meeting','appointment');
-    /* отрицание = отказ, только если оно НЕ часть вежливого оборота
-       (no problem/no worries/no thanks/not late/not sure/do not know/not yet)
-       и стоит рядом с делом (meeting/appointment) или фразой ухода. */
-    const SOFT=['problem','worries','worry','late','sure','know','yet','matter'];
-    let neg=false;
-    w.forEach((x,i)=>{ if(x==='no'||x==='not'){
-      const around=w.slice(Math.max(0,i-2),i+3).some(y=>SOFT.includes(y));
-      if(!around) neg=true; } });
-    if(meeting&&neg) return {br:'leave'};
-    if(!meeting&&(neg||has(w,'leaving','going','go','home','bye','goodbye','nothing')||(has(w,'just')&&has(w,'looking')))) return {br:'leave'};
-    if(nm) mem.name=nm;
-    if(meeting) return nm?{br:'meet_full'}:{br:'meet_noname'};
-    if((has(w,'name')&&!(has(w,'my')&&has(w,'is')))||has(w,'call')) return nm?{br:'fix'}:{br:'hi'};
-    if(has(w,'friend','wait','waiting','lost','help','need','someone','person','find')) return {br:'help'};
-    if(nm) return {br:'greet'};
-    if(has(w,'hi','hello','hey','good','morning')) return {br:'hi'};
-    if(has(w,'yes','yeah','sure','ok','okay','maybe','am','is','have')) return {br:'ask'};
-    return {huh:1}; },
-  tr:{
-    meet_full:{them:'Nice to meet you, {name}. The meeting is in room 204, second floor, on the left.',ruThem:'Приятно познакомиться, {name}. Встреча — кабинет 204, второй этаж, слева.',next:'floor'},
-    meet_noname:{them:'Of course. What is your name, please?',ruThem:'Конечно. Ваше имя, пожалуйста?',next:'name1'},
-    leave:{them:'No problem. I am here if you need anything. Have a nice day!',ruThem:'Без проблем. Я здесь, если что-то понадобится. Хорошего дня!',next:'bye'},
-    fix:{them:'Nice to meet you, {name}! Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}! Вы на встречу?',note:'My name is Anna.',next:'meet'},
-    greet:{them:'Nice to meet you, {name}. Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}. Вы на встречу?',next:'meet'},
-    hi:{them:'Hello! What is your name, please?',ruThem:'Здравствуйте! Как вас зовут?',next:'name0'},
-    help:{them:'I see. Take a seat, please. I will be with you in a minute.',ruThem:'Ясно. Присядьте, пожалуйста. Я подойду через минуту.',next:'wait'},
-    ask:{them:'What can I do for you?',ruThem:'Чем я могу вам помочь?',next:'reason'} } },
-name0:{ task:'Скажи, как тебя зовут (например: меня зовут Анна).', best:'My name is Anna.',
-  judge(w,mem){ const nm=pickName(w,NAME_STOP,false); if(nm) mem.name=nm;
-    if(nm) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'Nice to meet you, {name}. Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}. Вы на встречу?',next:'meet'} } },
-name1:{ task:'Скажи, как тебя зовут (например: меня зовут Анна).', best:'My name is Anna.',
-  judge(w,mem){ const nm=pickName(w,NAME_STOP,false); if(nm) mem.name=nm;
-    if(nm) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'Nice to meet you, {name}. The meeting is in room 204, second floor, on the left.',ruThem:'Приятно познакомиться, {name}. Встреча — кабинет 204, второй этаж, слева.',next:'floor'} } },
-meet:{ task:'Ответь, идёшь ли ты на встречу (например: да, я на встречу).', best:'Yes, I am here for the meeting.',
-  judge(w){ const neg=has(w,'no','not','nope','never');
-    /* решение: «нет» на прямой вопрос — повод уточнить «чем помочь?», а не выпроводить
-       (тренажёр: лишняя реплика = практика; админ в жизни уточнит). Мусор — честный huh. */
-    if(!neg&&has(w,'yes','yeah','sure','meeting','meet','appointment','course','right','correct','exactly')) return {br:'meet'};
-    if(has(w,'home','leave','leaving','going','go','bye','later','nothing')) return {br:'home'};
-    if(has(w,'help','lost','wait','waiting','friend','someone','person','look','find','another','wrong','just')) return {br:'other'};
-    if(neg||has(w,'what','why','sorry','pardon','repeat','again','know','understand')) return {br:'ask'};
-    return {huh:1}; },
-  tr:{ meet:{them:'Great. The meeting is in room 204, second floor, on the left.',ruThem:'Отлично. Встреча — кабинет 204, второй этаж, слева.',next:'floor'},
-       home:{them:'Oh, I see. Take care, then!',ruThem:'А, понял. Тогда удачи!',next:'byehome'},
-       other:{them:'I see. Take a seat - I will find the right person for you.',ruThem:'Ясно. Присядьте - я найду, кто вам нужен.',next:'wait'},
-       ask:{them:'What can I do for you?',ruThem:'Чем я могу вам помочь?',next:'reason'} } },
-reason:{ task:'Ответь, зачем пришёл (например: я на встречу / жду друга / просто зашёл).', best:'I am here for the meeting.',
-  judge(w){ if(has(w,'meeting','meet','appointment')&&!has(w,'no','not')) return {br:'meet'};
-    if(has(w,'friend','wait','help','need','lost','someone','person','find')) return {br:'help'};
-    if(has(w,'no','nothing','just','home','leave','bye','going','go','look','fine')) return {br:'home'};
-    return {huh:1}; },
-  tr:{ meet:{them:'The meeting is in room 204, second floor, on the left.',ruThem:'Встреча — кабинет 204, второй этаж, слева.',next:'floor'},
-       help:{them:'I see. Take a seat, please. I will be with you in a minute.',ruThem:'Ясно. Присядьте, пожалуйста. Я подойду через минуту.',next:'wait'},
-       home:{them:'Ah, I see. Have a nice day then!',ruThem:'А, ясно. Тогда хорошего дня!',next:'byehome'} } },
-bye:{ task:'Попрощайся.', best:'Thank you. Goodbye!',
-  judge(w){ if(has(w,'bye','goodbye','thanks','thank','see','later','day')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null} } },
-byehome:{ task:'Попрощайся.', best:'Bye. Have a nice day!',
-  judge(w){ if(has(w,'bye','goodbye','see','thanks','thank','later')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Берегите себя!',next:null} } },
-wait:{ task:'Поблагодари.', best:'Thank you very much.',
-  judge(w){ if(has(w,'thanks','thank','ok','okay','sure','fine','great','good','alright','right','cheers')) return {br:'ok'};
-    if(has(w,'no','not','nothing','bye','goodbye')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'You are welcome.',ruThem:'Пожалуйста.',next:null} } },
-floor:{ task:'Переспроси, куда идти (например: кабинет 204, второй этаж?).', best:'Room 204, second floor?',
-  judge(w,mem){ const d204=(mem._digits||[]).includes('204');
-    if(d204||has(w,'room','floor','second','two','lift','left')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'That is right. Take the lift.',ruThem:'Верно. Поднимитесь на лифте.',next:'lift'} } },
-lift:{ task:'Поблагодари и попрощайся.', best:'Thanks a lot. Have a good day!',
-  judge(w){ const th=has(w,'thanks','thank'), by=has(w,'bye','goodbye','day','see');
-    if(th&&by) return {br:'full'}; if(by) return {br:'bye'}; if(th) return {br:'th'}; return {huh:1}; },
-  tr:{ full:{them:'Good luck with the meeting. Goodbye!',ruThem:'Удачи на встрече. До свидания!',next:null},
-       bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
-       th:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null} } },
+        intro:'Ты заходишь в офис. Человек за стойкой поднимает голову.',
+        opener:{them:'Hello! Can I help you?', ru:'Здравствуйте! Чем могу помочь?'},
+        nodes:{
+      n0:{ task:'Поздоровайся, представься и скажи, зачем пришёл (например: привет, я Анна, у меня встреча).', best:'Hi, my name is Anna. I have a meeting.',
+        judge(w,mem){
+          let lim=w.length; ['with','see'].forEach(k=>{ const i=w.indexOf(k); if(i!==-1&&i<lim) lim=i; });
+          const nm=pickName(w.slice(0,lim),NAME_STOP,!introduced(w));
+          const meeting=has(w,'meeting','appointment');
+          /* отрицание = отказ, только если оно НЕ часть вежливого оборота
+             (no problem/no worries/no thanks/not late/not sure/do not know/not yet)
+             и стоит рядом с делом (meeting/appointment) или фразой ухода. */
+          const SOFT=['problem','worries','worry','late','sure','know','yet','matter'];
+          let neg=false;
+          w.forEach((x,i)=>{ if(x==='no'||x==='not'){
+            const around=w.slice(Math.max(0,i-2),i+3).some(y=>SOFT.includes(y));
+            if(!around) neg=true; } });
+          if(meeting&&neg) return {br:'leave'};
+          if(!meeting&&(neg||has(w,'leaving','going','go','home','bye','goodbye','nothing')||(has(w,'just')&&has(w,'looking')))) return {br:'leave'};
+          if(nm) mem.name=nm;
+          if(meeting) return nm?{br:'meet_full'}:{br:'meet_noname'};
+          if((has(w,'name')&&!(has(w,'my')&&has(w,'is')))||has(w,'call')) return nm?{br:'fix'}:{br:'hi'};
+          if(has(w,'friend','wait','waiting','lost','help','need','someone','person','find')) return {br:'help'};
+          if(nm) return {br:'greet'};
+          if(has(w,'hi','hello','hey','good','morning')) return {br:'hi'};
+          if(has(w,'yes','yeah','sure','ok','okay','maybe','am','is','have')) return {br:'ask'};
+          return {huh:1}; },
+        tr:{
+          meet_full:{them:'Nice to meet you, {name}. The meeting is in room 204, second floor, on the left.',ruThem:'Приятно познакомиться, {name}. Встреча — кабинет 204, второй этаж, слева.',next:'floor'},
+          meet_noname:{them:'Of course. What is your name, please?',ruThem:'Конечно. Ваше имя, пожалуйста?',next:'name1'},
+          leave:{them:'No problem. I am here if you need anything. Have a nice day!',ruThem:'Без проблем. Я здесь, если что-то понадобится. Хорошего дня!',next:'bye'},
+          fix:{them:'Nice to meet you, {name}! Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}! Вы на встречу?',note:'My name is Anna.',next:'meet'},
+          greet:{them:'Nice to meet you, {name}. Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}. Вы на встречу?',next:'meet'},
+          hi:{them:'Hello! What is your name, please?',ruThem:'Здравствуйте! Как вас зовут?',next:'name0'},
+          help:{them:'I see. Take a seat, please. I will be with you in a minute.',ruThem:'Ясно. Присядьте, пожалуйста. Я подойду через минуту.',next:'wait'},
+          ask:{them:'What can I do for you?',ruThem:'Чем я могу вам помочь?',next:'reason'} } },
+      name0:{ task:'Скажи, как тебя зовут (например: меня зовут Анна).', best:'My name is Anna.',
+        judge(w,mem){ const nm=pickName(w,NAME_STOP,false); if(nm) mem.name=nm;
+          if(nm) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Nice to meet you, {name}. Are you here for the meeting?',ruThem:'Приятно познакомиться, {name}. Вы на встречу?',next:'meet'} } },
+      name1:{ task:'Скажи, как тебя зовут (например: меня зовут Анна).', best:'My name is Anna.',
+        judge(w,mem){ const nm=pickName(w,NAME_STOP,false); if(nm) mem.name=nm;
+          if(nm) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Nice to meet you, {name}. The meeting is in room 204, second floor, on the left.',ruThem:'Приятно познакомиться, {name}. Встреча — кабинет 204, второй этаж, слева.',next:'floor'} } },
+      meet:{ task:'Ответь, идёшь ли ты на встречу (например: да, я на встречу).', best:'Yes, I am here for the meeting.',
+        judge(w){ const neg=has(w,'no','not','nope','never');
+          /* решение: «нет» на прямой вопрос — повод уточнить «чем помочь?», а не выпроводить
+             (тренажёр: лишняя реплика = практика; админ в жизни уточнит). Мусор — честный huh. */
+          if(!neg&&has(w,'yes','yeah','sure','meeting','meet','appointment','course','right','correct','exactly')) return {br:'meet'};
+          if(has(w,'home','leave','leaving','going','go','bye','later','nothing')) return {br:'home'};
+          if(has(w,'help','lost','wait','waiting','friend','someone','person','look','find','another','wrong','just')) return {br:'other'};
+          if(neg||has(w,'what','why','sorry','pardon','repeat','again','know','understand')) return {br:'ask'};
+          return {huh:1}; },
+        tr:{ meet:{them:'Great. The meeting is in room 204, second floor, on the left.',ruThem:'Отлично. Встреча — кабинет 204, второй этаж, слева.',next:'floor'},
+             home:{them:'Oh, I see. Take care, then!',ruThem:'А, понял. Тогда удачи!',next:'byehome'},
+             other:{them:'I see. Take a seat - I will find the right person for you.',ruThem:'Ясно. Присядьте - я найду, кто вам нужен.',next:'wait'},
+             ask:{them:'What can I do for you?',ruThem:'Чем я могу вам помочь?',next:'reason'} } },
+      reason:{ task:'Ответь, зачем пришёл (например: я на встречу / жду друга / просто зашёл).', best:'I am here for the meeting.',
+        judge(w){ if(has(w,'meeting','meet','appointment')&&!has(w,'no','not')) return {br:'meet'};
+          if(has(w,'friend','wait','help','need','lost','someone','person','find')) return {br:'help'};
+          if(has(w,'question','ask','questions')) return {br:'help'}; /* «у меня вопрос» — не уход */
+          if(has(w,'no','nothing','home','leave','bye','going','go','look','looking','fine')) return {br:'home'};
+          return {huh:1}; },
+        tr:{ meet:{them:'The meeting is in room 204, second floor, on the left.',ruThem:'Встреча — кабинет 204, второй этаж, слева.',next:'floor'},
+             help:{them:'I see. Take a seat, please. I will be with you in a minute.',ruThem:'Ясно. Присядьте, пожалуйста. Я подойду через минуту.',next:'wait'},
+             home:{them:'Ah, I see. Have a nice day then!',ruThem:'А, ясно. Тогда хорошего дня!',next:'byehome'} } },
+      bye:{ task:'Попрощайся.', best:'Thank you. Goodbye!',
+        judge(w){ if(has(w,'bye','goodbye','thanks','thank','see','later','day')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null} } },
+      byehome:{ task:'Попрощайся.', best:'Bye. Have a nice day!',
+        judge(w){ if(has(w,'bye','goodbye','see','thanks','thank','later')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Берегите себя!',next:null} } },
+      wait:{ task:'Поблагодари.', best:'Thank you very much.',
+        judge(w){
+          if(has(w,'problem','worries','worry')) return {br:'ok'}; /* «no problem / no worries» — согласие */
+          if(isNegatedIntent(w,['wait'])||has(w,'no','not','never')) return {br:'refuse'};
+          if(has(w,'thanks','thank','ok','okay','sure','fine','great','good','alright','right','cheers','nothing','bye','goodbye')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'You are welcome.',ruThem:'Пожалуйста.',next:null},
+             refuse:{them:'No problem. Please take a seat - I will let you know when they arrive.',ruThem:'Без проблем. Присядьте — я сообщу, когда они приедут.',next:'bye'} } },
+      floor:{ task:'Переспроси, куда идти (например: кабинет 204, второй этаж?).', best:'Room 204, second floor?',
+        judge(w,mem){ const d204=(mem._digits||[]).includes('204');
+          if(d204||has(w,'room','floor','second','lift')) return {br:'ok'};
+          if(has(w,'left')&&has(w,'room','floor','second')) return {br:'ok'}; /* left — только в контексте этажа */
+          return {huh:1}; },
+        tr:{ ok:{them:'That is right. Take the lift.',ruThem:'Верно. Поднимитесь на лифте.',next:'lift'} } },
+      lift:{ task:'Поблагодари и попрощайся.', best:'Thanks a lot. Have a good day!',
+        judge(w){ const th=has(w,'thanks','thank'), by=has(w,'bye','goodbye','day','see');
+          if(th&&by) return {br:'full'}; if(by) return {br:'bye'}; if(th) return {br:'th'}; return {huh:1}; },
+        tr:{ full:{them:'Good luck with the meeting. Goodbye!',ruThem:'Удачи на встрече. До свидания!',next:null},
+             bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
+             th:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null} } },
 }};
 
 /* ============ СЦЕНА 2 · ур.6 «Заполнить анкету» (регистрация) ============ */
 const S2 = { title:'Заполнить анкету · ур. 6', start:'n0',
-  intro:'Сотрудник просит данные для регистрации.',
-  opener:{them:'Can I have your name, please?', ru:'Ваше имя, пожалуйста?'},
-  nodes:{
-n0:{ task:'Представься (например: меня зовут Анна Петрова).', best:'My name is Anna Petrova.',
-  judge(w,mem){ const sig=sigWords(w,['my','name','is','i','am','im','please','hi','hello','miss','mrs','mr','can','have','you','the','and','your']).filter(x=>!NAME_STOP.includes(x)&&!NOT_NAME.has(x)&&(NAME_OK.has(x)||looksLikeName(x)));
-    if(sig.length>=2){ const n=sig[0]; mem.name=n.charAt(0).toUpperCase()+n.slice(1); return {br:'full'}; }
-    if(sig.length===1){ const n=sig[0]; mem.name=n.charAt(0).toUpperCase()+n.slice(1); return {br:'last'}; }
-    return {huh:1}; },
-  tr:{ full:{them:'Thank you, {name}. And your address?',ruThem:'Спасибо, {name}. И ваш адрес?',next:'addr'},
-       last:{them:'Thank you, {name}. And your last name, please?',ruThem:'Спасибо, {name}. И ваша фамилия?',next:'n1'} } },
-n1:{ task:'Назови фамилию (например: Петрова).', best:'Petrova.',
-  judge(w){ if(sigWords(w,['my','name','is','i','am','it','please']).filter(x=>!NAME_STOP.includes(x)&&!NOT_NAME.has(x)&&(NAME_OK.has(x)||looksLikeName(x))).length>=1) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'Perfect. And your address, please?',ruThem:'Отлично. И ваш адрес?',next:'addr'} } },
-addr:{ task:'Назови свой адрес (например: я живу на Парк-стрит, дом 12).', best:'I live at 12 Park Street.',
-  judge(w,mem){ const d12=(mem._digits||[]).includes('12');
-    if(has(w,'park')&&(d12||has(w,'twelve'))) return {br:'full'};
-    if(has(w,'park')) return {br:'ok'};
-    if(d12||has(w,'twelve')) return {br:'which'};
-    return {huh:1}; },
-  tr:{ full:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'},
-       ok:{them:'Thank you. And the house number, please?',ruThem:'Спасибо. И номер дома?',next:'numH'},
-       which:{them:'Sorry, which street is it?',ruThem:'Простите, какая это улица?',next:'numS'} } },
-numH:{ task:'Назови номер дома (например: двенадцать).', best:'Twelve.',
-  judge(w,mem){ if((mem._digits||[]).length||numOf(w)!==null) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'} } },
-numS:{ task:'Назови улицу (например: Парк-стрит).', best:'Park Street.',
-  judge(w){ if(has(w,'park')||has(w,'street')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'} } },
-age:{ task:'Назови свой возраст (например: двадцать пять).', best:'I am twenty-five.',
-  judge(w,mem){ const ds=(mem._digits||[]).map(Number);
-    if(ds.length>1) return {br:'again'};        // два числа — непонятно, какое возраст
-    if(mem._raw&&/\d+[.,]\d+/.test(mem._raw)) return {br:'again'};  // 25.5 не возраст
-    const n=ds.length?ds[0]:numOf(w);
-    if(n===25) return {br:'ok'};
-    if(n!==null) return {br:'again'}; return {huh:1}; },
-  tr:{ ok:{them:'Thank you. What is your phone number?',ruThem:'Спасибо. Ваш номер телефона?',next:'phone'},
-       again:{them:'Sorry, I did not catch it. How old are you?',ruThem:'Простите, не расслышал. Сколько вам лет?',next:'age'} } },
-phone:{ task:'Спроси, можно ли записать номер здесь (например: можно, я запишу его здесь?).', best:'Can I write it here?',
-  judge(w,mem){ if(has(w,'write','paper','here','myself','self','it')) return {br:'paper'};
-    const digs=(mem._digits||[]).join('').length;
-    if(digs>=5||has(w,'number','phone')) return {br:'digits'}; return {huh:1}; },
-  tr:{ paper:{them:'Yes, please. And your email?',ruThem:'Да, пожалуйста. И ваша почта?',next:'mail'},
-       digits:{them:'Thank you. And your email?',ruThem:'Спасибо. И ваша почта?',next:'mail'} } },
-mail:{ task:'Ответь, где будет почта (например: она тоже будет на бумаге).', best:'It is on the paper too.',
-  judge(w){ if(has(w,'paper','too','also','there','it','write')) return {br:'ok'};
-    if(w.join(' ').includes('@')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'Perfect. That is everything.',ruThem:'Отлично. Это всё.',next:'ready'} } },
-ready:{ task:'Спроси, когда будет готово.', best:'When will it be ready?',
-  judge(w){ if(has(w,'when','ready','time','will','tomorrow')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'It will be ready tomorrow. Come in the morning.',ruThem:'Будет готово завтра. Приходите утром.',next:'thx'} } },
-thx:{ task:'Поблагодари.', best:'Thank you very much.',
-  judge(w){ if(has(w,'thanks','thank','ok','great','sure')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null} } },
+        intro:'Сотрудник просит данные для регистрации.',
+        opener:{them:'Can I have your name, please?', ru:'Ваше имя, пожалуйста?'},
+        nodes:{
+      n0:{ task:'Представься (например: меня зовут Анна Петрова).', best:'My name is Anna Petrova.',
+        judge(w,mem){
+          /* имя — только из явного представления («my name is X» / «i am X») либо из белого списка;
+             «I live at Park Street» именем стать не может */
+          const intro=introNames(w);
+          const sig=intro.length?intro:sigWords(w,['my','name','is','i','am','im','please','hi','hello','miss','mrs','mr','can','have','you','the','and','your']).filter(x=>!NAME_STOP.includes(x)&&!NOT_NAME.has(x)&&NAME_OK.has(x));
+          if(sig.length>=2){ const n=sig[0]; mem.name=n.charAt(0).toUpperCase()+n.slice(1); return {br:'full'}; }
+          if(sig.length===1){ const n=sig[0]; mem.name=n.charAt(0).toUpperCase()+n.slice(1); return {br:'last'}; }
+          return {huh:1}; },
+        tr:{ full:{them:'Thank you, {name}. And your address?',ruThem:'Спасибо, {name}. И ваш адрес?',next:'addr'},
+             last:{them:'Thank you, {name}. And your last name, please?',ruThem:'Спасибо, {name}. И ваша фамилия?',next:'n1'} } },
+      n1:{ task:'Назови фамилию (например: Петрова).', best:'Petrova.',
+        judge(w){ if(sigWords(w,['my','name','is','i','am','it','please']).filter(x=>!NAME_STOP.includes(x)&&!NOT_NAME.has(x)&&(NAME_OK.has(x)||looksLikeName(x))).length>=1) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Perfect. And your address, please?',ruThem:'Отлично. И ваш адрес?',next:'addr'} } },
+      addr:{ task:'Назови свой адрес (например: я живу на Парк-стрит, дом 12).', best:'I live at 12 Park Street.',
+        judge(w,mem){ const d12=(mem._digits||[]).includes('12');
+          if(has(w,'park')&&(d12||has(w,'twelve'))) return {br:'full'};
+          if(has(w,'park')) return {br:'ok'};
+          if(d12||has(w,'twelve')) return {br:'which'};
+          return {huh:1}; },
+        tr:{ full:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'},
+             ok:{them:'Thank you. And the house number, please?',ruThem:'Спасибо. И номер дома?',next:'numH'},
+             which:{them:'Sorry, which street is it?',ruThem:'Простите, какая это улица?',next:'numS'} } },
+      numH:{ task:'Назови номер дома (например: двенадцать).', best:'Twelve.',
+        judge(w,mem){
+          const ds=mem._digits||[];
+          if(ds.some(d=>d.length>3||/^(\d)\1+$/.test(d))) return {huh:1}; /* 7777, 777 — не номер дома */
+          if(ds.length) return {br:'ok'};
+          const COUNT=['brother','brothers','sister','sisters','children','people','friend','friends','day','days','week','weeks','month','months','year','years','euro','euros'];
+          if(numOf(w)!==null&&!COUNT.some(x=>w.includes(x))) return {br:'ok'}; /* число в контексте адреса, а не «два брата» */
+          return {huh:1}; },
+        tr:{ ok:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'} } },
+      numS:{ task:'Назови улицу (например: Парк-стрит).', best:'Park Street.',
+        judge(w){ if(has(w,'park')) return {br:'ok'}; return {huh:1}; }, /* голое «street» — не название */
+        tr:{ ok:{them:'Thank you. How old are you?',ruThem:'Спасибо. Сколько вам лет?',next:'age'} } },
+      age:{ task:'Назови свой возраст (например: двадцать пять).', best:'I am twenty-five.',
+        judge(w,mem){ const ds=(mem._digits||[]).map(Number);
+          if(ds.length>1) return {br:'again'};        // два числа — непонятно, какое возраст
+          if(mem._raw&&/\d+[.,]\d+/.test(mem._raw)) return {br:'again'};  // 25.5 не возраст
+          const n=ds.length?ds[0]:numOf(w);
+          if(n!==null&&n>120) return {huh:1};          // 777 лет не бывает
+          if(n===25) return {br:'ok'};
+          if(n!==null) return {br:'again'}; return {huh:1}; },
+        tr:{ ok:{them:'Thank you. What is your phone number?',ruThem:'Спасибо. Ваш номер телефона?',next:'phone'},
+             again:{them:'Sorry, I did not catch it. How old are you?',ruThem:'Простите, не расслышал. Сколько вам лет?',next:'age'} } },
+      phone:{ task:'Спроси, можно ли записать номер здесь (например: можно, я запишу его здесь?).', best:'Can I write it here?',
+        judge(w,mem){
+          if(isNegatedIntent(w,['write','here'])) return {br:'cant'}; /* «не могу записать здесь» */
+          if(has(w,'write','paper','here','myself','self')) return {br:'paper'};
+          const digs=(mem._digits||[]).join('').length;
+          if(digs>=5||has(w,'number','phone')) return {br:'digits'}; return {huh:1}; },
+        tr:{ paper:{them:'Yes, please. And your email?',ruThem:'Да, пожалуйста. И ваша почта?',next:'mail'},
+             digits:{them:'Thank you. And your email?',ruThem:'Спасибо. И ваша почта?',next:'mail'},
+             cant:{them:'No problem - I will write it down for you. And your email?',ruThem:'Без проблем — я запишу за вас. И ваша почта?',next:'mail'} } },
+      mail:{ task:'Ответь, где будет почта (например: она тоже будет на бумаге).', best:'It is on the paper too.',
+        judge(w,mem){
+          if(mem._raw&&/[\w.+-]+@[\w-]+\.[\w.]+/.test(mem._raw)) return {br:'ok'}; /* сам e-mail адресом */
+          if(isNegatedIntent(w,['paper'])) return {huh:1}; /* «не на бумаге» — уточнить */
+          if(has(w,'paper','too','also','there','write')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Perfect. That is everything.',ruThem:'Отлично. Это всё.',next:'ready'} } },
+      ready:{ task:'Спроси, когда будет готово.', best:'When will it be ready?',
+        judge(w){ if(has(w,'when','ready')) return {br:'ok'};
+          if(has(w,'what')&&has(w,'time')) return {br:'ok'};
+          return {huh:1}; }, /* «will you help me» больше не проходит */
+        tr:{ ok:{them:'It will be ready tomorrow. Come in the morning.',ruThem:'Будет готово завтра. Приходите утром.',next:'thx'} } },
+      thx:{ task:'Поблагодари.', best:'Thank you very much.',
+        judge(w){ if(has(w,'thanks','thank','ok','great','sure')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null} } },
 }};
 
 /* ============ СЦЕНА 3 · ур.9 «Разговор о семье» (обед) ============ */
 const S3 = { title:'Разговор о семье · ур. 9', start:'n0',
-  intro:'Коллега за обедом спрашивает про твою семью.',
-  opener:{them:'Do you have a big family?', ru:'У тебя большая семья?'},
-  nodes:{
-n0:{ task:'Расскажи о семье (например: у меня есть брат и сестра).', best:'I have a brother and a sister.',
-  judge(w){ if(has(w,'brother','sister')) return {br:'sib'};
-    if(has(w,'big','yes','family','four','three')) return {br:'who'}; return {huh:1}; },
-  tr:{ sib:{them:'Nice! Are your parents here too?',ruThem:'Здорово! А родители тоже здесь?',next:'parents'},
-       who:{them:'Who is in your family?',ruThem:'А кто в твоей семье?',next:'who'} } },
-who:{ task:'Назови родных по-английски (например: brother, sister, mother).', best:'My brother and sister.',
-  judge(w){ if(has(w,'brother','sister','mother','father','parents','mum','dad','mom','grandmother')) return {br:'ok'};
-    if(has(w,'alone','nobody','myself','small','only','no','just')) return {br:'alone'};
-    return {huh:1}; },
-  tr:{ ok:{them:'Are your parents here too?',ruThem:'А родители тоже здесь?',next:'parents'},
-       alone:{them:'Oh, I see. Do you have friends here?',ruThem:'А, понятно. У тебя здесь есть друзья?',next:'fr'} } },
-fr:{ task:'Ответь, есть ли у тебя здесь друзья (например: да, у меня есть друзья).', best:'Yes, I have friends here.',
-  judge(w){ if(has(w,'no','not','none','nobody')) return {br:'no'};
-    if(has(w,'yes','friends','friend','sure','have','do','ok','okay')) return {br:'ok'};
-    return {huh:1}; },
-  tr:{ ok:{them:'That is nice! See you at lunch, then.',ruThem:'Отлично! Тогда увидимся за обедом.',next:null},
-       no:{them:'That is okay. I am your friend too. See you around!',ruThem:'Ничего страшного. Я тоже твой друг. Увидимся!',next:null} } },
-parents:{ task:'Расскажи про родителей (например: они живут в России).', best:'My parents live in Russia.',
-  judge(w){ const rel=has(w,'parents','mother','father','mum','dad','mom','them','they');
-    if(rel&&has(w,'russia','moscow')) return {br:'russia'};
-    if(has(w,'russia','moscow')) return {br:'russia'};
-    if(rel&&has(w,'here','too','also')) return {br:'here'};
-    if(has(w,'here','too')) return {br:'here'}; return {huh:1}; },
-  tr:{ russia:{them:'Do you miss them?',ruThem:'Скучаешь по ним?',next:'miss'},
-       here:{them:'Oh, that is nice! Do you see them often?',ruThem:'О, здорово! Часто с ними видишься?',next:'often'} } },
-miss:{ task:'Ответь, скучаешь ли ты (например: да, очень).', best:'Yes, very much.',
-  judge(w){
-    /* «no, I really miss them» = согласие: отрицание относится к вежливому «no»,
-       а не к глаголу. Отказ — только когда not/never стоит ВПЛОТНУЮ к miss. */
-    const hardNo=w.some((x,i)=>(x==='not'||x==='never'||x==='do')&&
-      (w[i+1]==='miss'||w[i+2]==='miss'||(w[i]==='not'&&w[i+1]==='really'&&!has(w,'miss'))));
-    if(hardNo) return {br:'no'};
-    if(has(w,'yes','very','miss','sure','course','sometimes','little','bit','lot','always','every','day','terribly','really')) return {br:'yes'};
-    if(has(w,'no','not','never')) return {br:'no'};
-    return {huh:1}; },
-  tr:{ yes:{them:'Do they visit you here?',ruThem:'Они приезжают к тебе сюда?',next:'visit'},
-       no:{them:'Maybe you can visit them soon, then.',ruThem:'Тогда, может, ты скоро съездишь к ним.',next:'plan'} } },
-visit:{ task:'Ответь, когда они приезжали (например: они приезжали летом).', best:'They came in the summer.',
-  judge(w){ if(has(w,'no','not','never','yet','busy')) return {br:'no'};
-    if(has(w,'summer','came','come','visit','june','july','august','yes','yeah','sure','often','every','year','sometimes','spring','autumn','winter','month','week','last','time','twice')) return {br:'yes'}; return {huh:1}; },
-  tr:{ yes:{them:'That is nice. How long did they stay?',ruThem:'Здорово. И надолго они приезжали?',next:'stay'},
-       no:{them:'Maybe you can go and see them soon.',ruThem:'Тогда, может, ты скоро съездишь к ним.',next:'plan'} } },
-stay:{ task:'Ответь, сколько они гостили (например: две недели).', best:'Two weeks.',
-  judge(w,mem){ const ds=(mem._digits||[]).map(Number); const n=ds.length?ds[0]:numOf(w);
-    if(has(w,'week','weeks','month','months','day','days','couple','few')) return {br:'ok'};
-    if(n===2) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'Not bad at all.',ruThem:'Совсем неплохо.',next:'plan'} } },
-often:{ task:'Ответь, как часто (например: да, каждые выходные).', best:'Yes, every weekend.',
-  judge(w){ if(has(w,'yes','every','weekend','week','often','sure','friday')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'That is great to hear.',ruThem:'Приятно слышать.',next:'plan'} } },
-plan:{ task:'Расскажи о планах (например: скоро поеду к ним).', best:'I will go and see them soon.',
-  judge(w){ if(has(w,'go','see','visit','soon','will','next','year','summer','month','autumn')) return {br:'ok'}; return {huh:1}; },
-  tr:{ ok:{them:'That sounds nice. Say hello to them from me!',ruThem:'Звучит отлично. Передавай им привет!',next:null} } },
+        intro:'Коллега за обедом спрашивает про твою семью.',
+        opener:{them:'Do you have a big family?', ru:'У тебя большая семья?'},
+        nodes:{
+      n0:{ task:'Расскажи о семье (например: у меня есть брат и сестра).', best:'I have a brother and a sister.',
+        judge(w){
+          if(isNegatedIntent(w,['family'])) return {br:'nofam'};            /* «у меня нет семьи» */
+          if(isNegatedIntent(w,['brother','sister'])) return {br:'nosib'};  /* «нет брата или сестры» */
+          if(has(w,'brother','sister')) return {br:'sib'};
+          if(has(w,'big','yes','family','four','three')) return {br:'who'}; return {huh:1}; },
+        tr:{ sib:{them:'Nice! Are your parents here too?',ruThem:'Здорово! А родители тоже здесь?',next:'parents'},
+             who:{them:'Who is in your family?',ruThem:'А кто в твоей семье?',next:'who'},
+             nosib:{them:'I see. And your parents - are they here?',ruThem:'Понятно. А родители — они здесь?',next:'parents'},
+             nofam:{them:'I understand. Do you have friends here?',ruThem:'Понимаю. А друзья у тебя здесь есть?',next:'fr'} } },
+      who:{ task:'Назови родных по-английски (например: brother, sister, mother).', best:'My brother and sister.',
+        judge(w){
+          if((has(w,'alone','nobody','myself')&&!isNegatedIntent(w,['alone','nobody','myself']))
+             ||isNegatedIntent(w,['brother','sister','family'])) return {br:'alone'}; /* «я один» раньше перечисления */
+          if(has(w,'brother','sister','mother','father','parents','mum','dad','mom','grandmother')) return {br:'ok'};
+          if(has(w,'small','only','just')) return {br:'alone'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Are your parents here too?',ruThem:'А родители тоже здесь?',next:'parents'},
+             alone:{them:'Oh, I see. Do you have friends here?',ruThem:'А, понятно. У тебя здесь есть друзья?',next:'fr'} } },
+      fr:{ task:'Ответь, есть ли у тебя здесь друзья (например: да, у меня есть друзья).', best:'Yes, I have friends here.',
+        judge(w){ if(has(w,'no','not','none','nobody')) return {br:'no'};
+          if(has(w,'yes','friends','friend','sure','have','do','ok','okay')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'That is nice! See you at lunch, then.',ruThem:'Отлично! Тогда увидимся за обедом.',next:null},
+             no:{them:'That is okay. I am your friend too. See you around!',ruThem:'Ничего страшного. Я тоже твой друг. Увидимся!',next:null} } },
+      parents:{ task:'Расскажи про родителей (например: они живут в России).', best:'My parents live in Russia.',
+        judge(w){ const rel=has(w,'parents','mother','father','mum','dad','mom','them','they');
+          if(isNegatedIntent(w,['russia','moscow'])) return {br:'here'}; /* «не в России» = здесь */
+          if(rel&&has(w,'russia','moscow')) return {br:'russia'};
+          if(has(w,'russia','moscow')) return {br:'russia'};
+          if(rel&&has(w,'here','too','also')) return {br:'here'};
+          if(has(w,'here','too')) return {br:'here'}; return {huh:1}; },
+        tr:{ russia:{them:'Do you miss them?',ruThem:'Скучаешь по ним?',next:'miss'},
+             here:{them:'Oh, that is nice! Do you see them often?',ruThem:'О, здорово! Часто с ними видишься?',next:'often'} } },
+      miss:{ task:'Ответь, скучаешь ли ты (например: да, очень).', best:'Yes, very much.',
+        judge(w){
+          /* «no, I really miss them» = согласие: отрицание относится к вежливому «no».
+             Отказ — только когда «не скучаю» реально сказано: not/never рядом с miss.
+             «I DO miss them» — усиление, не отказ (между do и miss нет not). */
+          const hardNo=isNegatedIntent(w,['miss'])||(has(w,'not')&&has(w,'really')&&!has(w,'miss')); /* «not really» */
+          if(hardNo) return {br:'no'};
+          if(has(w,'yes','very','miss','sure','course','sometimes','little','bit','lot','always','every','day','terribly','really')) return {br:'yes'};
+          if(has(w,'no','not','never')) return {br:'no'};
+          return {huh:1}; },
+        tr:{ yes:{them:'Do they visit you here?',ruThem:'Они приезжают к тебе сюда?',next:'visit'},
+             no:{them:'Maybe you can visit them soon, then.',ruThem:'Тогда, может, ты скоро съездишь к ним.',next:'plan'} } },
+      visit:{ task:'Ответь, когда они приезжали (например: они приезжали летом).', best:'They came in the summer.',
+        judge(w){ if(has(w,'no','not','never','yet','busy')) return {br:'no'};
+          if(has(w,'summer','came','come','visit','june','july','august','yes','yeah','sure','often','every','year','sometimes','spring','autumn','winter','month','week','last','time','twice')) return {br:'yes'}; return {huh:1}; },
+        tr:{ yes:{them:'That is nice. How long did they stay?',ruThem:'Здорово. И надолго они приезжали?',next:'stay'},
+             no:{them:'Maybe you can go and see them soon.',ruThem:'Тогда, может, ты скоро съездишь к ним.',next:'plan'} } },
+      stay:{ task:'Ответь, сколько они гостили (например: две недели).', best:'Two weeks.',
+        judge(w,mem){
+          if(has(w,'not','no','never')&&has(w,'week','weeks','month','months','day','days')) return {huh:1}; /* «не гостили неделю» — переспрос */
+          const ds=(mem._digits||[]).map(Number); const n=ds.length?ds[0]:numOf(w);
+          if(has(w,'week','weeks','month','months','day','days','couple','few')) return {br:'ok'};
+          if(n===2) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'Not bad at all.',ruThem:'Совсем неплохо.',next:'plan'} } },
+      often:{ task:'Ответь, как часто (например: да, каждые выходные).', best:'Yes, every weekend.',
+        judge(w){ if(has(w,'yes','every','weekend','week','often','sure','friday')) return {br:'ok'}; return {huh:1}; },
+        tr:{ ok:{them:'That is great to hear.',ruThem:'Приятно слышать.',next:'plan'} } },
+      plan:{ task:'Расскажи о планах (например: скоро поеду к ним).', best:'I will go and see them soon.',
+        judge(w){
+          if(isNegatedIntent(w,['go','visit','see'])) return {br:'notyet'}; /* «не поеду» — не засчитывать как план */
+          if(has(w,'go','see','visit','soon','will','next','year','summer','month','autumn')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'That sounds nice. Say hello to them from me!',ruThem:'Звучит отлично. Передавай им привет!',next:null},
+             notyet:{them:'Maybe next time, then. It was nice talking to you!',ruThem:'Тогда, может, в другой раз. Приятно было поговорить!',next:null} } },
 }};
-
 const SCENES={ s1:S1, s2:S2, s3:S3 };
-try{ if(typeof module!=='undefined' && module.exports) module.exports={SCENES}; }catch(e){}
 
 /* ================= UI ================= */
 const fmt = s => (s||'').replace(/\{name\}/g, (D.mem && D.mem.name)||'…');
