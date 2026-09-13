@@ -2614,7 +2614,7 @@ const COURSE = {
       ]},
       { type:'dialog', variant:'flow', title:'На языковых курсах', scene:'office', cefr:'A1: Can talk about school and studying.',
         intro:'Первое занятие. Перед группой преподаватель — он знакомится с каждым.',
-        flow:{ title:'На языковых курсах · ур. 58', start:'dur',
+        flow:{ title:'На языковых курсах · ур. 81', start:'dur',
         intro:'Первое занятие. Перед группой преподаватель — он знакомится с каждым.',
         opener:{them:'Welcome to our English course! First tell me - how long have you studied English?', ru:'Добро пожаловать на наши курсы английского! Сначала скажите: как долго вы учите английский?'},
         nodes:{
@@ -2729,28 +2729,64 @@ const COURSE = {
         {ru:'Вот ваша сдача.', parts:['Here','is','your','change'], answer:'Here is your change', full:'Here is your change.',
          whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
       ]},
-      { type:'dialog', title:'Оплата на кассе', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.',
-        intro:'Кассир пробивает покупки.',
-        turns:[
-          {who:'them', text:'That is twenty-two euros.', ru:'Двадцать два евро.'},
-          {who:'you', ru:'Спроси, можно ли картой.', best:2,
-            options:['Card ok pay me?','Money card take you?','Can I pay by card?']},
-          {who:'them', text:'Yes, of course.', ru:'Да, конечно.'},
-          {who:'you', ru:'Скажи «вот, пожалуйста».', best:0,
-            options:['Here you are.','Take card here.','Card give you now.']},
-          {who:'them', text:'Do you need a receipt?', ru:'Чек нужен?'},
-          {who:'you', ru:'Скажи: да, пожалуйста.', best:1,
-            options:['Paper yes give.','Yes, please.','Receipt want me have.']},
-          {who:'them', text:'Do you have any other questions?', ru:'Ещё вопросы есть?'},
-          {who:'you', ru:'Спроси, когда всё будет готово.', best:1,
-            options:['Ready when is?','When will it be ready?','Time ready what say?']},
-          {who:'them', text:'In about five working days.', ru:'Примерно пять рабочих дней.'},
-          {who:'you', ru:'Спроси, позвонят ли тебе.', best:0,
-            options:['Will you call me?','Phone me you can?','Call have me yes no?']},
-          {who:'them', text:'Yes, we will send a message.', ru:'Да, отправим сообщение.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok message wait.','Good send yes me.','Thank you very much for your help.']}
-        ]},
+      { type:'dialog', variant:'flow', title:'Оплата на кассе', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.',
+        intro:'Кассир пробивает покупки и называет сумму.',
+        flow:{ title:'Оплата на кассе · ур. 85', start:'pay',
+        intro:'Кассир пробивает покупки и называет сумму.',
+        opener:{them:'That will be twenty-two euros, please.', ru:'С вас двадцать два евро.'},
+        nodes:{
+      pay:{ task:'Спроси, можно ли оплатить картой (или скажи, что платишь наличными).', best:'Can I pay by card?',
+        judge(w){
+          if(has(w,'card','cards')) return {br:'card'};
+          if(has(w,'cash','money','coins','notes','banknote')) return {br:'cash'};
+          return {huh:1}; },
+        tr:{
+          card:{them:'Yes, of course.',ruThem:'Да, конечно.',next:'give'},
+          cash:{them:'Of course. Cash is fine.',ruThem:'Конечно. Наличные подходят.',next:'give'} } },
+      give:{ task:'Передай карту или деньги.', best:'Here you are.',
+        judge(w,mem){
+          if(has(w,'here','there','take','please','yes','ok','okay','sure','fine','you')) return {br:'ok'};
+          if((mem._digits||[]).length) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Do you need a receipt?',ruThem:'Чек нужен?',next:'receipt'} } },
+      receipt:{ task:'Ответь, нужен ли тебе чек.', best:'Yes, please.',
+        judge(w){
+          if(has(w,'no','not','nope')) return {br:'no'};
+          if(has(w,'yes','yeah','please','sure','ok','okay','receipt','fine','course')) return {br:'yes'};
+          return {huh:1}; },
+        tr:{
+          yes:{them:'Here you are. Anything else?',ruThem:'Вот, пожалуйста. Что-нибудь ещё?',next:'more'},
+          no:{them:'Of course. Anything else?',ruThem:'Хорошо. Что-нибудь ещё?',next:'more'} } },
+      more:{ task:'Задай вопрос, если есть (например: когда будет готово? пришлёте сообщение?). Если вопросов нет — так и скажи.', best:'When will it be ready?',
+        judge(w){
+          if(has(w,'nothing','all','enough')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* короткое «нет вопросов» */
+          if(has(w,'call','phone','message','text','email','contact','notify')) return {br:'notify'};
+          if(has(w,'ready','when','time','long','soon')) return {br:'ready'};
+          if(has(w,'what','where','who','how','why','can','do','does','is','are')) return {br:'other'};
+          return {huh:1}; },
+        tr:{
+          ready:{them:'In about five working days.',ruThem:'Примерно пять рабочих дней.',next:'call'},
+          notify:{them:'Yes, we will send you a message.',ruThem:'Да, мы отправим вам сообщение.',next:'thanks'},
+          none:{them:'Here is your bag. Have a nice day!',ruThem:'Вот ваш пакет. Хорошего дня!',next:'bye'},
+          other:{them:'I am sorry, I cannot help with that. Anything else?',ruThem:'Извините, тут я не помогу. Что-нибудь ещё?',next:'more'} } },
+      call:{ task:'Спроси, напишут тебе или позвонят.', best:'Will you call me?',
+        judge(w){
+          if(has(w,'call','phone','message','text','send','know','notify','contact','email')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Yes, we will send a message.',ruThem:'Да, мы отправим сообщение.',next:'thanks'} } },
+      thanks:{ task:'Поблагодари кассира.', best:'Thank you very much.',
+        judge(w){
+          if(has(w,'thank','thanks','ok','okay','good','great','nice','sure','fine','alright')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'You are welcome.',ruThem:'Пожалуйста.',next:'bye'} } },
+      bye:{ task:'Попрощайся.', best:'Goodbye.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
+        }}
+      },
       { type:'words', title:'Контроль: темы 17–20', scene:'bank', cefr:'A1: Can recall vocabulary from previous topics.', newCount:0, words:[
         {t:'Map', r:'Карта', rev:true},
         {t:'Place', r:'Место', rev:true},
@@ -2838,28 +2874,69 @@ const COURSE = {
         {ru:'Сколько времени это займёт?', parts:['How','long','does','it','take'], answer:'How long does it take', full:'How long does it take?',
          whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the hospital?» — не «Where the hospital is».'}
       ]},
-      { type:'dialog', title:'Открыть счёт', scene:'bank', cefr:'A1: Can carry out simple bank transactions.',
-        intro:'Ты в отделении банка.',
-        turns:[
-          {who:'them', text:'Good morning. How can I help?', ru:'Доброе утро. Чем могу помочь?'},
-          {who:'you', ru:'Скажи, что хочешь открыть счёт.', best:1,
-            options:['Account open want me.','Good morning. I want to open an account.','Bank money put me new.']},
-          {who:'them', text:'Do you have your passport?', ru:'Паспорт есть?'},
-          {who:'you', ru:'Скажи «да, вот он».', best:0,
-            options:['Yes, here it is.','Passport have me yes give.','Here passport take you.']},
-          {who:'them', text:'Please fill in this form.', ru:'Заполните эту форму.'},
-          {who:'you', ru:'Спроси, где подписать.', best:2,
-            options:['Sign where is me?','Paper write where say.','Where do I sign?']},
-          {who:'them', text:'Do you have any other questions?', ru:'Ещё вопросы есть?'},
-          {who:'you', ru:'Спроси, когда всё будет готово.', best:1,
-            options:['Ready when is?','When will it be ready?','Time ready what say?']},
-          {who:'them', text:'In about five working days.', ru:'Примерно пять рабочих дней.'},
-          {who:'you', ru:'Спроси, позвонят ли тебе.', best:0,
-            options:['Will you call me?','Phone me you can?','Call have me yes no?']},
-          {who:'them', text:'Yes, we will send a message.', ru:'Да, отправим сообщение.'},
-          {who:'you', ru:'Поблагодари.', best:2,
-            options:['Ok message wait.','Good send yes me.','Thank you very much for your help.']}
-        ]},
+      { type:'dialog', variant:'flow', title:'Открыть счёт', scene:'bank', cefr:'A1: Can carry out simple bank transactions.',
+        intro:'Ты в отделении банка, подходишь к окошку.',
+        flow:{ title:'Открыть счёт · ур. 91', start:'open',
+        intro:'Ты в отделении банка, подходишь к окошку.',
+        opener:{them:'Good morning. How can I help you?', ru:'Доброе утро. Чем могу помочь?'},
+        nodes:{
+      open:{ task:'Скажи, что хочешь открыть счёт.', best:'I want to open an account.',
+        judge(w){
+          if(has(w,'account','accounts')) return {br:'account'};
+          if(has(w,'card','cards')) return {br:'card'};
+          if(has(w,'save','savings','money','deposit')&&has(w,'open','put','keep','new')) return {br:'account'};
+          return {huh:1}; },
+        tr:{
+          account:{them:'Of course. Do you have your passport?',ruThem:'Конечно. Паспорт у вас с собой?',next:'passport'},
+          card:{them:'A card comes with a new account. Do you have your passport?',ruThem:'К новому счёту идёт и карта. Паспорт у вас с собой?',next:'passport'} } },
+      passport:{ task:'Ответь, есть ли у тебя паспорт, и передай его.', best:'Yes, here it is.',
+        judge(w){
+          if(has(w,'forgot','left','lost')) return {br:'no'};
+          const iNo=w.indexOf('no'), iNot=w.indexOf('not');
+          if((iNo>-1||iNot>-1)&&!has(w,'yes','here','have','sure','course')) return {br:'no'};
+          if(has(w,'yes','yeah','here','have','passport','sure','there','course')) return {br:'yes'};
+          return {huh:1}; },
+        tr:{
+          yes:{them:'Great. Please fill in this form.',ruThem:'Отлично. Заполните, пожалуйста, эту форму.',next:'form'},
+          no:{them:'Oh, we need your passport. Please come back with it.',ruThem:'Ой, нам нужен ваш паспорт. Приходите, пожалуйста, с ним.',next:'leave'} } },
+      leave:{ task:'Попрощайся.', best:'Ok. Goodbye.',
+        judge(w){
+          if(has(w,'bye','goodbye','ok','okay','thanks','thank','see','later','day','sure','will','come','tomorrow','today')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Goodbye! See you soon.',ruThem:'До свидания! Ждём вас.',next:null} } },
+      form:{ task:'Спроси, где расписаться в форме.', best:'Where do I sign?',
+        judge(w){
+          if(has(w,'sign','signature','write','where','here','fill','filled','done','finished','bottom','paper','form')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Here, at the bottom of the page.',ruThem:'Здесь, внизу страницы.',next:'ready'} } },
+      ready:{ task:'Спроси, когда будет готов счёт. Если вопросов нет — так и скажи.', best:'When will it be ready?',
+        judge(w){
+          if(has(w,'nothing','all','enough')) return {br:'none'};
+          if(has(w,'no','not')&&w.length<=3) return {br:'none'}; /* короткое «нет вопросов» */
+          if(has(w,'ready','when','time','long','soon')) return {br:'ready'};
+          if(has(w,'what','where','who','how','why','can','do','does','is','are')) return {br:'other'};
+          return {huh:1}; },
+        tr:{
+          ready:{them:'In about five working days.',ruThem:'Примерно пять рабочих дней.',next:'notify'},
+          none:{them:'Great. We will send you a message when it is ready.',ruThem:'Отлично. Мы отправим вам сообщение, когда всё будет готово.',next:'thanks'},
+          other:{them:'A good question. We will tell you everything in the message.',ruThem:'Хороший вопрос. Мы всё расскажем в сообщении.',next:'notify'} } },
+      notify:{ task:'Спроси, напишут тебе или позвонят.', best:'Will you call me?',
+        judge(w){
+          if(has(w,'call','phone','message','text','send','know','notify','contact','email')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Yes, we will send a message.',ruThem:'Да, мы отправим сообщение.',next:'thanks'} } },
+      thanks:{ task:'Поблагодари сотрудника.', best:'Thank you very much.',
+        judge(w){
+          if(has(w,'thank','thanks','ok','okay','good','great','nice','sure','fine','alright')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'You are welcome.',ruThem:'Пожалуйста.',next:'bye'} } },
+      bye:{ task:'Попрощайся.', best:'Goodbye.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Goodbye! Have a nice day.',ruThem:'До свидания! Хорошего дня.',next:null} } }
+        }}
+      },
       { type:'words', title:'Покупки в супермаркете · 1', scene:'market', cefr:'A1: Can make simple purchases.', newCount:11, words:[
         {t:'Supermarket', r:'Супермаркет', u:'Большой магазин. Маленький — «shop».'},
         {t:'Shopping', r:'Покупки'},

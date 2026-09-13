@@ -30,7 +30,8 @@ const FLOW_TITLES = ['Первое приветствие', 'Заполнить 
   'Узнать время', 'Разговор о погоде', 'У врача',
   'Купить куртку', 'Заказать обед', 'У барной стойки',
   'Показать квартиру', 'Что-то сломалось', 'Найти банк',
-  'Купить билет', 'Объяснить дорогу', 'Рассказать о работе', 'На языковых курсах'];
+  'Купить билет', 'Объяснить дорогу', 'Рассказать о работе', 'На языковых курсах',
+  'Оплата на кассе', 'Открыть счёт'];
 for (const t of FLOW_TITLES) {
   const lv = stage1.find(x => x.type === 'dialog' && x.variant === 'flow' && x.title === t);
   if (!lv) { console.error('нет flow-записи «' + t + '» в курсе'); process.exit(1); }
@@ -42,7 +43,7 @@ const SCENES = { s1: flowBy['Первое приветствие'], s2: flowBy['
   s10: flowBy['Купить куртку'], s11: flowBy['Заказать обед'], s12: flowBy['У барной стойки'],
   s13: flowBy['Показать квартиру'], s14: flowBy['Что-то сломалось'], s15: flowBy['Найти банк'],
   s16: flowBy['Купить билет'], s17: flowBy['Объяснить дорогу'], s18: flowBy['Рассказать о работе'],
-  s19: flowBy['На языковых курсах'] };
+  s19: flowBy['На языковых курсах'], s20: flowBy['Оплата на кассе'], s21: flowBy['Открыть счёт'] };
 const norm = ctxApp.__H.norm, expand = ctxApp.__H.expand;
 const SPEC = JSON.parse(fs.readFileSync('/home/user/сцена-1-живая-логика.json', 'utf8'));
 
@@ -734,9 +735,43 @@ T('S19 короткий путь: без вопроса и без ожидани
 { const s = step(s19, 'hard', 'Nothing, everything is easy', {});
   T('S19 «всё легко» -> ветка none', !s.err && s.br === 'none', s.err || s.br); }
 
+// ---------- партия 7 (продолжение): живые пути s20 «Оплата на кассе», s21 «Открыть счёт» ----------
+const s20 = SCENES.s20, s21 = SCENES.s21;
+// s20 эталонный путь: карта → вот → чек да → когда готово → позвонят? → спасибо → прощание
+r = run(s20, ['Can I pay by card?', 'Here you are.', 'Yes, please.', 'When will it be ready?',
+  'Will you call me?', 'Thank you very much.', 'Goodbye.']);
+T('S20 полный путь: до конца', r.ok, r.err);
+// наличные — отдельная ветка на узле оплаты
+{ const s = step(s20, 'pay', 'I will pay cash', {});
+  T('S20 «наличные» -> ветка cash', !s.err && s.br === 'cash', s.err || s.br); }
+// чек не нужен — ветка no
+{ const s = step(s20, 'receipt', 'No, thanks', {});
+  T('S20 «чек не нужен» -> ветка no', !s.err && s.br === 'no', s.err || s.br); }
+// вопросов нет — короткий путь сразу к прощанию (ветвление)
+{ const s = step(s20, 'more', 'Nothing, that is all', {});
+  T('S20 «вопросов нет» -> ветка none (короткий путь)', !s.err && s.br === 'none' && s.next === 'bye', s.err || s.br); }
+r = run(s20, ['Card please.', 'There you go.', 'No thanks.', 'No questions.', 'Thanks, bye!']);
+T('S20 короткий путь: без «когда готово»', r.ok, r.err);
+
+// s21 эталонный путь: счёт → паспорт есть → где расписаться → когда готово → позвонят? → спасибо → прощание
+r = run(s21, ['I want to open an account.', 'Yes, here it is.', 'Where do I sign?',
+  'When will it be ready?', 'Will you call me?', 'Thank you very much.', 'Goodbye.']);
+T('S21 полный путь: до конца', r.ok, r.err);
+// карта вместо счёта — тоже принимается
+{ const s = step(s21, 'open', 'I need a new card', {});
+  T('S21 «карта» -> ветка card', !s.err && s.br === 'card', s.err || s.br); }
+// паспорта нет — честный короткий выход через прощание (настоящее ветвление)
+{ const s = step(s21, 'passport', 'No, I forgot it at home', {});
+  T('S21 «паспорта нет» -> ветка no (уход)', !s.err && s.br === 'no' && s.next === 'leave', s.err || s.br); }
+r = run(s21, ['Account please.', 'Sorry, no passport.', 'Ok, goodbye.']);
+T('S21 короткий путь: без паспорта — уход через прощание', r.ok, r.err);
+// вопросов нет — сразу к благодарности, минуя «когда готово»
+{ const s = step(s21, 'ready', 'Nothing, thanks', {});
+  T('S21 «вопросов нет» -> ветка none (к благодарности)', !s.err && s.br === 'none' && s.next === 'thanks', s.err || s.br); }
+
 // «Не знаю»-механика для новых сцен: best каждого узла обязан проходить (кнопка «Дальше»)
 for (const [id, sc] of Object.entries(SCENES)) {
-  if (!['s13','s14','s15','s16','s17','s18','s19'].includes(id)) continue;
+  if (!['s13','s14','s15','s16','s17','s18','s19','s20','s21'].includes(id)) continue;
   const mem = {}; let at = sc.start, ended = false;
   for (let k = 0; k < 300; k++) {
     const n = sc.nodes[at];
