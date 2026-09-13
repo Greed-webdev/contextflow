@@ -61,7 +61,7 @@ const SCENES = {
 /* --- помощники судей ветвящихся диалогов (партия 2, синхронизировано с демо-6) --- */
 const DAY_IN = w => {
   const D=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-  for (const x of w) if (D.includes(x)) return x;
+  for (let i=0;i<w.length;i++) if (D.includes(w[i]) && !negatedWord(w,i)) return w[i]; /* отрицанный день не берём */
   return null;
 };
 const FLOWNUM = (w, digits) => {
@@ -669,7 +669,7 @@ const COURSE = {
             loaves:{them:'How many loaves?',ruThem:'Сколько буханок?',next:'extra'},
             done:{them:'Ok. That is twelve euros, please.',ruThem:'Хорошо. С вас двенадцать евро.',next:'pay'} } },
           pay:{ task:'Скажи, как будешь платить (например: наличными).', best:'I will pay in cash.',
-          judge(w){ if(has(w,'card')) return {br:'card'};
+          judge(w){ if(has(w,'card')&&!isNegatedIntent(w,['card'])) return {br:'card'}; /* «no card» — не карта */
           if(has(w,'cash','notes','money')) return {br:'cash'}; return {huh:1}; },
           tr:{ cash:{them:'Here is your change.',ruThem:'Вот ваша сдача.',next:'change'},
             card:{them:'Sorry, we only take cash today.',ruThem:'Извините, сегодня только наличные.',next:'pay'} } },
@@ -855,9 +855,10 @@ const COURSE = {
             order:{them:'We do not have that colour in stock, but I can order it. What size do you need?',ruThem:'Этого цвета нет в наличии, но могу заказать. Какой размер?',next:'size'},
             bye:{them:'No problem. Have a nice day!',ruThem:'Без проблем. Хорошего дня!',next:'bye'} } },
           size:{ task:'Назови размер (например: маленький, пожалуйста).', best:'A small one, please.',
-          judge(w){ if(chose(w,'small','little')) return {br:'s'};
-          if(chose(w,'medium')) return {br:'m'};
-          if(chose(w,'large','big')) return {br:'l'};
+          judge(w){ const sz=x=>w.includes(x)&&!negatedWord(w,w.indexOf(x)); /* «not sure, medium» — размер назван */
+          if(sz('small')||sz('little')) return {br:'s'};
+          if(sz('medium')) return {br:'m'};
+          if(sz('large')||sz('big')) return {br:'l'};
           if(has(w,'small','little','medium','large','big')) return {br:'ask'};
           return {huh:1}; },
           tr:{ s:{them:'A small one. Here you are.',ruThem:'Маленький. Пожалуйста.',next:'thx'},
@@ -876,7 +877,7 @@ const COURSE = {
           tr:{ all:{them:'That is fine. Cash or card?',ruThem:'Хорошо. Наличные или карта?',next:'paym'},
             more:{them:'Of course. What else do you need?',ruThem:'Конечно. Что ещё вам нужно?',next:'pick'} } },
           paym:{ task:'Назови способ оплаты (например: картой, пожалуйста).', best:'By card, please.',
-          judge(w){ if(has(w,'card')) return {br:'card'};
+          judge(w){ if(has(w,'card')&&!isNegatedIntent(w,['card'])) return {br:'card'}; /* «no card» — не карта */
           if(has(w,'cash','money','notes')) return {br:'cash'}; return {huh:1}; },
           tr:{ card:{them:'Thank you. Have a good day!',ruThem:'Спасибо. Хорошего дня!',next:'wish'},
             cash:{them:'Thank you. Here is your change. Have a good day!',ruThem:'Спасибо. Вот сдача. Хорошего дня!',next:'wish'} } },
@@ -969,7 +970,7 @@ const COURSE = {
           tr:{ ok:{them:'Ok, {day} works for me.',ruThem:'Хорошо, {day} мне подходит.',next:'conf'} } },
           wed:{ task:'Ответь про среду и предложи другой день (например: в среду я занят, давайте в четверг?).', best:'Wednesday is busy for me. Can we do Thursday?',
           judge(w,mem){ const d=DAY_IN(w);
-          if(has(w,'thursday')){ mem.day='thursday'; return {br:'thu'}; }
+          if(has(w,'thursday')&&!isNegatedIntent(w,['thursday'])){ mem.day='thursday'; return {br:'thu'}; } /* «not Thursday» — не thu */
           if(d==='wednesday'&&!has(w,'busy','no','not')){ mem.day='wednesday'; return {br:'wed'}; }
           if(d){ mem.day=d; return {br:'oth'}; }
           if(has(w,'busy','no','not')) return {br:'askd'};
@@ -988,15 +989,17 @@ const COURSE = {
             fix:{them:'Wait, we agreed on {day}.',ruThem:'Стоп, мы договорились на {day}.',next:'conf'},
             again:{them:'So, we meet on {day}, right?',ruThem:'Значит, встречаемся в {day}?',next:'conf'} } },
           any:{ task:'Спроси, когда будет ответ (например: когда я узнаю?).', best:'When will I know?',
-          judge(w){ if(has(w,'no','nothing')) return {br:'done'};
-          if(has(w,'when','know','call','hear','answer','soon')) return {br:'ask'};
+          judge(w){ if(has(w,'when','know','call','hear','answer','soon')) return {br:'ask'}; /* вопрос о сроке — раньше «нет» */
+          if(has(w,'no','nothing')) return {br:'done'};
           return {huh:1}; },
           tr:{ ask:{them:'We will call you this week.',ruThem:'Мы позвоним вам на этой неделе.',next:'wait'},
             done:{them:'Ok. We will call you this week.',ruThem:'Хорошо. Мы позвоним вам на этой неделе.',next:'wait'} } },
           wait:{ task:'Ответь, что будешь делать (например: спасибо, буду ждать звонка).', best:'Thank you, I will wait for your call.',
-          judge(w){ if(has(w,'wait','waiting','expect','expecting','forward','hear')) return {br:'wait'};
+          judge(w){ if(isNegatedIntent(w,['wait','waiting'])) return {br:'refuse'}; /* «не буду ждать» — не подтверждать */
+          if(has(w,'wait','waiting','expect','expecting','forward','hear')) return {br:'wait'};
           return {huh:1}; },
-          tr:{ wait:{them:'Thank you for coming.',ruThem:'Спасибо, что пришли.',next:'bye'} } },
+          tr:{ wait:{them:'Thank you for coming.',ruThem:'Спасибо, что пришли.',next:'bye'},
+          refuse:{them:'No problem. We will send the details by email.',ruThem:'Без проблем. Пришлём подробности на почту.',next:'bye'} } },
           bye:{ task:'Попрощайся вежливо.', best:'Thank you. Have a good day.',
           judge(w){ if(has(w,'bye','goodbye','thanks','thank','day','see','later')) return {br:'ok'}; return {huh:1}; },
           tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }

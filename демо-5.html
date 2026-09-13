@@ -204,6 +204,43 @@ const sigWords = (w, extra)=>{
   const ex = extra || [];
   return w.filter(x=> x.length>1 && !SVC.includes(x) && !ex.includes(x));
 };
+/* --- помощники судей ветвящихся диалогов (партия 2, синхронизировано с демо-6) --- */
+const DAY_IN = w => {
+  const D=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  for (let i=0;i<w.length;i++) if (D.includes(w[i]) && !negatedWord(w,i)) return w[i]; /* отрицанный день не берём */
+  return null;
+};
+const FLOWNUM = (w, digits) => {
+  if (digits && digits.length === 1) return digits[0];
+  if (digits && digits.length > 1) return null;
+  const seq = [];
+  w.forEach(x => { if (x in NUM) seq.push(x); });
+  if (!seq.length) return null;
+  let cur = 0;
+  for (const x of seq) {
+    const v = NUM[x];
+    if (x === 'hundred' || x === 'thousand'){ cur = cur ? cur * v : v; }
+    else if (cur === 0) cur = v;
+    else if (cur % 10 === 0 && cur < 100 && v < 10) cur += v;
+    else if (cur >= 100 && v < 100) cur += v;
+    else return null;
+  }
+  return cur;
+};
+const NEGLEAD=['no','not','never','without'];
+const NEGPASS=['to','a','an','the','and','or','any','it','this','that','one','really','just','very','so',
+'want','need','take','have','get','choose','prefer','buy','think','do','does','did',
+'would','will','can','could','should','am','is','are','be'];
+const negatedAt = (w,i) => {
+  for (let j=0;j<w.length;j++){
+    if(!NEGLEAD.includes(w[j])) continue;
+    let k=j+1;
+    while(k<i && NEGPASS.includes(w[k])) k++;
+    if(k===i) return true;
+  }
+  return false;
+};
+const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
 
 /* ============ СЦЕНА 1 · ур.3 «Первое приветствие» (офис) — живая логика ============ */
 const S1 = { title:'Первое приветствие · ур. 3', start:'n0',

@@ -1056,6 +1056,17 @@ for (const [id, sc] of Object.entries(SCENES)) {
   expect('Д6 «No, that is all, thank you.» -> all', s5, 'rest', 'No, that is all, thank you.', 'all');
   expect('Д6 «I do not need anything more.» -> all', s5, 'rest', 'I do not need anything more.', 'all');
   expect('Д6 «Yes, I need one more thing.» -> more', s5, 'rest', 'Yes, I need one more thing.', 'more');
+  const s6 = SCENES.s6;
+  expect('Д6-003 «не буду ждать звонка» -> refuse', s6, 'wait', 'I will not wait for your call.', 'refuse');
+  expect('Д6-003 «буду ждать звонка» -> wait', s6, 'wait', 'Thank you, I will wait for your call.', 'wait');
+  expect('Д6-004 «Not Thursday, Friday works.» -> не thu', s6, 'wed', 'Not Thursday, Friday works.', 'oth');
+  expect('Д6-005 «Not Wednesday, Thursday.» -> thursday', s6, 'askday', 'Not Wednesday, Thursday.', 'direct', undefined);
+  expect('Д6-006 «No card, cash please.» (pay) -> cash', s4, 'pay', 'No card, cash please.', 'cash');
+  expect('Д6-006 «No card, cash please.» (paym) -> cash', s5, 'paym', 'No card, cash please.', 'cash');
+  expect('Д6-007 «No, when will I know?» -> ask', s6, 'any', 'No, when will I know?', 'ask');
+  expect('Д6-008 «I am not sure, medium.» -> m', s5, 'size', 'I am not sure, medium.', 'm');
+  expect('Д6-008 «Not medium.» -> ask', s5, 'size', 'Not medium.', 'ask');
+  expect('Д6-010 «Not black. Red one.» -> red', s5, 'pick', 'Not black. Red one.', 'red');
 }
 
 // ---------- итог ----------

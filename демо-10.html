@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Партия 6 ветвей · ур. 67, 73, 77</title>
+<title>Партия 6 ветвей · ур. ?, ?, ?</title>
 <style>
 :root{--bg:#101416;--card:#181e21;--line:#2a3237;--text:#e8edef;--text2:#9aa5ab;--text3:#6b757b;
 --moss:#6f9c78;--clay:#b26856;--amber:#c8933f}
@@ -35,8 +35,8 @@ button:disabled{opacity:.5;cursor:default}
 .v ul{margin:6px 0 0 16px;color:var(--text2)} .v li{margin-bottom:2px}
 .note-end{color:var(--moss);font-size:14px;margin-top:8px;font-weight:600}
 </style></head><body><div class="wrap">
-<h1>Партия 3: разговор идёт за тобой</h1>
-<p class="sub">Три сцены с ветвями (ур. 27, 31, 37). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
+<h1>Партия 6: разговор идёт за тобой</h1>
+<p class="sub">Три сцены с ветвями (ур. ?, ?, ?). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
 
 <div class="pick" id="pick"></div>
 
@@ -57,10 +57,17 @@ button:disabled{opacity:.5;cursor:default}
 
 <script>
 /* ================= ЯДРО (без DOM) ================= */
+/* ---------- помощники ветвящихся диалогов (variant:'flow') ----------
+   Перенесены из эталона демо-5: единый стоп-лист имён, белый список,
+   правдоподобие, числа. Судьи узлов в lessons.js зовут их по имени —
+   поэтому они объявлены глобально, как в демо. */
 const norm = t => (t||'').toLowerCase().replace(/[\u2019']/g,"'").replace(/[^a-z' ]/g,' ').split(/\s+/).filter(Boolean);
 const EXP={"i'm":['i','am'],"it's":['it','is'],"don't":['do','not'],"can't":['can','not'],"i've":['i','have'],
 "what's":['what','is'],"i'll":['i','will'],"there's":['there','is'],"we're":['we','are'],"you're":['you','are'],
-"that's":['that','is'],"doesn't":['does','not'],"isn't":['is','not'],"won't":['will','not']};
+"that's":['that','is'],"doesn't":['does','not'],"isn't":['is','not'],"won't":['will','not'],
+"didn't":['did','not'],"wasn't":['was','not'],"weren't":['were','not'],"haven't":['have','not'],
+"hasn't":['has','not'],"hadn't":['had','not'],"couldn't":['could','not'],"shouldn't":['should','not'],
+"wouldn't":['would','not'],"mustn't":['must','not'],"aren't":['are','not'],"they're":['they','are'],"i'd":['i','would']};
 const expand = a => { const o=[]; a.forEach(x=>{ if(EXP[x]) o.push(...EXP[x]); else o.push(x.replace(/'/g,'')); }); return o; };
 const NUM={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,
 thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,
@@ -68,13 +75,67 @@ fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,hundred:100};
 const numOf = a => { let tot=0,cur=0,any=false; a.forEach(x=>{ if(/^\d+$/.test(x)){tot+=parseInt(x,10);any=true;return;}
   if(x in NUM){any=true;cur+=NUM[x];} }); return any?tot+cur:null; };
 const has = (w,...xs)=> xs.some(x=>w.includes(x));
+/* Близкое отрицание: «no/not/never/cannot» в 1–3 словах ПЕРЕД цель-словом,
+   служебные пропускаются. Звать ДО позитивных проверок в каждом судье.
+   «I do miss them» — не отрицание (между do и miss нет not). */
+const NEG_LEAD=['no','not','never','cannot'];
+const NEG_SKIP=['to','a','an','the','on','in','at','from','want','wants','have','has','had','do','does','did',
+'will','would','can','could','shall','should','am','is','are','be','been','really','just','very','so','think',
+'any','some','plan','plans','planning','going','intention','like','hope','live','lives','living','stay','stays','staying',
+'need','needs','take','order','want','wants'];
+const negatedWord=(w,i)=>{ let k=i-1,steps=0;
+  while(k>=0&&steps<3){ const x=w[k];
+    if(NEG_LEAD.includes(x)) return true;
+    if(!NEG_SKIP.includes(x)) return false;
+    k--; steps++; }
+  return false; };
+const isNegatedIntent=(w,targets)=>{ for(let i=0;i<w.length;i++){ if(targets.includes(w[i])&&negatedWord(w,i)) return true; } return false; };
+/* Отказ от имени: «X is not my name», «that is not my real name», «I am not X».
+   Звать ДО любого извлечения имени — если имя отрицается, возвращать переспрос. */
+const deniesName = w => {
+  for (let i=0;i<w.length-1;i++){
+    if(w[i]==='is'&&w[i+1]==='not'){
+      const tail=w.slice(i+2,i+6);
+      if(tail.includes('name')) return true; /* X is not my (real) name */
+    }
+  }
+  for (let i=0;i<w.length-3;i++){
+    if(w[i]==='i'&&w[i+1]==='am'&&w[i+2]==='not'){
+      const x=w[i+3];
+      /* только уверенные имена: иначе «i am not late / not here» ложно отрицало имя */
+      if(x&&NAME_OK.has(x)&&!NOT_NAME.has(x)) return true; /* I am not Petrova */
+    }
+  }
+  return false; };
+/* Имя из явного представления: «my name is X [Y]», «i am X», «i'm X», «call me X».
+   Возвращает до двух слов (имя + фамилия). После «my name is» берёт даже
+   стоп-слова (Hope, Will, May — живые имена); после «i am» — только белый список. */
+const introNames = w => {
+  for (let i=0;i<w.length;i++){
+    const a=w[i], b=w[i+1];
+    let strong=false, j=-1;
+    if(a==='name'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='call'&&b==='me'){ strong=true; j=i+2; }
+    else if(a==='this'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='surname'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='family'&&b==='name'&&w[i+2]==='is'){ strong=true; j=i+3; }
+    else if((a==='i'&&b==='am')||a==='im'){ j=(a==='im')?i+1:i+2; }
+    if(j<0) continue;
+    const ok=x=>x&&/^[a-z']+$/.test(x)&&x.length>=2&&x.length<=15
+       &&!NEG_LEAD.includes(x)&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)
+       &&(NAME_OK.has(x)||(strong&&!NAME_STOP.includes(x)&&!SVC.includes(x)&&looksLikeName(x)));
+    if(w[j]&&NEG_LEAD.includes(w[j])) return []; /* «my name is not ...» */
+    if(!ok(w[j])) continue;
+    const out=[w[j]];
+    if(ok(w[j+1])) out.push(w[j+1]);
+    return out;
+  }
+  return []; };
 const SVC=['a','an','the','to','of','and','my','i','you','it','in','on','at','for','with','this','that','have',
 'has','can','will','would','please','me','we','they','is','am','are','be','do','does','did','not','no','yes',
 'thanks','thank','goodbye','bye','see','very','much','really','sorry','right','ok','okay','sure','here',
 'there','now','then','good','fine','great','nice','just','about','all','too','also','up','down','left',
 'day','night','back','soon','later','again','more','some','any','lot','so','but','or','if','from','out'];
-/* Единый стоп-лист: эти слова никогда не бывают именем игрока.
-   Раньше список жил внутри одного узла — баг с «Late/Sir/Excuse» возвращался в других. */
 const NAME_STOP=['hi','hello','hey','good','morning','afternoon','evening','late','sorry','excuse','waiting','wait',
 'leaving','looking','sir','madam','maam','mr','mrs','ms','miss','there','from','with','about','name','my','me','i',
 'am','im','please','nice','to','meet','meeting','appointment','help','need','friend','lost','person','someone','just','call',
@@ -84,9 +145,6 @@ const NAME_STOP=['hi','hello','hey','good','morning','afternoon','evening','late
 'right','left','after','before','so','but','or','and','too','also','only','very','much','really','again','soon','day',
 'do','does','did','is','are','be','we','they','this','that','these','those','all','any','some','more','out','if','at',
 'on','in','up','down','an','a'];
-/* --- имя: белый список + правдоподобность, а не только чёрный список ---
-   Раньше именем считалось любое слово, которого нет в NAME_STOP:
-   «banana», «pizza», «asdfgh», мат — всё проходило как имя. */
 const NAME_OK=new Set(['anna','anne','ann','maria','marie','mary','kate','katie','john','jane','tom','tim','sam',
 'alex','max','nick','mike','peter','paul','david','daniel','james','robert','george','helen','laura','julia',
 'olivia','emma','sophie','sofia','clara','lucy','sarah','rachel','ruth','grace','faith','hope','may','june',
@@ -100,37 +158,31 @@ const NAME_OK=new Set(['anna','anne','ann','maria','marie','mary','kate','katie'
 'pavel','pasha','denis','egor','yaroslav','stanislav','vyacheslav','anatoly','gennady','valery','arkady',
 'roman','roma','kirill','nikita','anton','maxim','stepan','fyodor','grigory','konstantin','viktor','yuri',
 'petrova','ivanova','sokolova','smirnov','popov','kuznetsov','brown','smith','jones','wilson','taylor']);
-
-/* явный мусор, который люди вбивают при проверке «а что будет» */
 const NOT_NAME=new Set(['banana','pizza','apple','orange','potato','tomato','burger','coffee','water','bread',
 'cat','dog','fish','bird','horse','mouse','table','chair','door','window','book','phone','car','house','tree',
 'lorem','ipsum','dolor','test','testing','asdf','asdfgh','qwerty','xyz','abc','blah','hmm','uh','um','eh',
 'why','who','when','where','which','because','maybe','nothing','something','anything','everything','nobody',
 'fuck','fucking','shit','damn','bitch','ass','crap','hell','idiot','stupid']);
-
 const looksLikeName = x =>
   x.length>=2 && x.length<=15 &&
   /^[a-z']+$/.test(x) &&
-  /[aeiouy]/.test(x) &&                 // без гласной — не слово
-  !/(.)\1\1/.test(x) &&                // ааа, ррр
-  !/[bcdfghjklmnpqrstvwxz]{4}/.test(x) && // asdfgh, qwrtp
-  !/(ing|ed|ly|tion|ness|ment)$/.test(x); // waiting, leaving, quickly
-
-/* strict=true — слово обязано быть в белом списке (голый ввод без «my name is»)
-   strict=false — достаточно правдоподобности (игрок явно представился) */
+  /[aeiouy]/.test(x) &&
+  !/(.)\1\1/.test(x) &&
+  !/[bcdfghjklmnpqrstvwxz]{4}/.test(x) &&
+  !/(ing|ed|ly|tion|ness|ment)$/.test(x);
 const cap = x => x.charAt(0).toUpperCase()+x.slice(1);
 const pickName = (w, skip, strict)=>{
-  /* 1) слово сразу после «my name is» / «i am» / «call me» / «this is».
-     Так Hope, Will, May, Grace распознаются, хотя они же служебные слова,
-     а «I hope I am not late» именем не становится. */
   for(let i=0;i<w.length-1;i++){
     const pair=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='i'&&w[i+1]==='am')||
                (w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
     if(pair){ const x=w[i+2];
+      const strong=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
+      if(x&&NEG_LEAD.includes(x)) return null; /* «my name is not ...» — имя не названо */
+      /* после «my name is» берём даже стоп-слова (Hope, Will, May);
+         после «i am» — только белый список, иначе «i am late/here» становилось именем */
       if(x&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)&&
-         (NAME_OK.has(x)||(!SVC.includes(x)&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
+         (NAME_OK.has(x)||(strong&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
   }
-  /* 2) обычный поиск */
   const s=new Set([...SVC,...skip]);
   const c=w.find(x=>{
     if(s.has(x)||NUM.hasOwnProperty(x)||NOT_NAME.has(x)) return false;
@@ -139,7 +191,6 @@ const pickName = (w, skip, strict)=>{
   });
   return c ? cap(c) : null;
 };
-/* игрок явно представляется: «my name is X», «i am X», «call me X», «this is X» */
 const introduced = w => {
   for(let i=0;i<w.length-1;i++){
     if(w[i]==='name'&&w[i+1]==='is') return true;
@@ -153,31 +204,29 @@ const sigWords = (w, extra)=>{
   const ex = extra || [];
   return w.filter(x=> x.length>1 && !SVC.includes(x) && !ex.includes(x));
 };
-/* --- помощники судей ветвящихся диалогов (партия 2+) --- */
+/* --- помощники судей ветвящихся диалогов (партия 2, синхронизировано с демо-6) --- */
 const DAY_IN = w => {
   const D=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-  for (const x of w) if (D.includes(x)) return x;
+  for (let i=0;i<w.length;i++) if (D.includes(w[i]) && !negatedWord(w,i)) return w[i]; /* отрицанный день не берём */
   return null;
 };
 const FLOWNUM = (w, digits) => {
   if (digits && digits.length === 1) return digits[0];
-  if (digits && digits.length > 1) return null;      // несколько чисел — неоднозначно
+  if (digits && digits.length > 1) return null;
   const seq = [];
-  w.forEach(x => { if (x in NUM) seq.push(x); });    // слова-числительные по порядку
+  w.forEach(x => { if (x in NUM) seq.push(x); });
   if (!seq.length) return null;
   let cur = 0;
   for (const x of seq) {
     const v = NUM[x];
     if (x === 'hundred' || x === 'thousand'){ cur = cur ? cur * v : v; }
     else if (cur === 0) cur = v;
-    else if (cur % 10 === 0 && cur < 100 && v < 10) cur += v;      // twenty five = 25
-    else if (cur >= 100 && v < 100) cur += v;                      // one hundred (and) five = 105
-    else return null;                                              // two and three — неоднозначно
+    else if (cur % 10 === 0 && cur < 100 && v < 10) cur += v;
+    else if (cur >= 100 && v < 100) cur += v;
+    else return null;
   }
   return cur;
 };
-/* Отрицание липнет к ближайшему содержательному слову справа.
-   «not black, red» -> отрицается black, red выбран. «no red» -> red НЕ выбран. */
 const NEGLEAD=['no','not','never','without'];
 const NEGPASS=['to','a','an','the','and','or','any','it','this','that','one','really','just','very','so',
 'want','need','take','have','get','choose','prefer','buy','think','do','does','did',
@@ -186,219 +235,214 @@ const negatedAt = (w,i) => {
   for (let j=0;j<w.length;j++){
     if(!NEGLEAD.includes(w[j])) continue;
     let k=j+1;
-    while(k<i && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени, но не мимо неё
+    while(k<i && NEGPASS.includes(w[k])) k++;
     if(k===i) return true;
   }
   return false;
 };
 const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
 
-/* ============ ПАРТИЯ 6 · ур. 67, 73, 77 ============ */
-
-const S1 = { title:'Купить билет · ур. 67',
-  intro:'Ты в кассе на вокзале.',
-  start:'go',
-  opener:{them:'Where are you going?', ru:'Куда едете?'},
-  nodes:{
-    go:{ task:'Ответь, куда едешь (например: в центр).', best:'To the centre, please.',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'centre','center','town','city')) return {br:'centr'};
-          if(chose(w,'airport','station','park','museum','hotel')) return {br:'other'};
-          if(has(w,'no','not','never')&&chose(w,'know','idea')) return {br:'dk'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
-      centr:{them:'To the centre. Single or return?',ruThem:'В центр. В одну сторону или туда-обратно?',next:'sr'},
-      other:{them:'Ok. Single or return?',ruThem:'Хорошо. В одну сторону или туда-обратно?',next:'sr'},
-      dk:{them:'No problem. Where do you usually go? The centre?',ruThem:'Ничего страшного. Куда вы обычно ездите? В центр?',next:'sr'},
-    } },
-    sr:{ task:'Выбери тип билета (например: туда-обратно).', best:'Return, please.',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'return','back','both','ways')) return {br:'ret'};
-          if(has(w,'no','not','never')&&(w.includes('return')||w.includes('back'))) return {br:'sing'};
-          if(chose(w,'single','one')) return {br:'sing'};
-          if(has(w,'no','not','never')&&(w.includes('single')||w.includes('one'))&&!chose(w,'please','thanks','thank')) return {br:'ret'};
-          if(chose(w,'again','repeat','sorry','pardon')) return {br:'again'};
-          if(has(w,'no','not','never')) return {br:'clar'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
-      ret:{them:'Return. That is six euros.',ruThem:'Туда-обратно. Шесть евро.',next:'pay'},
-      sing:{them:'Single. That is three euros fifty.',ruThem:'В одну сторону. Три евро пятьдесят.',next:'pay'},
-      again:{them:'Sorry, single or return?',ruThem:'Простите, в одну сторону или туда-обратно?',next:'sr'},
-      clar:{them:'Single or return?',ruThem:'В одну сторону или туда-обратно?',next:'sr'},
-    } },
-    pay:{ task:'Спроси про поезд (например: во сколько отходит).', best:'Thank you. What time does the train leave?',
-    judge(w){
-          if(chose(w,'bye','goodbye','later')) return {br:'bye'};
-          if(chose(w,'when','time','leave','leaves','depart')) return {br:'when'};
-          if(chose(w,'expensive','cheap','price','cost')) return {br:'price'};
-          if(chose(w,'cash','card','pay','here','euro','euros','money')) return {br:'cash'};
-          if(chose(w,'thanks','thank','ok','okay','yes','sure')) return {br:'th'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
-      when:{them:'The train leaves at half past three, platform two.',ruThem:'Поезд отходит в половине четвёртого, вторая платформа.',next:'th2'},
-      price:{them:'It is the standard price for this route.',ruThem:'Это стандартная цена на этом маршруте.',next:'pay'},
-      cash:{them:'Here is your ticket. The train leaves at half past three.',ruThem:'Вот ваш билет. Поезд отходит в половине четвёртого.',next:'th2'},
-      th:{them:'Here is your ticket. Have a good trip!',ruThem:'Вот ваш билет. Хорошей поездки!',next:'th2'},
-    } },
-    th2:{ task:'Поблагодари и попрощайся.', best:'Thank you very much. Goodbye!',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'thanks','thank')) return {br:'th'};
-          if(chose(w,'ok','okay','yes','yeah','sure','fine','good')) return {br:'th'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Goodbye! Have a nice trip!',ruThem:'До свидания! Хорошей поездки!',next:null},
-      th:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null},
-    } },
-  }
-};
-
-const S2 = { title:'Объяснить дорогу · ур. 73',
-  intro:'Турист останавливает тебя на улице.',
-  start:'st',
-  opener:{them:'Excuse me, where is the station?', ru:'Простите, где вокзал?'},
-  nodes:{
-    st:{ task:'Объясни дорогу (например: прямо, потом направо).', best:'Go straight, then turn right.',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'sorry','pardon','what','again','repeat')) return {br:'again'};
-          if(chose(w,'far','near','close','walk','minute','minutes')) return {br:'far'};
-          if(chose(w,'bus','car','taxi','metro','train')) return {br:'bus'};
-          if(chose(w,'straight','right','left','turn','then','ahead','station')) return {br:'dir'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
-      again:{them:'Go straight, then turn right. It is very simple.',ruThem:'Прямо, потом направо. Всё очень просто.',next:'walk'},
-      far:{them:'It is not far. About five minutes on foot.',ruThem:'Недалеко. Около пяти минут пешком.',next:'walk'},
-      bus:{them:'You can walk, it is five minutes. Or take the bus, two stops.',ruThem:'Можно пешком, пять минут. Или на автобусе, две остановки.',next:'walk'},
-      dir:{them:'Great, thank you! And is it far?',ruThem:'Отлично, спасибо! А это далеко?',next:'walk'},
-    } },
-    walk:{ task:'Ответь, сколько идти (например: около пяти минут пешком).', best:'About five minutes on foot.',
-    judge(w,mem){
-          const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(has(w,'no','not','never')&&has(w,'bus','taxi','car','metro')&&!has(w,'take','will','i','by')) return {huh:1};
-          if(has(w,'bus','taxi','car','metro')) return {br:'bus5'};
-          if(has(w,'minute','minutes','foot','walk')&&!has(w,'no','not','never')){
-            if(n===5) return {br:'ok5'};
-            if(n!==null) return {br:'other5'};
-            if(w.includes('few')||w.includes('little')) return {br:'other5'};
-            return {br:'ok5'}; }
-          if(has(w,'no','not','never')) return {br:'not5'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
-      ok5:{them:'That is very close. Thank you so much!',ruThem:'Это совсем рядом. Большое спасибо!',next:'thx'},
-      bus5:{them:'Oh, by bus it is even shorter. Two stops. Thank you!',ruThem:'На автобусе ещё короче. Две остановки. Спасибо!',next:'thx'},
-      not5:{them:'I see. Well, thank you for your help!',ruThem:'Понятно. Ну, спасибо за помощь!',next:'thx'},
-      other5:{them:'Well, I would say about five minutes on foot.',ruThem:'Ну, я бы сказал, около пяти минут пешком.',next:'thx'},
-    } },
-    thx:{ task:'Ответь на «спасибо» (например: не за что).', best:'You are welcome.',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'welcome','problem','nothing','ok','okay','fine','sure','yes','yeah','thanks','thank')) return {br:'wc'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
-      wc:{them:'Do you need anything else?',ruThem:'Вам ещё что-нибудь нужно?',next:'any'},
-    } },
-    any:{ task:'Спроси про что-нибудь ещё (например: есть ли рядом кафе).', best:'Is there a cafe near here?',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(has(w,'no','not','never')&&(w.includes('thanks')||w.includes('thank')||w.includes('nothing')||w.includes('all'))) return {br:'bye'};
-          if(chose(w,'cafe','coffee')) return {br:'cafe'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Bye!',ruThem:'Пока!',next:null},
-      cafe:{them:'Yes, there is a good cafe on the left, next to the shop.',ruThem:'Да, хорошее кафе слева, рядом с магазином.',next:'th2'},
-    } },
-    th2:{ task:'Поблагодари.', best:'Thank you very much.',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'thanks','thank')) return {br:'th'};
-          if(chose(w,'ok','okay','yes','yeah','great','good')) return {br:'th'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Bye!',ruThem:'Пока!',next:null},
-      th:{them:'You are welcome. Enjoy your day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
-    } },
-  }
-};
-
-const S3 = { title:'Рассказать о работе · ур. 77',
-  intro:'На вечеринке кто-то спрашивает о работе.',
-  start:'job',
-  opener:{them:'So, what do you do?', ru:'Чем занимаешься?'},
-  nodes:{
-    job:{ task:'Ответь, чем занимаешься (например: работаю в небольшой компании).', best:'I work in a small company.',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'work','company','office','job')) return {br:'work'};
-          if(chose(w,'student','school','study','studies')) return {br:'student'};
-          if(has(w,'no','not','never')&&(w.includes('work')||w.includes('job'))) return {br:'nowork'};
-          if(chose(w,'doctor','teacher','engineer','driver','shop','bank')) return {br:'spec'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
-      work:{them:'Interesting. Do you like it?',ruThem:'Интересно. Нравится?',next:'like'},
-      student:{them:'Oh, are you a student? And what do you study?',ruThem:'О, вы студент? И что вы изучаете?',next:'like'},
-      nowork:{them:'I see. Are you looking for a job?',ruThem:'Понятно. Ищете работу?',next:'like'},
-      spec:{them:'That sounds interesting. Do you like it?',ruThem:'Звучит интересно. Нравится?',next:'like'},
-    } },
-    like:{ task:'Ответь, нравится ли работа (например: да, но её много).', best:'Yes, but there is a lot of work.',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'yes','yeah','like','love','enjoy')) return {br:'yes'};
-          if(chose(w,'lot','much','many','busy')) return {br:'busy'};
-          if(has(w,'no','not','never')&&(w.includes('boring')||w.includes('bored')||w.includes('hate')||w.includes('hates')||w.includes('tired')||w.includes('difficult')||w.includes('stress')||w.includes('stressful')||w.includes('bad')||w.includes('awful')||w.includes('terrible')||w.includes('hard'))) return {huh:1};
-          if(has(w,'no','not','never')) return {br:'no'};
-          if(chose(w,'boring','bored','hate','hates','tired','difficult','stress','stressful','bad','awful','terrible','hard')) return {br:'no'};
-          if(chose(w,'ok','okay','fine','sure','so')) return {br:'yes'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
-      yes:{them:'A lot of work, I know that feeling.',ruThem:'Много работы, я знаю это чувство.',next:'you'},
-      no:{them:'That is a pity. But it is good that you have a job.',ruThem:'Жаль. Но хорошо, что работа есть.',next:'you'},
-      busy:{them:'A lot of work, I know that feeling.',ruThem:'Много работы, я знаю это чувство.',next:'you'},
-    } },
-    you:{ task:'Спроси про собеседника (например: а ты чем занимаешься?).', best:'And what about you?',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'you','your','and')) return {br:'ask'};
-          if(chose(w,'work','job','doctor','teacher','engineer')) return {br:'ask'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
-      ask:{them:'I work in a bank. It is fine, but I am busy too.',ruThem:'Я работаю в банке. Нормально, но я тоже занят.',next:'drink'},
-    } },
-    drink:{ task:'Предложи собеседнику что-нибудь выпить.', best:'Would you like something to drink?',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'drink','coffee','tea','water','juice','would','like','something')) return {br:'offer'};
-          if(chose(w,'thanks','thank')) return {br:'th'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Bye! Nice to meet you!',ruThem:'Пока! Приятно было познакомиться!',next:null},
-      offer:{them:'Yes, coffee would be great, thank you!',ruThem:'Да, кофе было бы отлично, спасибо!',next:'wish'},
-      th:{them:'It was nice talking to you!',ruThem:'Было приятно поболтать!',next:'wish'},
-    } },
-    wish:{ task:'Попрощайся вежливо.', best:'Nice to meet you. Goodbye!',
-    judge(w){
-          if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
-          if(chose(w,'nice','meet','see','too','likewise','thanks','thank')) return {br:'ok'};
-          return {huh:1}; },
-    tr:{
-      bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
-      ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Берегите себя!',next:null},
-    } },
-  }
-};
-
+const S1 = {
+        intro:'Ты в кассе на вокзале.',
+        start:'go',
+        opener:{them:'Where are you going?', ru:'Куда едете?'},
+        nodes:{
+          go:{ task:'Ответь, куда едешь (например: в центр).', best:'To the centre, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'centre','center','town','city')) return {br:'centr'};
+                if(chose(w,'airport','station','park','museum','hotel')) return {br:'other'};
+                if(has(w,'no','not','never')&&chose(w,'know','idea')) return {br:'dk'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            centr:{them:'To the centre. Single or return?',ruThem:'В центр. В одну сторону или туда-обратно?',next:'sr'},
+            other:{them:'Ok. Single or return?',ruThem:'Хорошо. В одну сторону или туда-обратно?',next:'sr'},
+            dk:{them:'No problem. Where do you usually go? The centre?',ruThem:'Ничего страшного. Куда вы обычно ездите? В центр?',next:'sr'},
+          } },
+          sr:{ task:'Выбери тип билета (например: туда-обратно).', best:'Return, please.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'return','back','both','ways')) return {br:'ret'};
+                if(has(w,'no','not','never')&&(w.includes('return')||w.includes('back'))) return {br:'sing'};
+                if(chose(w,'single','one')) return {br:'sing'};
+                if(has(w,'no','not','never')&&(w.includes('single')||w.includes('one'))&&!chose(w,'please','thanks','thank')) return {br:'ret'};
+                if(chose(w,'again','repeat','sorry','pardon')) return {br:'again'};
+                if(has(w,'no','not','never')) return {br:'clar'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            ret:{them:'Return. That is six euros.',ruThem:'Туда-обратно. Шесть евро.',next:'pay'},
+            sing:{them:'Single. That is three euros fifty.',ruThem:'В одну сторону. Три евро пятьдесят.',next:'pay'},
+            again:{them:'Sorry, single or return?',ruThem:'Простите, в одну сторону или туда-обратно?',next:'sr'},
+            clar:{them:'Single or return?',ruThem:'В одну сторону или туда-обратно?',next:'sr'},
+          } },
+          pay:{ task:'Спроси про поезд (например: во сколько отходит).', best:'Thank you. What time does the train leave?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later')) return {br:'bye'};
+                if(chose(w,'when','time','leave','leaves','depart')) return {br:'when'};
+                if(chose(w,'expensive','cheap','price','cost')) return {br:'price'};
+                if(chose(w,'cash','card','pay','here','euro','euros','money')) return {br:'cash'};
+                if(chose(w,'thanks','thank','ok','okay','yes','sure')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. Have a nice day!',ruThem:'Хорошо. Хорошего дня!',next:null},
+            when:{them:'The train leaves at half past three, platform two.',ruThem:'Поезд отходит в половине четвёртого, вторая платформа.',next:'th2'},
+            price:{them:'It is the standard price for this route.',ruThem:'Это стандартная цена на этом маршруте.',next:'pay'},
+            cash:{them:'Here is your ticket. The train leaves at half past three.',ruThem:'Вот ваш билет. Поезд отходит в половине четвёртого.',next:'th2'},
+            th:{them:'Here is your ticket. Have a good trip!',ruThem:'Вот ваш билет. Хорошей поездки!',next:'th2'},
+          } },
+          th2:{ task:'Поблагодари и попрощайся.', best:'Thank you very much. Goodbye!',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','sure','fine','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye! Have a nice trip!',ruThem:'До свидания! Хорошей поездки!',next:null},
+            th:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null},
+          } },
+        }
+      };
+const S2 = {
+        intro:'Турист останавливает тебя на улице.',
+        start:'st',
+        opener:{them:'Excuse me, where is the station?', ru:'Простите, где вокзал?'},
+        nodes:{
+          st:{ task:'Объясни дорогу (например: прямо, потом направо).', best:'Go straight, then turn right.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'sorry','pardon','what','again','repeat')) return {br:'again'};
+                if(chose(w,'far','near','close','walk','minute','minutes')) return {br:'far'};
+                if(chose(w,'bus','car','taxi','metro','train')) return {br:'bus'};
+                if(chose(w,'straight','right','left','turn','then','ahead','station')) return {br:'dir'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            again:{them:'Go straight, then turn right. It is very simple.',ruThem:'Прямо, потом направо. Всё очень просто.',next:'walk'},
+            far:{them:'It is not far. About five minutes on foot.',ruThem:'Недалеко. Около пяти минут пешком.',next:'walk'},
+            bus:{them:'You can walk, it is five minutes. Or take the bus, two stops.',ruThem:'Можно пешком, пять минут. Или на автобусе, две остановки.',next:'walk'},
+            dir:{them:'Great, thank you! And is it far?',ruThem:'Отлично, спасибо! А это далеко?',next:'walk'},
+          } },
+          walk:{ task:'Ответь, сколько идти (например: около пяти минут пешком).', best:'About five minutes on foot.',
+          judge(w,mem){
+                const d=(mem._digits||[]).map(Number); const n=FLOWNUM(w,d);
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(has(w,'no','not','never')&&has(w,'bus','taxi','car','metro')&&!has(w,'take','will','i','by')) return {huh:1};
+                if(has(w,'bus','taxi','car','metro')) return {br:'bus5'};
+                if(has(w,'minute','minutes','foot','walk')&&!has(w,'no','not','never')){
+                  if(n===5) return {br:'ok5'};
+                  if(n!==null) return {br:'other5'};
+                  if(w.includes('few')||w.includes('little')) return {br:'other5'};
+                  return {br:'ok5'}; }
+                if(has(w,'no','not','never')) return {br:'not5'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            ok5:{them:'That is very close. Thank you so much!',ruThem:'Это совсем рядом. Большое спасибо!',next:'thx'},
+            bus5:{them:'Oh, by bus it is even shorter. Two stops. Thank you!',ruThem:'На автобусе ещё короче. Две остановки. Спасибо!',next:'thx'},
+            not5:{them:'I see. Well, thank you for your help!',ruThem:'Понятно. Ну, спасибо за помощь!',next:'thx'},
+            other5:{them:'Well, I would say about five minutes on foot.',ruThem:'Ну, я бы сказал, около пяти минут пешком.',next:'thx'},
+          } },
+          thx:{ task:'Ответь на «спасибо» (например: не за что).', best:'You are welcome.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'welcome','problem','nothing','ok','okay','fine','sure','yes','yeah','thanks','thank')) return {br:'wc'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Have a nice day!',ruThem:'Пока! Хорошего дня!',next:null},
+            wc:{them:'Do you need anything else?',ruThem:'Вам ещё что-нибудь нужно?',next:'any'},
+          } },
+          any:{ task:'Спроси про что-нибудь ещё (например: есть ли рядом кафе).', best:'Is there a cafe near here?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(has(w,'no','not','never')&&(w.includes('thanks')||w.includes('thank')||w.includes('nothing')||w.includes('all'))) return {br:'bye'};
+                if(chose(w,'cafe','coffee')) return {br:'cafe'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            cafe:{them:'Yes, there is a good cafe on the left, next to the shop.',ruThem:'Да, хорошее кафе слева, рядом с магазином.',next:'th2'},
+          } },
+          th2:{ task:'Поблагодари.', best:'Thank you very much.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                if(chose(w,'ok','okay','yes','yeah','great','good')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye!',ruThem:'Пока!',next:null},
+            th:{them:'You are welcome. Enjoy your day!',ruThem:'Пожалуйста. Хорошего дня!',next:null},
+          } },
+        }
+      };
+const S3 = {
+        intro:'На вечеринке кто-то спрашивает о работе.',
+        start:'job',
+        opener:{them:'So, what do you do?', ru:'Чем занимаешься?'},
+        nodes:{
+          job:{ task:'Ответь, чем занимаешься (например: работаю в небольшой компании).', best:'I work in a small company.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'work','company','office','job')) return {br:'work'};
+                if(chose(w,'student','school','study','studies')) return {br:'student'};
+                if(has(w,'no','not','never')&&(w.includes('work')||w.includes('job'))) return {br:'nowork'};
+                if(chose(w,'doctor','teacher','engineer','driver','shop','bank')) return {br:'spec'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            work:{them:'Interesting. Do you like it?',ruThem:'Интересно. Нравится?',next:'like'},
+            student:{them:'Oh, are you a student? And what do you study?',ruThem:'О, вы студент? И что вы изучаете?',next:'like'},
+            nowork:{them:'I see. Are you looking for a job?',ruThem:'Понятно. Ищете работу?',next:'like'},
+            spec:{them:'That sounds interesting. Do you like it?',ruThem:'Звучит интересно. Нравится?',next:'like'},
+          } },
+          like:{ task:'Ответь, нравится ли работа (например: да, но её много).', best:'Yes, but there is a lot of work.',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'yes','yeah','like','love','enjoy')) return {br:'yes'};
+                if(chose(w,'lot','much','many','busy')) return {br:'busy'};
+                if(has(w,'no','not','never')&&(w.includes('boring')||w.includes('bored')||w.includes('hate')||w.includes('hates')||w.includes('tired')||w.includes('difficult')||w.includes('stress')||w.includes('stressful')||w.includes('bad')||w.includes('awful')||w.includes('terrible')||w.includes('hard'))) return {huh:1};
+                if(has(w,'no','not','never')) return {br:'no'};
+                if(chose(w,'boring','bored','hate','hates','tired','difficult','stress','stressful','bad','awful','terrible','hard')) return {br:'no'};
+                if(chose(w,'ok','okay','fine','sure','so')) return {br:'yes'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            yes:{them:'A lot of work, I know that feeling.',ruThem:'Много работы, я знаю это чувство.',next:'you'},
+            no:{them:'That is a pity. But it is good that you have a job.',ruThem:'Жаль. Но хорошо, что работа есть.',next:'you'},
+            busy:{them:'A lot of work, I know that feeling.',ruThem:'Много работы, я знаю это чувство.',next:'you'},
+          } },
+          you:{ task:'Спроси про собеседника (например: а ты чем занимаешься?).', best:'And what about you?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'you','your','and')) return {br:'ask'};
+                if(chose(w,'work','job','doctor','teacher','engineer')) return {br:'ask'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Ok. See you later!',ruThem:'Ладно. До встречи!',next:null},
+            ask:{them:'I work in a bank. It is fine, but I am busy too.',ruThem:'Я работаю в банке. Нормально, но я тоже занят.',next:'drink'},
+          } },
+          drink:{ task:'Предложи собеседнику что-нибудь выпить.', best:'Would you like something to drink?',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'drink','coffee','tea','water','juice','would','like','something')) return {br:'offer'};
+                if(chose(w,'thanks','thank')) return {br:'th'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Bye! Nice to meet you!',ruThem:'Пока! Приятно было познакомиться!',next:null},
+            offer:{them:'Yes, coffee would be great, thank you!',ruThem:'Да, кофе было бы отлично, спасибо!',next:'wish'},
+            th:{them:'It was nice talking to you!',ruThem:'Было приятно поболтать!',next:'wish'},
+          } },
+          wish:{ task:'Попрощайся вежливо.', best:'Nice to meet you. Goodbye!',
+          judge(w){
+                if(chose(w,'bye','goodbye','later','leave','leaving')) return {br:'bye'};
+                if(chose(w,'nice','meet','see','too','likewise','thanks','thank')) return {br:'ok'};
+                return {huh:1}; },
+          tr:{
+            bye:{them:'Goodbye!',ruThem:'До свидания!',next:null},
+            ok:{them:'Goodbye! Take care!',ruThem:'До свидания! Берегите себя!',next:null},
+          } },
+        }
+      };
 const SCENES={ s1:S1, s2:S2, s3:S3 };
 try{ if(typeof module!=='undefined' && module.exports) module.exports={SCENES}; }catch(e){}
 

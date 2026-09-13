@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Партия 7 ветвей · ур. 81, 85, 91</title>
+<title>Партия 7 ветвей · ур. 84, 88, 94</title>
 <style>
 :root{--bg:#101416;--card:#181e21;--line:#2a3237;--text:#e8edef;--text2:#9aa5ab;--text3:#6b757b;
 --moss:#6f9c78;--clay:#b26856;--amber:#c8933f}
@@ -36,7 +36,7 @@ button:disabled{opacity:.5;cursor:default}
 .note-end{color:var(--moss);font-size:14px;margin-top:8px;font-weight:600}
 </style></head><body><div class="wrap">
 <h1>Партия 7: разговор идёт за тобой</h1>
-<p class="sub">Три сцены с ветвями (ур. 81, 85, 91). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
+<p class="sub">Три сцены с ветвями (ур. 84, 88, 94). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
 
 <div class="pick" id="pick"></div>
 
@@ -57,10 +57,17 @@ button:disabled{opacity:.5;cursor:default}
 
 <script>
 /* ================= ЯДРО (без DOM) ================= */
+/* ---------- помощники ветвящихся диалогов (variant:'flow') ----------
+   Перенесены из эталона демо-5: единый стоп-лист имён, белый список,
+   правдоподобие, числа. Судьи узлов в lessons.js зовут их по имени —
+   поэтому они объявлены глобально, как в демо. */
 const norm = t => (t||'').toLowerCase().replace(/[\u2019']/g,"'").replace(/[^a-z' ]/g,' ').split(/\s+/).filter(Boolean);
 const EXP={"i'm":['i','am'],"it's":['it','is'],"don't":['do','not'],"can't":['can','not'],"i've":['i','have'],
 "what's":['what','is'],"i'll":['i','will'],"there's":['there','is'],"we're":['we','are'],"you're":['you','are'],
-"that's":['that','is'],"doesn't":['does','not'],"isn't":['is','not'],"won't":['will','not']};
+"that's":['that','is'],"doesn't":['does','not'],"isn't":['is','not'],"won't":['will','not'],
+"didn't":['did','not'],"wasn't":['was','not'],"weren't":['were','not'],"haven't":['have','not'],
+"hasn't":['has','not'],"hadn't":['had','not'],"couldn't":['could','not'],"shouldn't":['should','not'],
+"wouldn't":['would','not'],"mustn't":['must','not'],"aren't":['are','not'],"they're":['they','are'],"i'd":['i','would']};
 const expand = a => { const o=[]; a.forEach(x=>{ if(EXP[x]) o.push(...EXP[x]); else o.push(x.replace(/'/g,'')); }); return o; };
 const NUM={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,
 thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,
@@ -68,13 +75,67 @@ fifty:50,sixty:60,seventy:70,eighty:80,ninety:90,hundred:100};
 const numOf = a => { let tot=0,cur=0,any=false; a.forEach(x=>{ if(/^\d+$/.test(x)){tot+=parseInt(x,10);any=true;return;}
   if(x in NUM){any=true;cur+=NUM[x];} }); return any?tot+cur:null; };
 const has = (w,...xs)=> xs.some(x=>w.includes(x));
+/* Близкое отрицание: «no/not/never/cannot» в 1–3 словах ПЕРЕД цель-словом,
+   служебные пропускаются. Звать ДО позитивных проверок в каждом судье.
+   «I do miss them» — не отрицание (между do и miss нет not). */
+const NEG_LEAD=['no','not','never','cannot'];
+const NEG_SKIP=['to','a','an','the','on','in','at','from','want','wants','have','has','had','do','does','did',
+'will','would','can','could','shall','should','am','is','are','be','been','really','just','very','so','think',
+'any','some','plan','plans','planning','going','intention','like','hope','live','lives','living','stay','stays','staying',
+'need','needs','take','order','want','wants'];
+const negatedWord=(w,i)=>{ let k=i-1,steps=0;
+  while(k>=0&&steps<3){ const x=w[k];
+    if(NEG_LEAD.includes(x)) return true;
+    if(!NEG_SKIP.includes(x)) return false;
+    k--; steps++; }
+  return false; };
+const isNegatedIntent=(w,targets)=>{ for(let i=0;i<w.length;i++){ if(targets.includes(w[i])&&negatedWord(w,i)) return true; } return false; };
+/* Отказ от имени: «X is not my name», «that is not my real name», «I am not X».
+   Звать ДО любого извлечения имени — если имя отрицается, возвращать переспрос. */
+const deniesName = w => {
+  for (let i=0;i<w.length-1;i++){
+    if(w[i]==='is'&&w[i+1]==='not'){
+      const tail=w.slice(i+2,i+6);
+      if(tail.includes('name')) return true; /* X is not my (real) name */
+    }
+  }
+  for (let i=0;i<w.length-3;i++){
+    if(w[i]==='i'&&w[i+1]==='am'&&w[i+2]==='not'){
+      const x=w[i+3];
+      /* только уверенные имена: иначе «i am not late / not here» ложно отрицало имя */
+      if(x&&NAME_OK.has(x)&&!NOT_NAME.has(x)) return true; /* I am not Petrova */
+    }
+  }
+  return false; };
+/* Имя из явного представления: «my name is X [Y]», «i am X», «i'm X», «call me X».
+   Возвращает до двух слов (имя + фамилия). После «my name is» берёт даже
+   стоп-слова (Hope, Will, May — живые имена); после «i am» — только белый список. */
+const introNames = w => {
+  for (let i=0;i<w.length;i++){
+    const a=w[i], b=w[i+1];
+    let strong=false, j=-1;
+    if(a==='name'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='call'&&b==='me'){ strong=true; j=i+2; }
+    else if(a==='this'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='surname'&&b==='is'){ strong=true; j=i+2; }
+    else if(a==='family'&&b==='name'&&w[i+2]==='is'){ strong=true; j=i+3; }
+    else if((a==='i'&&b==='am')||a==='im'){ j=(a==='im')?i+1:i+2; }
+    if(j<0) continue;
+    const ok=x=>x&&/^[a-z']+$/.test(x)&&x.length>=2&&x.length<=15
+       &&!NEG_LEAD.includes(x)&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)
+       &&(NAME_OK.has(x)||(strong&&!NAME_STOP.includes(x)&&!SVC.includes(x)&&looksLikeName(x)));
+    if(w[j]&&NEG_LEAD.includes(w[j])) return []; /* «my name is not ...» */
+    if(!ok(w[j])) continue;
+    const out=[w[j]];
+    if(ok(w[j+1])) out.push(w[j+1]);
+    return out;
+  }
+  return []; };
 const SVC=['a','an','the','to','of','and','my','i','you','it','in','on','at','for','with','this','that','have',
 'has','can','will','would','please','me','we','they','is','am','are','be','do','does','did','not','no','yes',
 'thanks','thank','goodbye','bye','see','very','much','really','sorry','right','ok','okay','sure','here',
 'there','now','then','good','fine','great','nice','just','about','all','too','also','up','down','left',
 'day','night','back','soon','later','again','more','some','any','lot','so','but','or','if','from','out'];
-/* Единый стоп-лист: эти слова никогда не бывают именем игрока.
-   Раньше список жил внутри одного узла — баг с «Late/Sir/Excuse» возвращался в других. */
 const NAME_STOP=['hi','hello','hey','good','morning','afternoon','evening','late','sorry','excuse','waiting','wait',
 'leaving','looking','sir','madam','maam','mr','mrs','ms','miss','there','from','with','about','name','my','me','i',
 'am','im','please','nice','to','meet','meeting','appointment','help','need','friend','lost','person','someone','just','call',
@@ -84,9 +145,6 @@ const NAME_STOP=['hi','hello','hey','good','morning','afternoon','evening','late
 'right','left','after','before','so','but','or','and','too','also','only','very','much','really','again','soon','day',
 'do','does','did','is','are','be','we','they','this','that','these','those','all','any','some','more','out','if','at',
 'on','in','up','down','an','a'];
-/* --- имя: белый список + правдоподобность, а не только чёрный список ---
-   Раньше именем считалось любое слово, которого нет в NAME_STOP:
-   «banana», «pizza», «asdfgh», мат — всё проходило как имя. */
 const NAME_OK=new Set(['anna','anne','ann','maria','marie','mary','kate','katie','john','jane','tom','tim','sam',
 'alex','max','nick','mike','peter','paul','david','daniel','james','robert','george','helen','laura','julia',
 'olivia','emma','sophie','sofia','clara','lucy','sarah','rachel','ruth','grace','faith','hope','may','june',
@@ -100,37 +158,31 @@ const NAME_OK=new Set(['anna','anne','ann','maria','marie','mary','kate','katie'
 'pavel','pasha','denis','egor','yaroslav','stanislav','vyacheslav','anatoly','gennady','valery','arkady',
 'roman','roma','kirill','nikita','anton','maxim','stepan','fyodor','grigory','konstantin','viktor','yuri',
 'petrova','ivanova','sokolova','smirnov','popov','kuznetsov','brown','smith','jones','wilson','taylor']);
-
-/* явный мусор, который люди вбивают при проверке «а что будет» */
 const NOT_NAME=new Set(['banana','pizza','apple','orange','potato','tomato','burger','coffee','water','bread',
 'cat','dog','fish','bird','horse','mouse','table','chair','door','window','book','phone','car','house','tree',
 'lorem','ipsum','dolor','test','testing','asdf','asdfgh','qwerty','xyz','abc','blah','hmm','uh','um','eh',
 'why','who','when','where','which','because','maybe','nothing','something','anything','everything','nobody',
 'fuck','fucking','shit','damn','bitch','ass','crap','hell','idiot','stupid']);
-
 const looksLikeName = x =>
   x.length>=2 && x.length<=15 &&
   /^[a-z']+$/.test(x) &&
-  /[aeiouy]/.test(x) &&                 // без гласной — не слово
-  !/(.)\1\1/.test(x) &&                // ааа, ррр
-  !/[bcdfghjklmnpqrstvwxz]{4}/.test(x) && // asdfgh, qwrtp
-  !/(ing|ed|ly|tion|ness|ment)$/.test(x); // waiting, leaving, quickly
-
-/* strict=true — слово обязано быть в белом списке (голый ввод без «my name is»)
-   strict=false — достаточно правдоподобности (игрок явно представился) */
+  /[aeiouy]/.test(x) &&
+  !/(.)\1\1/.test(x) &&
+  !/[bcdfghjklmnpqrstvwxz]{4}/.test(x) &&
+  !/(ing|ed|ly|tion|ness|ment)$/.test(x);
 const cap = x => x.charAt(0).toUpperCase()+x.slice(1);
 const pickName = (w, skip, strict)=>{
-  /* 1) слово сразу после «my name is» / «i am» / «call me» / «this is».
-     Так Hope, Will, May, Grace распознаются, хотя они же служебные слова,
-     а «I hope I am not late» именем не становится. */
   for(let i=0;i<w.length-1;i++){
     const pair=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='i'&&w[i+1]==='am')||
                (w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
     if(pair){ const x=w[i+2];
+      const strong=(w[i]==='name'&&w[i+1]==='is')||(w[i]==='call'&&w[i+1]==='me')||(w[i]==='this'&&w[i+1]==='is');
+      if(x&&NEG_LEAD.includes(x)) return null; /* «my name is not ...» — имя не названо */
+      /* после «my name is» берём даже стоп-слова (Hope, Will, May);
+         после «i am» — только белый список, иначе «i am late/here» становилось именем */
       if(x&&!NOT_NAME.has(x)&&!NUM.hasOwnProperty(x)&&
-         (NAME_OK.has(x)||(!SVC.includes(x)&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
+         (NAME_OK.has(x)||(strong&&!NAME_STOP.includes(x)&&looksLikeName(x)))) return cap(x); }
   }
-  /* 2) обычный поиск */
   const s=new Set([...SVC,...skip]);
   const c=w.find(x=>{
     if(s.has(x)||NUM.hasOwnProperty(x)||NOT_NAME.has(x)) return false;
@@ -139,7 +191,6 @@ const pickName = (w, skip, strict)=>{
   });
   return c ? cap(c) : null;
 };
-/* игрок явно представляется: «my name is X», «i am X», «call me X», «this is X» */
 const introduced = w => {
   for(let i=0;i<w.length-1;i++){
     if(w[i]==='name'&&w[i+1]==='is') return true;
@@ -153,31 +204,29 @@ const sigWords = (w, extra)=>{
   const ex = extra || [];
   return w.filter(x=> x.length>1 && !SVC.includes(x) && !ex.includes(x));
 };
-/* --- помощники судей ветвящихся диалогов (партия 2+) --- */
+/* --- помощники судей ветвящихся диалогов (партия 2, синхронизировано с демо-6) --- */
 const DAY_IN = w => {
   const D=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-  for (const x of w) if (D.includes(x)) return x;
+  for (let i=0;i<w.length;i++) if (D.includes(w[i]) && !negatedWord(w,i)) return w[i]; /* отрицанный день не берём */
   return null;
 };
 const FLOWNUM = (w, digits) => {
   if (digits && digits.length === 1) return digits[0];
-  if (digits && digits.length > 1) return null;      // несколько чисел — неоднозначно
+  if (digits && digits.length > 1) return null;
   const seq = [];
-  w.forEach(x => { if (x in NUM) seq.push(x); });    // слова-числительные по порядку
+  w.forEach(x => { if (x in NUM) seq.push(x); });
   if (!seq.length) return null;
   let cur = 0;
   for (const x of seq) {
     const v = NUM[x];
     if (x === 'hundred' || x === 'thousand'){ cur = cur ? cur * v : v; }
     else if (cur === 0) cur = v;
-    else if (cur % 10 === 0 && cur < 100 && v < 10) cur += v;      // twenty five = 25
-    else if (cur >= 100 && v < 100) cur += v;                      // one hundred (and) five = 105
-    else return null;                                              // two and three — неоднозначно
+    else if (cur % 10 === 0 && cur < 100 && v < 10) cur += v;
+    else if (cur >= 100 && v < 100) cur += v;
+    else return null;
   }
   return cur;
 };
-/* Отрицание липнет к ближайшему содержательному слову справа.
-   «not black, red» -> отрицается black, red выбран. «no red» -> red НЕ выбран. */
 const NEGLEAD=['no','not','never','without'];
 const NEGPASS=['to','a','an','the','and','or','any','it','this','that','one','really','just','very','so',
 'want','need','take','have','get','choose','prefer','buy','think','do','does','did',
@@ -186,16 +235,14 @@ const negatedAt = (w,i) => {
   for (let j=0;j<w.length;j++){
     if(!NEGLEAD.includes(w[j])) continue;
     let k=j+1;
-    while(k<i && NEGPASS.includes(w[k])) k++;   // сквозь «want/to/do…» к мишени, но не мимо неё
+    while(k<i && NEGPASS.includes(w[k])) k++;
     if(k===i) return true;
   }
   return false;
 };
 const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
 
-/* ============ ПАРТИЯ 6 · ур. 67, 73, 77 ============ */
-
-const S1 = { title:'На языковых курсах · ур. 81', start:'dur',
+const S1 = { title:'На языковых курсах · ур. 84', start:'dur',
         intro:'Первое занятие. Перед группой преподаватель — он знакомится с каждым.',
         opener:{them:'Welcome to our English course! First tell me - how long have you studied English?', ru:'Добро пожаловать на наши курсы английского! Сначала скажите: как долго вы учите английский?'},
         nodes:{
@@ -259,7 +306,7 @@ const S1 = { title:'На языковых курсах · ур. 81', start:'dur'
           return {huh:1}; },
         tr:{ ok:{them:'Goodbye! See you soon.',ruThem:'До свидания! До скорого.',next:null} } }
         }};
-const S2 = { title:'Оплата на кассе · ур. 85', start:'pay',
+const S2 = { title:'Оплата на кассе · ур. 88', start:'pay',
         intro:'Кассир пробивает покупки и называет сумму.',
         opener:{them:'That will be twenty-two euros, please.', ru:'С вас двадцать два евро.'},
         nodes:{
@@ -314,7 +361,7 @@ const S2 = { title:'Оплата на кассе · ур. 85', start:'pay',
           return {huh:1}; },
         tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
         }};
-const S3 = { title:'Открыть счёт · ур. 91', start:'open',
+const S3 = { title:'Открыть счёт · ур. 94', start:'open',
         intro:'Ты в отделении банка, подходишь к окошку.',
         opener:{them:'Good morning. How can I help you?', ru:'Доброе утро. Чем могу помочь?'},
         nodes:{

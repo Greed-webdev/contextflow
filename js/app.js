@@ -27,7 +27,7 @@ const mkDunno = () => { const b = el('button','btn dunno wide'); b.innerHTML = d
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
 const flagUrl = c => `assets/flags/${c}.png`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v32';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v33';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
