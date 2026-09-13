@@ -2612,28 +2612,73 @@ const COURSE = {
         {ru:'Можно повторить вопрос?', parts:['Can','you','repeat','the','question'], answer:'Can you repeat the question', full:'Can you repeat the question?',
          whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
       ]},
-      { type:'dialog', title:'На языковых курсах', scene:'office', cefr:'A1: Can talk about school and studying.',
-        intro:'Первое занятие, преподаватель знакомится с группой.',
-        turns:[
-          {who:'them', text:'How long have you studied English?', ru:'Как долго вы учите английский?'},
-          {who:'you', ru:'Скажи: два года.', best:1,
-            options:['Two year study me.','For two years.','English two year have me.']},
-          {who:'them', text:'What is difficult for you?', ru:'Что для вас сложно?'},
-          {who:'you', ru:'Скажи, что сложно говорить.', best:0,
-            options:['Speaking is difficult for me.','Talk hard is me have.','Difficult speak yes much.']},
-          {who:'them', text:'We will practise a lot.', ru:'Мы будем много практиковаться.'},
-          {who:'you', ru:'Скажи «хорошо, спасибо».', best:2,
-            options:['Ok practice much good.','Practice yes need me.','Good, thank you.']},
-          {who:'them', text:'Is there anything else?', ru:'Ещё что-нибудь?'},
-          {who:'you', ru:'Спроси, когда будет ответ.', best:0,
-            options:['When will I know?','Answer when have me?','Time answer what is?']},
-          {who:'them', text:'We will call you this week.', ru:'Позвоним на этой неделе.'},
-          {who:'you', ru:'Скажи, что будешь ждать звонка.', best:2,
-            options:['Ok wait phone me.','Call yes wait have.','Thank you, I will wait for your call.']},
-          {who:'them', text:'Thank you for coming.', ru:'Спасибо, что пришли.'},
-          {who:'you', ru:'Попрощайся вежливо.', best:1,
-            options:['Bye go me now.','Thank you. Have a good day.','Ok day good you.']}
-        ]},
+      { type:'dialog', variant:'flow', title:'На языковых курсах', scene:'office', cefr:'A1: Can talk about school and studying.',
+        intro:'Первое занятие. Перед группой преподаватель — он знакомится с каждым.',
+        flow:{ title:'На языковых курсах · ур. 58', start:'dur',
+        intro:'Первое занятие. Перед группой преподаватель — он знакомится с каждым.',
+        opener:{them:'Welcome to our English course! First tell me - how long have you studied English?', ru:'Добро пожаловать на наши курсы английского! Сначала скажите: как долго вы учите английский?'},
+        nodes:{
+      dur:{ task:'Ответь, как долго ты учишь английский (например: два года / несколько месяцев / только начал).', best:'For two years.',
+        judge(w,mem){
+          const iL=w.indexOf('long');
+          const longNeg=iL>-1&&negatedAt(w,iL); /* «not long» = недавно, а не «долго» */
+          const span=has(w,'year','years','month','months','week','weeks','long','since','always','forever')||!!(mem._digits||[]).length;
+          if(span&&!longNeg) return {br:'dur'};
+          if(longNeg||has(w,'today','just','started','begin','beginning','new','first','recently','little','short')) return {br:'new'};
+          return {huh:1}; },
+        tr:{
+          dur:{them:'Good, you already have a base. And what is difficult for you?',ruThem:'Хорошо, база у вас уже есть. А что для вас сложно?',next:'hard'},
+          new:{them:'That is fine, we start from the beginning. And what is difficult for you?',ruThem:'Это нормально, мы начинаем с самого начала. А что для вас сложно?',next:'hard'} } },
+      hard:{ task:'Ответь, что тебе даётся сложно (например: говорить / грамматика / понимать на слух).', best:'Speaking is difficult for me.',
+        judge(w){
+          if(has(w,'speak','speaking','talk','talking','say','pronounce')) return {br:'speak'};
+          if(has(w,'grammar','rule','rules','tense','tenses','time','times','form','forms')) return {br:'gram'};
+          if(has(w,'listen','listening','hear','hearing','understand','understanding','fast','quick')) return {br:'listen'};
+          if(has(w,'read','reading')) return {br:'read'};
+          if(has(w,'write','writing','spelling','spell')) return {br:'write'};
+          if(has(w,'word','words','vocabulary','remember','forget')) return {br:'words'};
+          if(has(w,'nothing','easy','everything','fine','good','ok','okay','all')) return {br:'none'};
+          return {huh:1}; },
+        tr:{
+          speak:{them:'Speaking needs practice, and we will practise a lot.',ruThem:'Говорение требует практики, и мы будем много практиковаться.',next:'thanks'},
+          gram:{them:'Grammar comes with practice, and we will practise a lot.',ruThem:'Грамматика приходит с практикой, и мы будем много практиковаться.',next:'thanks'},
+          listen:{them:'Listening needs practice, and we will practise a lot.',ruThem:'Восприятие на слух требует практики, и мы будем много практиковаться.',next:'thanks'},
+          read:{them:'Reading comes with time, and we will practise a lot.',ruThem:'Чтение приходит со временем, и мы будем много практиковаться.',next:'thanks'},
+          write:{them:'Writing needs practice, and we will practise a lot.',ruThem:'Письмо требует практики, и мы будем много практиковаться.',next:'thanks'},
+          words:{them:'Words come with time, and we will practise a lot.',ruThem:'Слова приходят со временем, и мы будем много практиковаться.',next:'thanks'},
+          none:{them:'Very good! Then we will simply practise a lot.',ruThem:'Очень хорошо! Тогда мы будем просто много практиковаться.',next:'thanks'} } },
+      thanks:{ task:'Отреагируй на слова преподавателя: согласись и поблагодари.', best:'Good, thank you.',
+        judge(w){
+          if(has(w,'thank','thanks','ok','okay','good','great','sure','fine','nice','yes','yeah','right','alright','sounds','cool','love')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Is there anything else you want to ask?',ruThem:'Хотите спросить что-нибудь ещё?',next:'ask'} } },
+      ask:{ task:'Спроси о важном для себя (например: когда начинаются занятия? сколько стоит? какая группа?).', best:'When does the course start?',
+        judge(w){
+          if(has(w,'nothing','enough','all')) return {br:'none'};
+          if((has(w,'no','not'))&&w.length<=3) return {br:'none'}; /* короткое «нет вопросов» */
+          if(has(w,'cost','costs','price','pay','money','expensive','cheap','free')) return {br:'cost'};
+          if(has(w,'group','groups','level','class','which','people','students')) return {br:'group'};
+          if(has(w,'when','start','starts','begin','begins','schedule','timetable','days','first','time')) return {br:'start'};
+          if(has(w,'what','where','who','how','why','can','do','does','is','are')) return {br:'other'};
+          return {huh:1}; },
+        tr:{
+          none:{them:'Very well. We will call you this week.',ruThem:'Очень хорошо. Мы позвоним вам на этой неделе.',next:'bye'},
+          cost:{them:'The course is free this month. We will call you this week with all details.',ruThem:'В этом месяце курс бесплатный. Мы позвоним вам на этой неделе и всё расскажем.',next:'wait'},
+          group:{them:'We will call you this week and tell you your group.',ruThem:'Мы позвоним вам на этой неделе и скажем, в какой вы группе.',next:'wait'},
+          start:{them:'The course starts on Monday. Classes are every evening. We will call you this week.',ruThem:'Курс начинается в понедельник. Занятия каждый вечер. Мы позвоним вам на этой неделе.',next:'wait'},
+          other:{them:'A good question. We will call you this week and tell you everything.',ruThem:'Хороший вопрос. Мы позвоним вам на этой неделе и всё расскажем.',next:'wait'} } },
+      wait:{ task:'Подтверди, что будешь ждать звонка.', best:'Thank you, I will wait for your call.',
+        judge(w){
+          if(has(w,'wait','call','ok','okay','yes','yeah','good','great','thanks','thank','fine','sure','week','nice','alright')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Thank you for coming.',ruThem:'Спасибо, что пришли.',next:'bye'} } },
+      bye:{ task:'Попрощайся вежливо.', best:'Thank you. Have a good day.',
+        judge(w){
+          if(has(w,'bye','goodbye','thanks','thank','see','later','day','you','too','nice')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Goodbye! See you soon.',ruThem:'До свидания! До скорого.',next:null} } }
+        }}
+      },
       { type:'words', title:'Деньги и оплата · 1', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.', newCount:11, words:[
         {t:'Money', r:'Деньги'},
         {t:'Price', r:'Цена'},

@@ -30,7 +30,7 @@ const FLOW_TITLES = ['Первое приветствие', 'Заполнить 
   'Узнать время', 'Разговор о погоде', 'У врача',
   'Купить куртку', 'Заказать обед', 'У барной стойки',
   'Показать квартиру', 'Что-то сломалось', 'Найти банк',
-  'Купить билет', 'Объяснить дорогу', 'Рассказать о работе'];
+  'Купить билет', 'Объяснить дорогу', 'Рассказать о работе', 'На языковых курсах'];
 for (const t of FLOW_TITLES) {
   const lv = stage1.find(x => x.type === 'dialog' && x.variant === 'flow' && x.title === t);
   if (!lv) { console.error('нет flow-записи «' + t + '» в курсе'); process.exit(1); }
@@ -41,7 +41,8 @@ const SCENES = { s1: flowBy['Первое приветствие'], s2: flowBy['
   s7: flowBy['Узнать время'], s8: flowBy['Разговор о погоде'], s9: flowBy['У врача'],
   s10: flowBy['Купить куртку'], s11: flowBy['Заказать обед'], s12: flowBy['У барной стойки'],
   s13: flowBy['Показать квартиру'], s14: flowBy['Что-то сломалось'], s15: flowBy['Найти банк'],
-  s16: flowBy['Купить билет'], s17: flowBy['Объяснить дорогу'], s18: flowBy['Рассказать о работе'] };
+  s16: flowBy['Купить билет'], s17: flowBy['Объяснить дорогу'], s18: flowBy['Рассказать о работе'],
+  s19: flowBy['На языковых курсах'] };
 const norm = ctxApp.__H.norm, expand = ctxApp.__H.expand;
 const SPEC = JSON.parse(fs.readFileSync('/home/user/сцена-1-живая-логика.json', 'utf8'));
 
@@ -700,9 +701,42 @@ T('S18 полный путь: до конца', r.ok, r.err);
   T('S18 «hard» == «difficult» (ветка no)', !a.err && !b.err && a.br === b.br && a.br === 'no', (a.err || a.br) + ' vs ' + (b.err || b.br)); }
 { const s = step(s18, 'like', 'Yes but there is a lot of work', {});
   T('S18 «lot of work» -> yes (не busy)', !s.err && s.br === 'yes', s.err || s.br); }
+// ---------- партия 7: живые пути s19 «На языковых курсах» ----------
+const s19 = SCENES.s19;
+// эталонный путь: два года → сложно говорить → спасибо → когда начало → жду звонка → прощание
+r = run(s19, ['For two years.', 'Speaking is difficult for me.', 'Good, thank you.',
+  'When does the course start?', 'Thank you, I will wait for your call.', 'Thank you. Have a good day.']);
+T('S19 полный путь: до конца', r.ok, r.err);
+// «только начал» — ветка new, а не dur
+{ const s = step(s19, 'dur', 'I just started, today is my first day', {});
+  T('S19 «только начал» -> ветка new', !s.err && s.br === 'new', s.err || s.br); }
+// цифры засчитываются как срок: «5 months»
+{ const s = step(s19, 'dur', 'About 5 months', {});
+  T('S19 «5 months» -> ветка dur', !s.err && s.br === 'dur', s.err || s.br); }
+// «not long» — это недавно (ветка new), а не «долго»
+{ const s = step(s19, 'dur', 'Not long, only a few days', {});
+  T('S19 «not long» -> ветка new (отрицание)', !s.err && s.br === 'new', s.err || s.br); }
+// вежливое «no problem» не должно ломать узел ожидания
+{ const s = step(s19, 'wait', 'Ok, no problem', {});
+  T('S19 «no problem» принимается на узле ожидания', !s.err && s.br === 'ok', s.err || s.br); }
+// вопрос про цену — отдельная ветка
+{ const s = step(s19, 'ask', 'How much does it cost?', {});
+  T('S19 вопрос про цену -> ветка cost', !s.err && s.br === 'cost', s.err || s.br); }
+// вопрос про группу — отдельная ветка
+{ const s = step(s19, 'ask', 'Which group will I be in?', {});
+  T('S19 вопрос про группу -> ветка group', !s.err && s.br === 'group', s.err || s.br); }
+// «вопросов нет» — короткий путь сразу к прощанию (настоящее ветвление)
+{ const s = step(s19, 'ask', 'No, that is all', {});
+  T('S19 «вопросов нет» -> ветка none (короткий путь)', !s.err && s.br === 'none' && s.next === 'bye', s.err || s.br); }
+r = run(s19, ['About a year.', 'Grammar, I think.', 'Sounds good, thanks.', 'No questions.', 'Thank you. Bye!']);
+T('S19 короткий путь: без вопроса и без ожидания', r.ok, r.err);
+// «мне всё даётся легко» — ветка none
+{ const s = step(s19, 'hard', 'Nothing, everything is easy', {});
+  T('S19 «всё легко» -> ветка none', !s.err && s.br === 'none', s.err || s.br); }
+
 // «Не знаю»-механика для новых сцен: best каждого узла обязан проходить (кнопка «Дальше»)
 for (const [id, sc] of Object.entries(SCENES)) {
-  if (!['s13','s14','s15','s16','s17','s18'].includes(id)) continue;
+  if (!['s13','s14','s15','s16','s17','s18','s19'].includes(id)) continue;
   const mem = {}; let at = sc.start, ended = false;
   for (let k = 0; k < 300; k++) {
     const n = sc.nodes[at];
