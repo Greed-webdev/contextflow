@@ -84,7 +84,7 @@ const FLOWNUM = (w, digits) => {
 const NEGLEAD=['no','not','never','without'];
 const NEGPASS=['to','a','an','the','and','or','any','it','this','that','one','really','just','very','so',
 'want','need','take','have','get','choose','prefer','buy','think','do','does','did',
-'would','will','can','could','should','am','is','are','be'];
+'would','will','can','could','should','am','is','are','be','like','likes','liked','wants'];
 const negatedAt = (w,i) => {
   for (let j=0;j<w.length;j++){
     if(!NEGLEAD.includes(w[j])) continue;
@@ -1198,7 +1198,8 @@ const COURSE = {
           snow:{ task:'Ответь, как ты относишься к снегу (например: я не люблю снег).', best:'Really? I don’t like snow.',
           judge(w){
                 if(chose(w,'like','love','enjoy')) return {br:'like'};
-                if(chose(w,'hate')||(has(w,'no','not','never')&&chose(w,'snow'))) return {br:'hate'};
+                /* снег упомянут при любом отрицании («не люблю», «нет», «никогда») — это ветка «не люблю» */
+                if(chose(w,'hate')||(has(w,'no','not','never')&&has(w,'snow'))) return {br:'hate'};
                 if(chose(w,'bye','goodbye','see','later')) return {br:'bye'};
                 return {huh:1}; },
           tr:{
