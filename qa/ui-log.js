@@ -128,9 +128,10 @@ const findBtn = (txt) => btns().reverse().find(b => (b._html + b.textContent).in
 const lastTa = () => REG.filter(e => e.tag === 'textarea' || e.tag === 'input').reverse()[0];
 
 let crashes = 0, oks = 0;
+const DET = [];
 const guard = (name, fn) => {
   try { fn(); oks++; return true; }
-  catch (e) { crashes++; line(`✗ ${name}: ${e.message}`); return false; }
+  catch (e) { crashes++; line(`✗ ${name}: ${e.message}`); DET.push(`✗ ${name}: ${e.message}`); return false; }
 };
 
 /* ---------- драйвер ---------- */
@@ -147,74 +148,86 @@ for (const st of stages) {
     if (!guard(tag + ' · start', () => APP.Lesson.start(st, idx))) continue;
 
     if (lv.type === 'dialog' && lv.variant === 'flow') {
-      /* разговор образцом по всем узлам, как в UI: текст → отправить → дальше */
-      let steps = 0;
-      const want = Object.keys(lv.flow.nodes).length;
-      while (steps < 40) {
-        steps++;
-        const node = lv.flow.nodes[APP.Lesson.at];
-        if (!node) break;
+      /* покрытие: каждый узел сцены посещается через UI — рендер вопроса,
+         отправка образца, появление «Дальше/Завершить» (судья принял) */
+      const ids = Object.keys(lv.flow.nodes);
+      const want = ids.length; let visited = 0; const bad = [];
+      for (const id of ids) {
+        REG = [];
+        if (!guard(tag + ` · старт для узла ${id}`, () => APP.Lesson.start(st, idx))) { bad.push(id); continue; }
+        APP.Lesson.at = id;
+        if (!guard(tag + ` · рендер узла ${id}`, () => APP.Lesson.flowNode())) { bad.push(id); continue; }
+        const node = lv.flow.nodes[id];
         const ta = lastTa();
         const send = btns().reverse().find(b => (b.textContent || '').includes('Ответить') || (b._html || '').includes('Ответить'));
-        if (!ta || !send) { line(`⚠ ${tag}: не нашёл поле/кнопку ответа на узле ${APP.Lesson.at}`); break; }
+        if (!ta || !send) { line(`⚠ ${tag}: нет поля/кнопки на узле ${id}`); bad.push(id); continue; }
         ta.value = node.best;
-        if (!guard(tag + ` · best «${node.best}»`, () => send.onclick({ target: send }))) break;
-        const goB = findBtn('Дальше') || findBtn('Завершить');
-        if (!goB) { line(`⚠ ${tag}: нет кнопки «Дальше/Завершить» на узле ${APP.Lesson.at}`); break; }
-        const last = (goB._html || goB.textContent || '').includes('Завершить');
-        if (!guard(tag + ' · дальше', () => goB.onclick({ target: goB }))) break;
-        if (last) break;
+        const mark = REG.length;
+        let goB = null;
+        if (!guard(tag + ` · best «${node.best}» на ${id}`, () => send.onclick({ target: send }))) { bad.push(id); continue; }
+        goB = REG.slice(mark).reverse().find(b => b.tag === 'button' && /Дальше|Завершить/.test(b._html + b.textContent));
+        if (!goB) { line(`⚠ ${tag}: судья не принял best на узле ${id}`); bad.push(id); continue; }
+        visited++;
       }
-      if (steps < want) line(`⚠ ${tag}: проговорено узлов ${steps} из ${want}`);
+      if (visited < want) line(`⚠ ${tag}: покрыто узлов ${visited} из ${want} (провал: ${bad.join(',') || '—'})`);
       /* мусор дважды → путь ошибки */
       REG = [];
-      guard(tag + ' · перезапуск для мусора', () => APP.Lesson.start(st, idx));
-      for (let k = 0; k < 2; k++) {
+      let junk = 'ок';
+      if (!guard(tag + ' · перезапуск для мусора', () => APP.Lesson.start(st, idx))) junk = 'сбой';
+      else for (let k = 0; k < 2; k++) {
         const ta2 = lastTa(); const send2 = btns().reverse().find(b => (b.textContent || b._html || '').includes('Ответить'));
-        if (!ta2 || !send2) break;
+        if (!ta2 || !send2) { junk = 'нет UI'; break; }
         ta2.value = 'xyzzy qqq';
-        if (!guard(tag + ` · мусор ${k + 1}`, () => send2.onclick({ target: send2 }))) break;
+        if (!guard(tag + ` · мусор ${k + 1}`, () => send2.onclick({ target: send2 }))) { junk = 'падение'; break; }
         const fix = findBtn('Исправить'); if (fix) guard(tag + ' · исправить', () => fix.onclick({ target: fix }));
       }
       /* «Не знаю» */
       REG = [];
-      guard(tag + ' · перезапуск для «Не знаю»', () => APP.Lesson.start(st, idx));
-      const dunno = btns().reverse().find(b => (b._html || '').includes('Не знаю') || (b.textContent || '').includes('Не знаю'));
-      if (dunno) guard(tag + ' · «Не знаю»', () => dunno.onclick({ target: dunno }));
+      let dunnoRes = 'нет кнопки';
+      if (guard(tag + ' · перезапуск для «Не знаю»', () => APP.Lesson.start(st, idx))) {
+        const dunno = btns().reverse().find(b => (b._html || '').includes('Не знаю') || (b.textContent || '').includes('Не знаю'));
+        dunnoRes = dunno ? (guard(tag + ' · «Не знаю»', () => dunno.onclick({ target: dunno })) ? 'ок' : 'падение') : 'нет кнопки';
+      } else dunnoRes = 'сбой';
+      DET.push(`${tag} · узлов ${visited}/${want}${bad.length ? ' · провал: ' + bad.join(',') : ''} · мусор:${junk} · незнаю:${dunnoRes}`);
+      if (visited < want || junk !== 'ок' || dunnoRes !== 'ок') line(`⚠ ${tag}: visited=${visited}/${want} junk=${junk} dunno=${dunnoRes}`);
     } else if (lv.type === 'dialog') {
       /* кнопочный/lost: кликаем по вариантам, пока не кончится или не упадёт */
-      let steps = 0;
+      let steps = 0; const seq = [];
       while (steps < 30) {
         steps++;
         const opt = btns().reverse().find(b => b._cls.has('opt'));
         const next = findBtn('Дальше');
-        if (opt) { if (!guard(tag + ' · вариант', () => opt.onclick({ target: opt }))) break; }
-        else if (next) { if (!guard(tag + ' · дальше', () => next.onclick({ target: next }))) break; }
+        if (opt) { seq.push('opt'); if (!guard(tag + ' · вариант', () => opt.onclick({ target: opt }))) break; }
+        else if (next) { seq.push('next'); if (!guard(tag + ' · дальше', () => next.onclick({ target: next }))) break; }
         else {
           const ta = lastTa(); const send = btns().reverse().find(b => (b.textContent || b._html || '').includes('Ответить'));
           if (ta && send) {
             ta.value = (APP.Lesson.lv && APP.Lesson.lv.best) || 'I do not know';
-            const lostBest = APP.Lesson.lostBest ? APP.Lesson.lostBest() : null;
-            if (lostBest) ta.value = lostBest;
+            seq.push('say');
             if (!guard(tag + ' · ответ', () => send.onclick({ target: send }))) break;
             const goB = findBtn('Дальше') || findBtn('Завершить');
             if (goB) { if (!guard(tag + ' · дальше', () => goB.onclick({ target: goB }))) break; if ((goB._html || '').includes('Завершить')) break; }
           } else break;
         }
       }
+      DET.push(`${tag} · кликов ${steps} (${seq.join(',')||'—'})`);
     } else {
       /* words / build: рендер прошёл в start; прощёлкаем проверку, если есть */
+      const n = lv.type === 'words' ? (lv.words || []).length : (lv.tasks || []).length;
       const check = findBtn('Проверить') || findBtn('Готово');
       if (check) guard(tag + ' · проверить', () => check.onclick({ target: check }));
+      DET.push(`${tag} · карточек/заданий ${n} · рендер ок`);
     }
   }
 }
 
 /* ---------- отчёт ---------- */
-const summary = `UI-ЛОГ · ${new Date().toISOString()}\nок: ${oks}, падений: ${crashes}\n`;
-const rep = summary + (crashes ? '\n' + LOG.filter(l => l.startsWith('✗')).join('\n') : 'падений нет — весь проект прошёл.\n') +
-  '\n(полный лог прогонов уровней — в консоли)\n';
+const summary = `UI-ЛОГ · ${new Date().toISOString()}\nэтапов: ${stages.length}, уровней: ${DET.length}, ok-операций: ${oks}, падений: ${crashes}\n`;
+const warns = LOG.filter(l => l.startsWith('⚠') || l.startsWith('✗'));
+const rep = '# Отчёт UI-логов (головless-прогон всего проекта)\n\n' + summary + '\n' +
+  (warns.length ? '## Предупреждения/падения\n' + warns.join('\n') + '\n' : 'Падений и обрывов нет.\n') +
+  '\n## По уровням\n```\n' + DET.join('\n') + '\n```\n';
 fs.writeFileSync(ROOT + 'qa/ui-log-report.md', rep);
 console.log(summary);
-if (crashes) { console.log(LOG.filter(l => l.startsWith('✗') || l.startsWith('==')).join('\n')); process.exit(2); }
-console.log('Весь проект прошёл без падений.');
+if (crashes || warns.length) { console.log(warns.join('\n')); process.exit(2); }
+console.log('Весь проект прошёл без падений и обрывов.');
