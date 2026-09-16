@@ -4,17 +4,31 @@
 const fs = require('fs'), vm = require('vm');
 const ROOT = '/home/user/';
 
+/* ---------- автозапись действий ----------
+   Каждый клик/ввод/рендер пишется САМ на уровне DOM-шима. Драйвер ничего
+   не «докладывает» — лог есть побочный продукт исполнения. */
+const ACT = [];
+const act = (s) => ACT.push(s);
+
 /* ---------- DOM-шим ---------- */
 let REG = [];
 function makeEl(tag) {
   const e = {
     tag, children: [], style: {}, dataset: {}, attributes: {},
-    _cls: new Set(), _h: {}, onclick: null, value: '', disabled: false,
+    _cls: new Set(), _h: {}, onclick: null, _value: '', disabled: false,
     _html: '', textContent: '',
+    get value() { return e._value; },
+    set value(v) {
+      e._value = String(v ?? '');
+      if (e.tag === 'textarea' || e.tag === 'input') act(`ввод ${e.tag} «${String(v).slice(0, 40)}»`);
+    },
     get className() { return [...e._cls].join(' '); },
     set className(v) { e._cls = new Set(String(v).split(/\s+/).filter(Boolean)); },
     get innerHTML() { return e._html; },
-    set innerHTML(v) { e._html = String(v); e.children = []; },
+    set innerHTML(v) {
+      e._html = String(v); e.children = [];
+      if (e.tag !== '#text' && String(v).trim()) act(`рендер ${e.tag} (${String(v).length} симв.)`);
+    },
     classList: {
       add: (...c) => c.forEach(x => e._cls.add(x)),
       remove: (...c) => c.forEach(x => e._cls.delete(x)),
@@ -32,7 +46,11 @@ function makeEl(tag) {
     querySelector() { return null; },
     querySelectorAll() { return []; },
     focus() {}, blur() {}, scrollIntoView() {}, setSelectionRange() {},
-    click() { if (e.onclick) e.onclick({ target: e }); (e._h.click || []).forEach(f => f({ target: e })); },
+    click() {
+      act(`клик ${e.tag} «${String((e._html || e.textContent || '')).replace(/<[^>]*>/g, '').slice(0, 40)}»`);
+      if (e.onclick) e.onclick({ target: e });
+      (e._h.click || []).forEach(f => f({ target: e }));
+    },
     contains(x) { return e.children.includes(x); },
     getBoundingClientRect: () => ({ top: 0, bottom: 0, height: 20, width: 100 }),
   };
@@ -129,10 +147,17 @@ const lastTa = () => REG.filter(e => e.tag === 'textarea' || e.tag === 'input').
 
 let crashes = 0, oks = 0;
 const DET = [];
+const TRACE = [];   /* полный машинный лог действий: пишется самим симом */
 const guard = (name, fn) => {
   try { fn(); oks++; return true; }
   catch (e) { crashes++; line(`✗ ${name}: ${e.message}`); DET.push(`✗ ${name}: ${e.message}`); return false; }
 };
+
+/* действия, случившиеся при загрузке приложения (до драйвера) */
+if (ACT.length) {
+  TRACE.push(`\n# загрузка приложения · действий: ${ACT.length}`);
+  for (const l of ACT) TRACE.push('  ' + l);
+}
 
 /* ---------- драйвер ---------- */
 const stages = [1, 2, 3, 4, 5];
@@ -145,7 +170,14 @@ for (const st of stages) {
     const lv = arr[idx];
     REG = [];
     const tag = `[${st}.${idx + 1}] ${lv.type}${lv.variant ? ':' + lv.variant : ''} «${lv.title}»`;
-    if (!guard(tag + ' · start', () => APP.Lesson.start(st, idx))) continue;
+    const a0 = ACT.length;                 /* срез действий до уровня */
+    const flushActs = () => {              /* машинный лог уровня → трейс */
+      const slice = ACT.slice(a0);
+      TRACE.push(`\n# ${tag} · действий: ${slice.length}`);
+      for (const l of slice) TRACE.push('  ' + l);
+      return slice.length;
+    };
+    if (!guard(tag + ' · start', () => APP.Lesson.start(st, idx))) { flushActs(); continue; }
 
     if (lv.type === 'dialog' && lv.variant === 'flow') {
       /* покрытие: каждый узел сцены посещается через UI — рендер вопроса,
@@ -164,7 +196,7 @@ for (const st of stages) {
         ta.value = node.best;
         const mark = REG.length;
         let goB = null;
-        if (!guard(tag + ` · best «${node.best}» на ${id}`, () => send.onclick({ target: send }))) { bad.push(id); continue; }
+        if (!guard(tag + ` · best «${node.best}» на ${id}`, () => send.click())) { bad.push(id); continue; }
         goB = REG.slice(mark).reverse().find(b => b.tag === 'button' && /Дальше|Завершить/.test(b._html + b.textContent));
         if (!goB) { line(`⚠ ${tag}: судья не принял best на узле ${id}`); bad.push(id); continue; }
         visited++;
@@ -178,17 +210,18 @@ for (const st of stages) {
         const ta2 = lastTa(); const send2 = btns().reverse().find(b => (b.textContent || b._html || '').includes('Ответить'));
         if (!ta2 || !send2) { junk = 'нет UI'; break; }
         ta2.value = 'xyzzy qqq';
-        if (!guard(tag + ` · мусор ${k + 1}`, () => send2.onclick({ target: send2 }))) { junk = 'падение'; break; }
-        const fix = findBtn('Исправить'); if (fix) guard(tag + ' · исправить', () => fix.onclick({ target: fix }));
+        if (!guard(tag + ` · мусор ${k + 1}`, () => send2.click())) { junk = 'падение'; break; }
+        const fix = findBtn('Исправить'); if (fix) guard(tag + ' · исправить', () => fix.click());
       }
       /* «Не знаю» */
       REG = [];
       let dunnoRes = 'нет кнопки';
       if (guard(tag + ' · перезапуск для «Не знаю»', () => APP.Lesson.start(st, idx))) {
         const dunno = btns().reverse().find(b => (b._html || '').includes('Не знаю') || (b.textContent || '').includes('Не знаю'));
-        dunnoRes = dunno ? (guard(tag + ' · «Не знаю»', () => dunno.onclick({ target: dunno })) ? 'ок' : 'падение') : 'нет кнопки';
+        dunnoRes = dunno ? (guard(tag + ' · «Не знаю»', () => dunno.click()) ? 'ок' : 'падение') : 'нет кнопки';
       } else dunnoRes = 'сбой';
-      DET.push(`${tag} · узлов ${visited}/${want}${bad.length ? ' · провал: ' + bad.join(',') : ''} · мусор:${junk} · незнаю:${dunnoRes}`);
+      const nActs = flushActs();
+      DET.push(`${tag} · узлов ${visited}/${want}${bad.length ? ' · провал: ' + bad.join(',') : ''} · мусор:${junk} · незнаю:${dunnoRes} · действий:${nActs}`);
       if (visited < want || junk !== 'ок' || dunnoRes !== 'ок') line(`⚠ ${tag}: visited=${visited}/${want} junk=${junk} dunno=${dunnoRes}`);
     } else if (lv.type === 'dialog') {
       /* кнопочный/lost: кликаем по вариантам, пока не кончится или не упадёт */
@@ -197,37 +230,44 @@ for (const st of stages) {
         steps++;
         const opt = btns().reverse().find(b => b._cls.has('opt'));
         const next = findBtn('Дальше');
-        if (opt) { seq.push('opt'); if (!guard(tag + ' · вариант', () => opt.onclick({ target: opt }))) break; }
-        else if (next) { seq.push('next'); if (!guard(tag + ' · дальше', () => next.onclick({ target: next }))) break; }
+        if (opt) { seq.push('opt'); if (!guard(tag + ' · вариант', () => opt.click())) break; }
+        else if (next) { seq.push('next'); if (!guard(tag + ' · дальше', () => next.click())) break; }
         else {
           const ta = lastTa(); const send = btns().reverse().find(b => (b.textContent || b._html || '').includes('Ответить'));
           if (ta && send) {
             ta.value = (APP.Lesson.lv && APP.Lesson.lv.best) || 'I do not know';
             seq.push('say');
-            if (!guard(tag + ' · ответ', () => send.onclick({ target: send }))) break;
+            if (!guard(tag + ' · ответ', () => send.click())) break;
             const goB = findBtn('Дальше') || findBtn('Завершить');
-            if (goB) { if (!guard(tag + ' · дальше', () => goB.onclick({ target: goB }))) break; if ((goB._html || '').includes('Завершить')) break; }
+            if (goB) { if (!guard(tag + ' · дальше', () => goB.click())) break; if ((goB._html || '').includes('Завершить')) break; }
           } else break;
         }
       }
-      DET.push(`${tag} · кликов ${steps} (${seq.join(',')||'—'})`);
+      const nActs = flushActs();
+      DET.push(`${tag} · кликов ${steps} (${seq.join(',')||'—'}) · действий:${nActs}`);
     } else {
       /* words / build: рендер прошёл в start; прощёлкаем проверку, если есть */
       const n = lv.type === 'words' ? (lv.words || []).length : (lv.tasks || []).length;
       const check = findBtn('Проверить') || findBtn('Готово');
-      if (check) guard(tag + ' · проверить', () => check.onclick({ target: check }));
-      DET.push(`${tag} · карточек/заданий ${n} · рендер ок`);
+      if (check) guard(tag + ' · проверить', () => check.click());
+      const nActs = flushActs();
+      DET.push(`${tag} · карточек/заданий ${n} · рендер ок · действий:${nActs}`);
     }
   }
 }
 
 /* ---------- отчёт ---------- */
-const summary = `UI-ЛОГ · ${new Date().toISOString()}\nэтапов: ${stages.length}, уровней: ${DET.length}, ok-операций: ${oks}, падений: ${crashes}\n`;
+const totalActs = ACT.length;
+const summary = `UI-ЛОГ · ${new Date().toISOString()}\nэтапов: ${stages.length}, уровней: ${DET.length}, действий записано: ${totalActs}, ok-операций: ${oks}, падений: ${crashes}\n`;
 const warns = LOG.filter(l => l.startsWith('⚠') || l.startsWith('✗'));
-const rep = '# Отчёт UI-логов (головless-прогон всего проекта)\n\n' + summary + '\n' +
+const rep = '# Отчёт UI-логов (головless-прогон всего проекта)\n\n' + summary +
+  '\nЛог действий пишется автоматически на уровне DOM-шима (клик/ввод/рендер) — не вручную.\n' +
+  'Полный поточный трейс: `qa/ui-log-trace.log`.\n\n' +
   (warns.length ? '## Предупреждения/падения\n' + warns.join('\n') + '\n' : 'Падений и обрывов нет.\n') +
   '\n## По уровням\n```\n' + DET.join('\n') + '\n```\n';
 fs.writeFileSync(ROOT + 'qa/ui-log-report.md', rep);
+fs.writeFileSync(ROOT + 'qa/ui-log-trace.log',
+  `UI-ТРЕЙС ДЕЙСТВИЙ · ${new Date().toISOString()} · всего: ${totalActs}\n` + TRACE.join('\n') + '\n');
 console.log(summary);
 if (crashes || warns.length) { console.log(warns.join('\n')); process.exit(2); }
 console.log('Весь проект прошёл без падений и обрывов.');
