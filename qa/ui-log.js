@@ -50,6 +50,7 @@ function makeEl(tag) {
       act(`клик ${e.tag} «${String((e._html || e.textContent || '')).replace(/<[^>]*>/g, '').slice(0, 40)}»`);
       if (e.onclick) e.onclick({ target: e });
       (e._h.click || []).forEach(f => f({ target: e }));
+      drainTimers();                      /* отложенные переходы приложения */
     },
     contains(x) { return e.children.includes(x); },
     getBoundingClientRect: () => ({ top: 0, bottom: 0, height: 20, width: 100 }),
@@ -71,6 +72,16 @@ const documentStub = {
 };
 
 /* ---------- окно ---------- */
+/* очередь таймеров: реальные, но управляемые. Драйвер сам их сливает. */
+const TIMERS = [];
+function drainTimers(cap = 500) {
+  let n = 0;
+  while (TIMERS.length && n++ < cap) {
+    const fn = TIMERS.shift();
+    try { fn(); } catch (e) { if (typeof reportCrash === 'function') reportCrash('таймер: ' + e.message); else throw e; }
+  }
+  if (TIMERS.length) TIMERS.length = 0;   /* защита от бесконечного саморасписания */
+}
 const timers = [];
 const windowStub = {
   localStorage: { _m: {}, getItem(k) { return this._m[k] ?? null; }, setItem(k, v) { this._m[k] = String(v); }, removeItem(k) { delete this._m[k]; } },
@@ -118,7 +129,8 @@ windowStub.window = windowStub;
 windowStub.SpeechRecognition = undefined;
 
 const ctx = { console, document: documentStub, ...windowStub,
-  setTimeout: () => 0, clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {}, queueMicrotask: f => f() };
+  setTimeout: (fn) => { if (typeof fn === 'function') TIMERS.push(fn); return TIMERS.length; },
+  clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {}, queueMicrotask: f => f() };
 ctx.globalThis = ctx;
 vm.createContext(ctx);
 
@@ -224,27 +236,43 @@ for (const st of stages) {
       DET.push(`${tag} · узлов ${visited}/${want}${bad.length ? ' · провал: ' + bad.join(',') : ''} · мусор:${junk} · незнаю:${dunnoRes} · действий:${nActs}`);
       if (visited < want || junk !== 'ок' || dunnoRes !== 'ок') line(`⚠ ${tag}: visited=${visited}/${want} junk=${junk} dunno=${dunnoRes}`);
     } else if (lv.type === 'dialog') {
-      /* кнопочный/lost: кликаем по вариантам, пока не кончится или не упадёт */
-      let steps = 0; const seq = [];
-      while (steps < 30) {
+      /* репликовые (turns) и lost: играем лучшими ответами из данных до
+         экрана «уровень пройден» (у finish() — onclick на done-next) */
+      if (byId['done-next']) { byId['done-next'].onclick = null; byId['done-next'].textContent = ''; }
+      let steps = 0; const seq = []; let broke = null;
+      const seen = new Set();                    /* защита от топтания на одной кнопке */
+      while (steps < 80) {
         steps++;
-        const opt = btns().reverse().find(b => b._cls.has('opt'));
-        const next = findBtn('Дальше');
-        if (opt) { seq.push('opt'); if (!guard(tag + ' · вариант', () => opt.click())) break; }
-        else if (next) { seq.push('next'); if (!guard(tag + ' · дальше', () => next.click())) break; }
-        else {
-          const ta = lastTa(); const send = btns().reverse().find(b => (b.textContent || b._html || '').includes('Ответить'));
-          if (ta && send) {
-            ta.value = (APP.Lesson.lv && APP.Lesson.lv.best) || 'I do not know';
-            seq.push('say');
-            if (!guard(tag + ' · ответ', () => send.click())) break;
-            const goB = findBtn('Дальше') || findBtn('Завершить');
-            if (goB) { if (!guard(tag + ' · дальше', () => goB.click())) break; if ((goB._html || '').includes('Завершить')) break; }
-          } else break;
+        drainTimers();
+        if (byId['done-next'] && byId['done-next'].onclick) break;      /* финал */
+        const fin = btns().reverse().find(b => /Завершить/.test(b._html + b.textContent) && !seen.has(b));
+        if (fin) { seen.add(fin); seq.push('fin'); if (!guard(tag + ' · завершить', () => fin.click())) { broke = 'падение'; break; } continue; }
+        const opt = btns().reverse().find(b => b._cls.has('opt') && !seen.has(b));
+        if (opt) { seen.add(opt); seq.push('opt'); if (!guard(tag + ' · вариант', () => opt.click())) { broke = 'падение'; break; } continue; }
+        const next = btns().reverse().find(b => /Дальше/.test(b._html + b.textContent) && !seen.has(b));
+        if (next) { seen.add(next); seq.push('next'); if (!guard(tag + ' · дальше', () => next.click())) { broke = 'падение'; break; } continue; }
+        const ta = lastTa();
+        const send = btns().reverse().find(b => /Ответить/.test(b._html + b.textContent) && !b.disabled);
+        if (ta && send) {
+          /* ответ берём из данных уровня: репликовые — options[best] текущего хода,
+             lost — best текущего узла. Мусор сюда не пишем. */
+          let ans = 'I do not know';
+          const t = lv.turns && lv.turns[APP.Lesson.turnIdx];
+          if (t && t.options) ans = t.options[t.best];
+          else if (lv.lost && lv.lost.nodes) {
+            const node = lv.lost.nodes.find(n => n.id === APP.Lesson.at);
+            if (node) ans = node.best;
+          }
+          ta.value = ans; seq.push('say');
+          if (!guard(tag + ` · ответ «${ans}»`, () => send.click())) { broke = 'падение'; break; }
+          continue;
         }
+        broke = 'тупик: нечего жать, а финал не показан'; break;
       }
+      const done = !!(byId['done-next'] && byId['done-next'].onclick);
+      if (!done) line(`⚠ ${tag}: не доигран (${broke || 'лимит 80 шагов'}, шагов ${steps})`);
       const nActs = flushActs();
-      DET.push(`${tag} · кликов ${steps} (${seq.join(',')||'—'}) · действий:${nActs}`);
+      DET.push(`${tag} · ${done ? 'доигран' : 'НЕ ДОИГРАН'} · шагов ${steps} (${seq.join(',')||'—'}) · действий:${nActs}`);
     } else {
       /* words / build: рендер прошёл в start; прощёлкаем проверку, если есть */
       const n = lv.type === 'words' ? (lv.words || []).length : (lv.tasks || []).length;

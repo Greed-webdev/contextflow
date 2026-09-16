@@ -1,7 +1,7 @@
 # Отчёт UI-логов (головless-прогон всего проекта)
 
-UI-ЛОГ · 2026-09-16T12:52:54.137Z
-этапов: 5, уровней: 290, действий записано: 6256, ok-операций: 2303, падений: 0
+UI-ЛОГ · 2026-09-16T13:08:11.972Z
+этапов: 5, уровней: 290, действий записано: 6796, ok-операций: 1461, падений: 0
 
 Лог действий пишется автоматически на уровне DOM-шима (клик/ввод/рендер) — не вручную.
 Полный поточный трейс: `qa/ui-log-trace.log`.
@@ -107,47 +107,47 @@ UI-ЛОГ · 2026-09-16T12:52:54.137Z
 [1.95] words «Покупки в супермаркете · 1» · карточек/заданий 20 · рендер ок · действий:1
 [1.96] words «Покупки в супермаркете · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.97] build «Собери: Покупки в супермаркете» · карточек/заданий 4 · рендер ок · действий:6
-[1.98] dialog «В овощном отделе» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.98] dialog «В овощном отделе» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.99] words «В ресторане · 1» · карточек/заданий 17 · рендер ок · действий:1
 [1.100] words «В ресторане · 2» · карточек/заданий 17 · рендер ок · действий:1
 [1.101] build «Собери: В ресторане» · карточек/заданий 4 · рендер ок · действий:6
-[1.102] dialog «Ужин вдвоём» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.102] dialog «Ужин вдвоём» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.103] words «Свободное время · 1» · карточек/заданий 22 · рендер ок · действий:1
 [1.104] words «Свободное время · 2» · карточек/заданий 22 · рендер ок · действий:1
 [1.105] build «Собери: Свободное время» · карточек/заданий 4 · рендер ок · действий:6
-[1.106] dialog «Позвать в кино» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.106] dialog «Позвать в кино» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.107] words «Контроль: темы 21–24» · карточек/заданий 20 · рендер ок · действий:1
 [1.108] build «Повтори фразы: темы 21–24» · карточек/заданий 6 · рендер ок · действий:7
 [1.109] words «Спорт и движение · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.110] words «Спорт и движение · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.111] build «Собери: Спорт и движение» · карточек/заданий 4 · рендер ок · действий:5
-[1.112] dialog «Записаться в зал» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.112] dialog «Записаться в зал» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.113] words «Животные · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.114] words «Животные · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.115] build «Собери: Животные» · карточек/заданий 4 · рендер ок · действий:8
-[1.116] dialog «Разговор о питомце» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.116] dialog «Разговор о питомце» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.117] words «Чувства и настроение · 1» · карточек/заданий 22 · рендер ок · действий:1
 [1.118] words «Чувства и настроение · 2» · карточек/заданий 21 · рендер ок · действий:1
 [1.119] build «Собери: Чувства и настроение» · карточек/заданий 4 · рендер ок · действий:6
-[1.120] dialog «Поддержать друга» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.120] dialog «Поддержать друга» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.121] words «Внешность и люди · 1» · карточек/заданий 21 · рендер ок · действий:1
 [1.122] words «Внешность и люди · 2» · карточек/заданий 20 · рендер ок · действий:1
 [1.123] build «Собери: Внешность и люди» · карточек/заданий 4 · рендер ок · действий:6
-[1.124] dialog «Найти человека» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.124] dialog «Найти человека» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.125] words «Контроль: темы 25–28» · карточек/заданий 20 · рендер ок · действий:1
 [1.126] build «Повтори фразы: темы 25–28» · карточек/заданий 6 · рендер ок · действий:5
 [1.127] words «Дни и планы · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.128] words «Дни и планы · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.129] build «Собери: Дни и планы» · карточек/заданий 4 · рендер ок · действий:4
-[1.130] dialog «Договориться о встрече» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.130] dialog «Договориться о встрече» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.131] words «Праздники и события · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.132] words «Праздники и события · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.133] build «Собери: Праздники и события» · карточек/заданий 4 · рендер ок · действий:6
-[1.134] dialog «Пригласить на праздник» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.134] dialog «Пригласить на праздник» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.135] words «Проблемы и помощь · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.136] words «Проблемы и помощь · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.137] build «Собери: Проблемы и помощь» · карточек/заданий 4 · рендер ок · действий:4
-[1.138] dialog:lost «Потерял вещь» · кликов 30 (say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:191
+[1.138] dialog:lost «Потерял вещь» · доигран · шагов 11 (say,next,say,next,say,next,say,next,say,fin) · действий:56
 [1.139] words «Интернет и связь · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.140] words «Интернет и связь · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.141] build «Собери: Интернет и связь» · карточек/заданий 4 · рендер ок · действий:7
@@ -157,15 +157,15 @@ UI-ЛОГ · 2026-09-16T12:52:54.137Z
 [1.145] words «Описать вещь · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.146] words «Описать вещь · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.147] build «Собери: Описать вещь» · карточек/заданий 4 · рендер ок · действий:5
-[1.148] dialog «Вернуть товар» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.148] dialog «Вернуть товар» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.149] words «Простые действия · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.150] words «Простые действия · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.151] build «Собери: Простые действия» · карточек/заданий 4 · рендер ок · действий:9
-[1.152] dialog «Утро в общей кухне» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.152] dialog «Утро в общей кухне» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.153] words «Мнение и согласие · 1» · карточек/заданий 18 · рендер ок · действий:1
 [1.154] words «Мнение и согласие · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.155] build «Собери: Мнение и согласие» · карточек/заданий 4 · рендер ок · действий:8
-[1.156] dialog «Обсудить фильм» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.156] dialog «Обсудить фильм» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.157] words «Большие числа и даты · 1» · карточек/заданий 18 · рендер ок · действий:1
 [1.158] words «Большие числа и даты · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.159] build «Собери: Большие числа и даты» · карточек/заданий 4 · рендер ок · действий:6
@@ -175,7 +175,7 @@ UI-ЛОГ · 2026-09-16T12:52:54.137Z
 [1.163] words «Рассказать о себе · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.164] words «Рассказать о себе · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.165] build «Собери: Рассказать о себе» · карточек/заданий 4 · рендер ок · действий:6
-[1.166] dialog «Собеседование» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.166] dialog «Собеседование» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.167] words «Понять и переспросить · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.168] words «Понять и переспросить · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.169] build «Собери: Понять и переспросить» · карточек/заданий 4 · рендер ок · действий:6
@@ -183,121 +183,121 @@ UI-ЛОГ · 2026-09-16T12:52:54.137Z
 [1.171] words «Отпуск и путешествие · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.172] words «Отпуск и путешествие · 2» · карточек/заданий 20 · рендер ок · действий:1
 [1.173] build «Собери: Отпуск и путешествие» · карточек/заданий 4 · рендер ок · действий:8
-[1.174] dialog «Заселение в отель» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.174] dialog «Заселение в отель» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.175] words «Искусство и культура · 1» · карточек/заданий 21 · рендер ок · действий:1
 [1.176] words «Искусство и культура · 2» · карточек/заданий 22 · рендер ок · действий:1
 [1.177] build «Собери: Искусство и культура» · карточек/заданий 4 · рендер ок · действий:8
-[1.178] dialog «В музее» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.178] dialog «В музее» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.179] words «Контроль: темы 37–40» · карточек/заданий 20 · рендер ок · действий:1
 [1.180] build «Повтори фразы: темы 37–40» · карточек/заданий 6 · рендер ок · действий:6
 [1.181] words «Планы на будущее · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.182] words «Планы на будущее · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.183] build «Собери: Планы на будущее» · карточек/заданий 4 · рендер ок · действий:7
-[1.184] dialog «О планах» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.184] dialog «О планах» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.185] words «Сравнение и выбор · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.186] words «Сравнение и выбор · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.187] build «Собери: Сравнение и выбор» · карточек/заданий 4 · рендер ок · действий:8
-[1.188] dialog «Выбрать из двух» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.188] dialog «Выбрать из двух» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.189] words «Тело: движение и состояние · 1» · карточек/заданий 22 · рендер ок · действий:1
 [1.190] words «Тело: движение и состояние · 2» · карточек/заданий 21 · рендер ок · действий:1
 [1.191] build «Собери: Тело: движение и состояние» · карточек/заданий 4 · рендер ок · действий:7
 [1.192] words «Разговор ни о чём · 1» · карточек/заданий 22 · рендер ок · действий:1
 [1.193] words «Разговор ни о чём · 2» · карточек/заданий 22 · рендер ок · действий:1
 [1.194] build «Собери: Разговор ни о чём» · карточек/заданий 4 · рендер ок · действий:6
-[1.195] dialog «Встретил знакомого» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.195] dialog «Встретил знакомого» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.196] words «Контроль: темы 41–44» · карточек/заданий 20 · рендер ок · действий:1
 [1.197] build «Повтори фразы: темы 41–44» · карточек/заданий 6 · рендер ок · действий:7
 [1.198] words «Место и положение · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.199] words «Место и положение · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.200] build «Собери: Место и положение» · карточек/заданий 4 · рендер ок · действий:7
-[1.201] dialog «Найти вещь» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.201] dialog «Найти вещь» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.202] words «Количество · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.203] words «Количество · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.204] build «Собери: Количество» · карточек/заданий 4 · рендер ок · действий:5
-[1.205] dialog «Хватит ли» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.205] dialog «Хватит ли» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.206] words «Модальность и вежливость · 1» · карточек/заданий 20 · рендер ок · действий:1
 [1.207] words «Модальность и вежливость · 2» · карточек/заданий 20 · рендер ок · действий:1
 [1.208] build «Собери: Модальность и вежливость» · карточек/заданий 4 · рендер ок · действий:6
-[1.209] dialog «Вежливая просьба» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.209] dialog «Вежливая просьба» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.210] words «Разговор по телефону · 1» · карточек/заданий 18 · рендер ок · действий:1
 [1.211] words «Разговор по телефону · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.212] build «Собери: Разговор по телефону» · карточек/заданий 4 · рендер ок · действий:7
-[1.213] dialog «Звонок в офис» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.213] dialog «Звонок в офис» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.214] words «Контроль: темы 45–48» · карточек/заданий 20 · рендер ок · действий:1
 [1.215] build «Повтори фразы: темы 45–48» · карточек/заданий 6 · рендер ок · действий:7
 [1.216] words «Правила и запреты · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.217] words «Правила и запреты · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.218] build «Собери: Правила и запреты» · карточек/заданий 4 · рендер ок · действий:5
-[1.219] dialog «Замечание» · кликов 30 (say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:41
+[1.219] dialog «Замечание» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.220] words «Итоги дня · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.221] words «Итоги дня · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.222] build «Собери: Итоги дня» · карточек/заданий 4 · рендер ок · действий:6
-[1.223] dialog «Вечером дома» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.223] dialog «Вечером дома» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.224] words «Разговор: связки · 1» · карточек/заданий 18 · рендер ок · действий:1
 [1.225] words «Разговор: связки · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.226] build «Собери: Разговор: связки» · карточек/заданий 4 · рендер ок · действий:6
-[1.227] dialog «Объяснить причину» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.227] dialog «Объяснить причину» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.228] words «Вопросительные слова · 1» · карточек/заданий 18 · рендер ок · действий:1
 [1.229] words «Вопросительные слова · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.230] build «Собери: Вопросительные слова» · карточек/заданий 4 · рендер ок · действий:5
-[1.231] dialog «Расспросить» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.231] dialog «Расспросить» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.232] words «Контроль: темы 49–52» · карточек/заданий 20 · рендер ок · действий:1
 [1.233] build «Повтори фразы: темы 49–52» · карточек/заданий 6 · рендер ок · действий:5
 [1.234] words «Местоимения и люди · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.235] words «Местоимения и люди · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.236] build «Собери: Местоимения и люди» · карточек/заданий 4 · рендер ок · действий:5
-[1.237] dialog «Кто это сделал» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.237] dialog «Кто это сделал» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.238] words «Медиа и техника · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.239] words «Медиа и техника · 2» · карточек/заданий 19 · рендер ок · действий:1
 [1.240] build «Собери: Медиа и техника» · карточек/заданий 4 · рендер ок · действий:7
-[1.241] dialog «Что посмотреть» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.241] dialog «Что посмотреть» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.242] words «Быт: мелочи · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.243] words «Быт: мелочи · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.244] build «Собери: Быт: мелочи» · карточек/заданий 4 · рендер ок · действий:8
-[1.245] dialog «Просьба по мелочи» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.245] dialog «Просьба по мелочи» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.246] words «Оценка и качество · 1» · карточек/заданий 22 · рендер ок · действий:1
 [1.247] words «Оценка и качество · 2» · карточек/заданий 22 · рендер ок · действий:1
 [1.248] build «Собери: Оценка и качество» · карточек/заданий 4 · рендер ок · действий:7
-[1.249] dialog «Спросить совет» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.249] dialog «Спросить совет» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.250] words «Контроль: темы 53–56» · карточек/заданий 20 · рендер ок · действий:1
 [1.251] build «Повтори фразы: темы 53–56» · карточек/заданий 6 · рендер ок · действий:5
 [1.252] words «Прошлое · 1» · карточек/заданий 21 · рендер ок · действий:1
 [1.253] words «Прошлое · 2» · карточек/заданий 21 · рендер ок · действий:1
 [1.254] build «Собери: Прошлое» · карточек/заданий 4 · рендер ок · действий:7
-[1.255] dialog «Вспомнить прошлое» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.255] dialog «Вспомнить прошлое» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.256] words «Дела и задачи · 1» · карточек/заданий 18 · рендер ок · действий:1
 [1.257] words «Дела и задачи · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.258] build «Собери: Дела и задачи» · карточек/заданий 4 · рендер ок · действий:7
-[1.259] dialog «Отчитаться о задаче» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.259] dialog «Отчитаться о задаче» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.260] words «Мелкие слова · 1» · карточек/заданий 18 · рендер ок · действий:1
 [1.261] words «Мелкие слова · 2» · карточек/заданий 18 · рендер ок · действий:1
 [1.262] build «Собери: Мелкие слова» · карточек/заданий 4 · рендер ок · действий:6
-[1.263] dialog «Мягко отказать» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.263] dialog «Мягко отказать» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.264] words «Проверка A1 · 1» · карточек/заданий 19 · рендер ок · действий:1
 [1.265] words «Проверка A1 · 2» · карточек/заданий 20 · рендер ок · действий:1
 [1.266] build «Собери: Проверка A1» · карточек/заданий 4 · рендер ок · действий:6
-[1.267] dialog «Последняя проверка» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[1.267] dialog «Последняя проверка» · доигран · шагов 13 (say,next,say,next,say,next,say,next,say,next,say,next) · действий:67
 [1.268] words «Контроль: темы 57–60» · карточек/заданий 20 · рендер ок · действий:1
 [1.269] build «Повтори фразы: темы 57–60» · карточек/заданий 6 · рендер ок · действий:7
 [2.1] words «Город и дорога» · карточек/заданий 8 · рендер ок · действий:1
 [2.2] build «Спроси дорогу» · карточек/заданий 3 · рендер ок · действий:10
-[2.3] dialog «Прохожий под дождём» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[2.3] dialog «Прохожий под дождём» · доигран · шагов 7 (say,next,say,next,say,next) · действий:34
 [2.4] words «Продукты и цены» · карточек/заданий 8 · рендер ок · действий:1
 [2.5] build «На рынке» · карточек/заданий 3 · рендер ок · действий:7
-[2.6] dialog «Прилавок» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[2.6] dialog «Прилавок» · доигран · шагов 7 (say,next,say,next,say,next) · действий:34
 [3.1] words «Аренда и жильё» · карточек/заданий 8 · рендер ок · действий:1
 [3.2] build «Вопросы к договору» · карточек/заданий 3 · рендер ок · действий:8
-[3.3] dialog «Просмотр квартиры» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[3.3] dialog «Просмотр квартиры» · доигран · шагов 7 (say,next,say,next,say,next) · действий:34
 [3.4] words «Банк и документы» · карточек/заданий 8 · рендер ок · действий:1
 [3.5] build «В отделении» · карточек/заданий 3 · рендер ок · действий:7
-[3.6] dialog «Открыть счёт» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[3.6] dialog «Открыть счёт» · доигран · шагов 7 (say,next,say,next,say,next) · действий:34
 [4.1] words «Работа и найм» · карточек/заданий 8 · рендер ок · действий:1
 [4.2] build «Формулируй позицию» · карточек/заданий 3 · рендер ок · действий:9
-[4.3] dialog «Собеседование» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[4.3] dialog «Собеседование» · доигран · шагов 7 (say,next,say,next,say,next) · действий:34
 [4.4] words «У врача» · карточек/заданий 8 · рендер ок · действий:1
 [4.5] build «Объясни, что болит» · карточек/заданий 3 · рендер ок · действий:11
-[4.6] dialog «Приём» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[4.6] dialog «Приём» · доигран · шагов 7 (say,next,say,next,say,next) · действий:34
 [5.1] words «Оттенки и тон» · карточек/заданий 8 · рендер ок · действий:1
 [5.2] build «Смягчай и уточняй» · карточек/заданий 3 · рендер ок · действий:10
-[5.3] dialog «Несогласие без ссоры» · кликов 30 (say,say,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next,next) · действий:45
+[5.3] dialog «Несогласие без ссоры» · доигран · шагов 7 (say,next,say,next,say,next) · действий:34
 ```
