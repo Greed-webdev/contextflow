@@ -13,7 +13,20 @@ if (!outFile || !party || titles.length !== 3) {
 
 const src = fs.readFileSync(LESS, 'utf8');
 
-/* вырезаем объект потока сцены по заголовку, с корректным учётом строк */
+/* номер уровня — из самой COURSE: прогоняем lessons.js в vm и ищем сцену */
+const vm = require('vm');
+const sb = {}; vm.createContext(sb);
+vm.runInContext(src, sb, { timeout: 5000 });
+function levelNo(title) {
+  for (const s of [1, 2, 3, 4, 5]) {
+    let arr = [];
+    try { arr = sb.getCourse('en', s) || []; } catch (e) { continue; }
+    const idx = arr.findIndex(l => l.title === title);
+    if (idx > -1) return idx + 1;
+  }
+  return '?';
+}
+
 function flowSlice(title) {
   const i = src.indexOf("title:'" + title + "'", src.indexOf('COURSE'));
   if (i < 0) { console.error('сцена не найдена: ' + title); process.exit(1); }
@@ -32,7 +45,11 @@ function flowSlice(title) {
     if (c === '{') depth++;
     else if (c === '}') { depth--; if (!depth) { j++; break; } }
   }
-  return src.slice(src.indexOf('{', f), j);
+  let slice = src.slice(src.indexOf('{', f), j);
+  /* старый формат мог нести title внутри flow — убираем дубль перед инъекцией */
+  slice = slice.replace(/^\{\s*title:\s*('[^']*'|"[^"]*")\s*,/, '{');
+  /* сцена в демо обязана нести имя и номер — кнопки выбора и шапка берут их отсюда */
+  return '{ title:' + JSON.stringify(title + ' · ур. ' + levelNo(title)) + ',' + slice.slice(1);
 }
 
 const scenes = titles.map((t, k) => 'const S' + (k + 1) + ' = ' + flowSlice(t) + ';');

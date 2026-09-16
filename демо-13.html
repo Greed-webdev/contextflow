@@ -242,7 +242,7 @@ const negatedAt = (w,i) => {
 };
 const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
 
-const S1 = { title:'Перевод денег · ур. 160', start:'amount',
+const S1 = { title:"Перевод денег · ур. 160", start:'amount',
         intro:'Ты в банке оформляешь перевод домой.',
         opener:{them:'How much would you like to send?', ru:'Сколько хотите отправить?'},
         nodes:{
@@ -292,7 +292,7 @@ const S1 = { title:'Перевод денег · ур. 160', start:'amount',
           return {huh:1}; },
         tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
         }};
-const S2 = { title:'Проблема с интернетом · ур. 142', start:'problem',
+const S2 = { title:"Проблема с интернетом · ур. 142", start:'problem',
         intro:'Вечер, а у тебя не работает интернет. Ты звонишь хозяину квартиры.',
         opener:{them:'Hello, what is the matter?', ru:'Здравствуйте, что случилось?'},
         nodes:{
@@ -338,7 +338,7 @@ const S2 = { title:'Проблема с интернетом · ур. 142', star
           return {huh:1}; },
         tr:{ ok:{them:'Bye!',ruThem:'Пока!',next:null} } }
         }};
-const S3 = { title:'Не расслышал · ур. 170', start:'ask1',
+const S3 = { title:"Не расслышал · ур. 170", start:'ask1',
         intro:'Прохожий объясняет тебе дорогу быстро и с акцентом. Ты теряешь нить.',
         opener:{them:'So you take the second left after the lights.', ru:'Значит, второй поворот налево после светофора.'},
         nodes:{

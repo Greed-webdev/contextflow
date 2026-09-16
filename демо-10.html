@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Партия 6 ветвей · ур. ?, ?, ?</title>
+<title>Партия 6 ветвей · ур. 70, 76, 80</title>
 <style>
 :root{--bg:#101416;--card:#181e21;--line:#2a3237;--text:#e8edef;--text2:#9aa5ab;--text3:#6b757b;
 --moss:#6f9c78;--clay:#b26856;--amber:#c8933f}
@@ -36,7 +36,7 @@ button:disabled{opacity:.5;cursor:default}
 .note-end{color:var(--moss);font-size:14px;margin-top:8px;font-weight:600}
 </style></head><body><div class="wrap">
 <h1>Партия 6: разговор идёт за тобой</h1>
-<p class="sub">Три сцены с ветвями (ур. ?, ?, ?). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
+<p class="sub">Три сцены с ветвями (ур. 70, 76, 80). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
 
 <div class="pick" id="pick"></div>
 
@@ -242,7 +242,7 @@ const negatedAt = (w,i) => {
 };
 const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
 
-const S1 = {
+const S1 = { title:"Купить билет · ур. 70",
         intro:'Ты в кассе на вокзале.',
         start:'go',
         opener:{them:'Where are you going?', ru:'Куда едете?'},
@@ -304,7 +304,7 @@ const S1 = {
           } },
         }
       };
-const S2 = {
+const S2 = { title:"Объяснить дорогу · ур. 76",
         intro:'Турист останавливает тебя на улице.',
         start:'st',
         opener:{them:'Excuse me, where is the station?', ru:'Простите, где вокзал?'},
@@ -375,7 +375,7 @@ const S2 = {
           } },
         }
       };
-const S3 = {
+const S3 = { title:"Рассказать о работе · ур. 80",
         intro:'На вечеринке кто-то спрашивает о работе.',
         start:'job',
         opener:{them:'So, what do you do?', ru:'Чем занимаешься?'},

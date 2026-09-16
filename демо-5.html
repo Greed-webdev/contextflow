@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Эталон ветвей · ур. 3, 6, 9</title>
+<title>Партия 1 ветвей · ур. 3, 6, 10</title>
 <style>
 :root{--bg:#101416;--card:#181e21;--line:#2a3237;--text:#e8edef;--text2:#9aa5ab;--text3:#6b757b;
 --moss:#6f9c78;--clay:#b26856;--amber:#c8933f}
@@ -35,8 +35,8 @@ button:disabled{opacity:.5;cursor:default}
 .v ul{margin:6px 0 0 16px;color:var(--text2)} .v li{margin-bottom:2px}
 .note-end{color:var(--moss);font-size:14px;margin-top:8px;font-weight:600}
 </style></head><body><div class="wrap">
-<h1>Эталон: разговор идёт за тобой</h1>
-<p class="sub">Три сцены с ветвями (ур. 3, 6, 9). Ответь иначе — и собеседник ответит иначе. В код не внедрено.</p>
+<h1>Партия 1: разговор идёт за тобой</h1>
+<p class="sub">Три сцены с ветвями (ур. 3, 6, 10). Ответь иначе — и собеседник ответит иначе. Сначала проверь тут — потом в приложение.</p>
 
 <div class="pick" id="pick"></div>
 
@@ -242,8 +242,7 @@ const negatedAt = (w,i) => {
 };
 const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
 
-/* ============ СЦЕНА 1 · ур.3 «Первое приветствие» (офис) — живая логика ============ */
-const S1 = { title:'Первое приветствие · ур. 3', start:'n0',
+const S1 = { title:"Первое приветствие · ур. 3", start:'n0',
         intro:'Ты заходишь в офис. Человек за стойкой поднимает голову.',
         opener:{them:'Hello! Can I help you?', ru:'Здравствуйте! Чем могу помочь?'},
         nodes:{
@@ -345,9 +344,8 @@ const S1 = { title:'Первое приветствие · ур. 3', start:'n0',
         tr:{ full:{them:'Good luck with the meeting. Goodbye!',ruThem:'Удачи на встрече. До свидания!',next:null},
              bye:{them:'Goodbye! Have a nice day!',ruThem:'До свидания! Хорошего дня!',next:null},
              th:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null} } },
-}};
-/* ============ СЦЕНА 2 · ур.6 «Заполнить анкету» (регистрация) ============ */
-const S2 = { title:'Заполнить анкету · ур. 6', start:'n0',
+      }};
+const S2 = { title:"Заполнить анкету · ур. 6", start:'n0',
         intro:'Сотрудник просит данные для регистрации.',
         opener:{them:'Can I have your name, please?', ru:'Ваше имя, пожалуйста?'},
         nodes:{
@@ -437,9 +435,8 @@ const S2 = { title:'Заполнить анкету · ур. 6', start:'n0',
       thx:{ task:'Поблагодари.', best:'Thank you very much.',
         judge(w){ if(has(w,'thanks','thank','ok','great','sure')) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null} } },
-}};
-/* ============ СЦЕНА 3 · ур.9 «Разговор о семье» (обед) ============ */
-const S3 = { title:'Разговор о семье · ур. 9', start:'n0',
+      }};
+const S3 = { title:"Разговор о семье · ур. 10", start:'n0',
         intro:'Коллега за обедом спрашивает про твою семью.',
         opener:{them:'Do you have a big family?', ru:'У тебя большая семья?'},
         nodes:{
@@ -536,11 +533,13 @@ const S3 = { title:'Разговор о семье · ур. 9', start:'n0',
           return {huh:1}; },
         tr:{ ok:{them:'That sounds nice. Say hello to them from me!',ruThem:'Звучит отлично. Передавай им привет!',next:null},
              notyet:{them:'Maybe next time, then. It was nice talking to you!',ruThem:'Тогда, может, в другой раз. Приятно было поговорить!',next:null} } },
-}};
+      }};
 const SCENES={ s1:S1, s2:S2, s3:S3 };
+try{ if(typeof module!=='undefined' && module.exports) module.exports={SCENES}; }catch(e){}
 
 /* ================= UI ================= */
-const fmt = s => (s||'').replace(/\{name\}/g, (D.mem && D.mem.name)||'…');
+const fmt = s => (s||'').replace(/\{name\}/g, (D.mem && D.mem.name)||'…')
+  .replace(/\{day\}/g, (D.mem && D.mem.day) ? cap(D.mem.day) : '…');
 const D = {
   mem:{}, scene:null, at:null, tries:0,
   open(id){ D.scene=SCENES[id]; D.again();

@@ -66,13 +66,7 @@ function sig(f) {
   return JSON.stringify(o, (k, v) => typeof v === 'string' ? flat(v) : v);
 }
 {
-  const html = fs.readFileSync(DEMO, 'utf8');
-  const demoSrc = [];
-  for (const v of ['S1', 'S2', 'S3']) {
-    const a = html.indexOf('const ' + v + ' = {');
-    const b = html.indexOf('\n}};\n', a) + 4;
-    demoSrc.push(html.slice(a, b));
-  }
+  const demoSrc = сценыИзФайла(DEMO);
   const ctxD = runBoth(helpers + '\n' + demoSrc.join('\n') + '\n;globalThis.__D={s1:S1,s2:S2,s3:S3};');
   const pairs = [['s1', 'Первое приветствие'], ['s2', 'Заполнить анкету'], ['s3', 'Разговор о семье']];
   for (const [k, t] of pairs) {

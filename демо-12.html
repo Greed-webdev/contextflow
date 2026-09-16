@@ -242,7 +242,7 @@ const negatedAt = (w,i) => {
 };
 const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
 
-const S1 = { title:'В аптеке · ур. 40', start:'need',
+const S1 = { title:"В аптеке · ур. 40", start:'need',
         intro:'Ты подходишь к окошку аптеки. За прилавком фармацевт.',
         opener:{them:'Hello, how can I help?', ru:'Здравствуйте, чем помочь?'},
         nodes:{
@@ -293,7 +293,7 @@ const S1 = { title:'В аптеке · ур. 40', start:'need',
           return {huh:1}; },
         tr:{ ok:{them:'Get well soon!',ruThem:'Выздоравливайте!',next:null} } }
         }};
-const S2 = { title:'Регистрация после приезда · ур. 7', start:'appoint',
+const S2 = { title:"Регистрация после приезда · ур. 7", start:'appoint',
         intro:'Регистрационный офис. Очередь, люди с папками документов. Твоя папка — с собой.',
         opener:{them:'Good morning. Do you have an appointment?', ru:'Доброе утро. Вы записаны на приём?'},
         nodes:{
@@ -359,7 +359,7 @@ const S2 = { title:'Регистрация после приезда · ур. 7'
           return {huh:1}; },
         tr:{ ok:{them:'Goodbye! Welcome to the country.',ruThem:'До свидания! Добро пожаловать в страну.',next:null} } }
         }};
-const S3 = { title:'СИМ-карта и контракт · ур. 15', start:'need',
+const S3 = { title:"СИМ-карта и контракт · ур. 15", start:'need',
         intro:'Салон связи. Нужна связь как можно скорее: без неё не работает ничего.',
         opener:{them:'Hi there! Can I help you?', ru:'Привет! Могу чем-то помочь?'},
         nodes:{

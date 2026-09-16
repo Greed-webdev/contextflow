@@ -242,7 +242,7 @@ const negatedAt = (w,i) => {
 };
 const chose = (w,...xs) => { for (const x of xs){ const i=w.indexOf(x); if(i>-1 && !negatedAt(w,i)) return true; } return false; };
 
-const S1 = { title:'На языковых курсах · ур. 84', start:'dur',
+const S1 = { title:"На языковых курсах · ур. 84", start:'dur',
         intro:'Первое занятие. Перед группой преподаватель — он знакомится с каждым.',
         opener:{them:'Welcome to our English course! First tell me - how long have you studied English?', ru:'Добро пожаловать на наши курсы английского! Сначала скажите: как долго вы учите английский?'},
         nodes:{
@@ -306,7 +306,7 @@ const S1 = { title:'На языковых курсах · ур. 84', start:'dur'
           return {huh:1}; },
         tr:{ ok:{them:'Goodbye! See you soon.',ruThem:'До свидания! До скорого.',next:null} } }
         }};
-const S2 = { title:'Оплата на кассе · ур. 88', start:'pay',
+const S2 = { title:"Оплата на кассе · ур. 88", start:'pay',
         intro:'Кассир пробивает покупки и называет сумму.',
         opener:{them:'That will be twenty-two euros, please.', ru:'С вас двадцать два евро.'},
         nodes:{
@@ -361,7 +361,7 @@ const S2 = { title:'Оплата на кассе · ур. 88', start:'pay',
           return {huh:1}; },
         tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
         }};
-const S3 = { title:'Открыть счёт · ур. 94', start:'open',
+const S3 = { title:"Открыть счёт · ур. 94", start:'open',
         intro:'Ты в отделении банка, подходишь к окошку.',
         opener:{them:'Good morning. How can I help you?', ru:'Доброе утро. Чем могу помочь?'},
         nodes:{
