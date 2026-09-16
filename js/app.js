@@ -21,6 +21,7 @@ function load(){
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 
 const $  = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.className=cls; if(html!=null)n.innerHTML=html; return n; };
 const dunnoIco = '<span class="dunno-ico">?</span>';
 const mkDunno = () => { const b = el('button','btn dunno wide'); b.innerHTML = dunnoIco + '<span>Не знаю</span>'; return b; };
@@ -1283,7 +1284,7 @@ const Lesson = {
     this.dialogAdvance();
   },
   bubble(who, text, tr){
-    const b = el('div','bub '+who, `${text}${tr?`<span class="tr">${tr}</span>`:''}`);
+    const b = el('div','bub '+who, `${esc(text)}${tr?`<span class="tr">${esc(tr)}</span>`:''}`);
     if (who === 'them'){
       const line = el('div','bub-line');
       line.appendChild(b);

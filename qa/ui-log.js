@@ -128,11 +128,6 @@ const windowStub = {
 windowStub.window = windowStub;
 windowStub.SpeechRecognition = undefined;
 
-const ctx = { console, document: documentStub, ...windowStub,
-  setTimeout: (fn) => { if (typeof fn === 'function') TIMERS.push(fn); return TIMERS.length; },
-  clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {}, queueMicrotask: f => f() };
-ctx.globalThis = ctx;
-vm.createContext(ctx);
 
 /* ---------- загрузка приложения ---------- */
 const appSrc = fs.readFileSync(ROOT + 'js/app.js', 'utf8');
@@ -141,16 +136,31 @@ const sndSrc = fs.readFileSync(ROOT + 'js/sound.js', 'utf8');
 const sttSrc = fs.readFileSync(ROOT + 'js/stt.js', 'utf8');
 const boot = sndSrc + '\n' + lessSrc + '\n' + sttSrc + '\n' + appSrc + '\n;globalThis.__APP={Lesson, COURSE, getCourse, S:()=>S, go};';
 
+const mkStore = () => ({ _m: {}, getItem(k) { return this._m[k] ?? null; }, setItem(k, v) { this._m[k] = String(v); }, removeItem(k) { delete this._m[k]; } });
+function makeCtx(over, storage) {
+  const store = mkStore();
+  const ctx = { console, document: documentStub, ...windowStub,
+    localStorage: store, sessionStorage: mkStore(),
+    setTimeout: (fn) => { if (typeof fn === 'function') TIMERS.push(fn); return TIMERS.length; },
+    clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {}, queueMicrotask: f => f(),
+    ...(over || {}) };
+  if (storage) for (const [k, v] of Object.entries(storage)) store.setItem(k, v);
+  ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  return ctx;
+}
+function makeApp(opts) {
+  const ctx = makeCtx(opts && opts.over, opts && opts.storage);
+  vm.runInContext(boot, ctx, { timeout: 20000 });
+  const A = ctx.__APP;
+  const S = A.S(); S.lang = 'en'; S.progress = S.progress || {}; S.stats = S.stats || { total: 0, right: 0 };
+  return A;
+}
+
 const LOG = [];
 const line = (s) => LOG.push(s);
-try {
-  vm.runInContext(boot, ctx, { timeout: 20000 });
-} catch (e) {
-  console.error('БУТ УПАЛ:', e.message);
-  process.exit(1);
-}
-const APP = ctx.__APP;
-{ const S = APP.S(); S.lang = 'en'; S.progress = S.progress || {}; S.stats = S.stats || { total: 0, right: 0 }; }
+let APP;
+try { APP = makeApp(); } catch (e) { console.error('БУТ УПАЛ:', e.message); process.exit(1); }
 
 /* ---------- сбор кнопок из реестра ---------- */
 const btns = (pred) => REG.filter(e => e.tag === 'button' && (!pred || pred(e)));
@@ -284,6 +294,92 @@ for (const st of stages) {
   }
 }
 
+/* ================================================================
+   ТЕСТИРОВЩИК: краш-секция. Принцип недоверия: намеренно ломаем.
+   1) грязный ввод  2) стресс состояний  3) излом логики.
+   Отчёт = перечень крайних случаев + машинные логи падений.
+   ================================================================ */
+const CR = [];
+const probe = (name, fn) => {
+  try { const r = fn(); CR.push(`  ✔ ${name}${r ? ' · ' + r : ''}`); }
+  catch (e) { crashes++; CR.push(`  ✗ ${name} · ${e.message}`); line(`✗ краш-проба «${name}»: ${e.message}`); }
+};
+const findFlow = (st) => { const arr = APP.getCourse('en', st); for (let i = 0; i < arr.length; i++) if (arr[i].type === 'dialog' && arr[i].variant === 'flow') return i; return 0; };
+const findTurns = (st) => { const arr = APP.getCourse('en', st); for (let i = 0; i < arr.length; i++) if (arr[i].type === 'dialog' && arr[i].turns) return i; return -1; };
+const uiSend = (st, idx, text) => {
+  REG = [];
+  APP.Lesson.start(st, idx);
+  const ta = lastTa();
+  const send = btns().reverse().find(b => /Ответить/.test(b._html + b.textContent));
+  if (!ta || !send) throw new Error('нет поля/кнопки');
+  ta.value = text;
+  send.click();
+  drainTimers();
+  const accepted = REG.some(b => b.tag === 'button' && /Дальше|Завершить/.test(b._html + b.textContent));
+  const fix = REG.some(b => /Исправить/.test(b._html + b.textContent));
+  const huh = REG.some(b => /не понял/i.test(b._html));
+  return accepted ? 'принято' : fix ? 'переспрос+исправить' : huh ? 'переспрос' : 'тихо';
+};
+
+CR.push('== ТЕСТИРОВЩИК · краш-пробы ==');
+{
+  const f1 = findFlow(1);
+  const GARBAGE = ['!@#$%^&*()', 'xyzzy qqq zzzz', '', 'привет я Анна', 'a'.repeat(1200),
+    '999999999999999999999 rooms', '<img src=x onerror="alert(1)"><b>q</b>', "I 'm ' ' ' not", '—'];
+  for (const g of GARBAGE) {
+    probe(`грязный ввод flow [1.${f1 + 1}] «${(g || '∅').slice(0, 24)}${g.length > 24 ? '…' : ''}»`,
+      () => uiSend(1, f1, g));
+  }
+  /* XSS: текст игрока не должен попадать в innerHTML сырым */
+  uiSend(1, f1, '<img src=x onerror="alert(1)">');
+  const raw = REG.some(e => (e._html || '').includes('<img src=x'));
+  if (raw) { line('⚠ [тестировщик] XSS: реплика игрока попадает в innerHTML без экранирования (bubble)'); CR.push('  ⚠ XSS: реплика игрока попадает в innerHTML без экранирования'); }
+  else CR.push('  ✔ XSS-проба: ввод экранируется');
+  /* излом логики: неправильные порядки кликов */
+  probe('излом: «Ответить» дважды подряд на пустом поле', () => {
+    REG = []; APP.Lesson.start(1, f1);
+    const send = btns().reverse().find(b => /Ответить/.test(b._html + b.textContent));
+    send.click(); send.click(); drainTimers(); return 'не упало';
+  });
+  probe('излом: «Не знаю» дважды + рестарт посреди диалога', () => {
+    REG = []; APP.Lesson.start(1, f1);
+    const d = btns().reverse().find(b => /Не знаю/.test(b._html + b.textContent));
+    if (d) { d.click(); d.click(); }
+    APP.Lesson.start(1, f1); drainTimers(); return 'не упало';
+  });
+  probe('излом: «Дальше» до ответа (старых кнопок нет)', () => {
+    REG = []; APP.Lesson.start(1, f1);
+    const n = btns().reverse().find(b => /Дальше/.test(b._html + b.textContent));
+    if (n) n.click(); drainTimers(); return n ? 'клик по ранней кнопке — не упало' : 'кнопки не было — ок';
+  });
+  const t1 = findTurns(1);
+  if (t1 > -1) for (const g of ['!@#$', 'бббб ббб', 'x'.repeat(1200)]) {
+    probe(`грязный ввод turns [1.${t1 + 1}] «${g.slice(0, 18)}…»`, () => uiSend(1, t1, g));
+  }
+}
+/* стресс состояний: порча localStorage, сеть, медиа */
+for (const [name, storage] of [
+  ['порча стора: битый JSON', { contextflow_state_v10: '{{{not json' }],
+  ['порча стора: null/NaN/огромная строка', { contextflow_state_v10: 'null', contextflow_state_v10_x: 'NaN'.repeat(2000) }],
+]) {
+  probe('стресс: ' + name, () => {
+    const A = makeApp({ storage });
+    A.Lesson.start(1, findFlow(1));
+    return 'бут+уровень пережили';
+  });
+}
+probe('стресс: сеть отключена (fetch reject)', () => {
+  const A = makeApp({ over: { fetch: () => Promise.reject(new Error('net down')) } });
+  A.Lesson.start(1, findFlow(1));
+  return 'бут+уровень пережили';
+});
+probe('стресс: нет mediaDevices (микрофон недоступен)', () => {
+  const A = makeApp({ over: { navigator: { language: 'ru-RU', userAgent: 'headless' } } });
+  A.Lesson.start(1, findFlow(1));
+  return 'бут+уровень пережили';
+});
+line('\n' + CR.join('\n'));
+
 /* ---------- отчёт ---------- */
 const totalActs = ACT.length;
 const summary = `UI-ЛОГ · ${new Date().toISOString()}\nэтапов: ${stages.length}, уровней: ${DET.length}, действий записано: ${totalActs}, ok-операций: ${oks}, падений: ${crashes}\n`;
@@ -292,6 +388,7 @@ const rep = '# Отчёт UI-логов (головless-прогон всего 
   '\nЛог действий пишется автоматически на уровне DOM-шима (клик/ввод/рендер) — не вручную.\n' +
   'Полный поточный трейс: `qa/ui-log-trace.log`.\n\n' +
   (warns.length ? '## Предупреждения/падения\n' + warns.join('\n') + '\n' : 'Падений и обрывов нет.\n') +
+  '\n## Тестировщик · краш-пробы\n```\n' + CR.join('\n') + '\n```\n' +
   '\n## По уровням\n```\n' + DET.join('\n') + '\n```\n';
 fs.writeFileSync(ROOT + 'qa/ui-log-report.md', rep);
 fs.writeFileSync(ROOT + 'qa/ui-log-trace.log',
