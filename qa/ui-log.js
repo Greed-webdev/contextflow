@@ -356,6 +356,14 @@ CR.push('== ТЕСТИРОВЩИК · краш-пробы ==');
   if (t1 > -1) for (const g of ['!@#$', 'бббб ббб', 'x'.repeat(1200)]) {
     probe(`грязный ввод turns [1.${t1 + 1}] «${g.slice(0, 18)}…»`, () => uiSend(1, t1, g));
   }
+  /* новые сцены партии 10: провокации по регламенту */
+  const byTitle = (st, t) => { const arr = APP.getCourse('en', st); for (let i = 0; i < arr.length; i++) if (arr[i].title === t) return i; return -1; };
+  for (const t of ['Экстренный звонок 112', 'Украли паспорт']) {
+    const i = byTitle(1, t);
+    if (i > -1) for (const g of ['!@#%', 'абракадабра', 'y'.repeat(1200), '']) {
+      probe(`грязный ввод «${t}» «${(g || '∅').slice(0, 16)}${g.length > 16 ? '…' : ''}»`, () => uiSend(1, i, g));
+    }
+  }
 }
 /* стресс состояний: порча localStorage, сеть, медиа */
 for (const [name, storage] of [
