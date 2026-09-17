@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Диалог: два варианта</title>
+<style>
+  :root{
+    --bg:#0e1114; --card:rgba(32,38,43,.86); --line:rgba(255,255,255,.09);
+    --text:#eef2f4; --text-2:#b6bfc6; --text-3:#7d8890;
+    --moss:#6f9c78; --clay:#b26856;
+    --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --ease:cubic-bezier(.4,0,.2,1);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);
+    padding:22px 16px 60px}
+  h1{font-size:19px;margin:0 0 4px}
+  .sub{font-size:13.5px;color:var(--text-3);line-height:1.5;margin:0 0 22px;max-width:640px}
+  .wrap{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+  .col{flex:1 1 330px;max-width:430px;background:rgba(20,24,28,.6);
+    border:1px solid var(--line);border-radius:20px;padding:16px 15px 20px}
+  .tag{font-size:11px;letter-spacing:.11em;text-transform:uppercase;font-weight:700;
+    margin-bottom:3px}
+  .a .tag{color:#c9a227} .b .tag{color:var(--moss)}
+  .col h2{font-size:15.5px;margin:0 0 3px}
+  .note{font-size:12.5px;color:var(--text-3);line-height:1.45;margin:0 0 15px}
+  .scene{font-size:12.5px;color:var(--text-3);margin-bottom:11px;line-height:1.45}
+  .bub{max-width:86%;padding:11px 14px;border-radius:18px;font-size:14px;line-height:1.4;
+    background:var(--card);border:1px solid var(--line);margin-bottom:9px}
+  .bub.them{border-bottom-left-radius:6px}
+  .bub.you{margin-left:auto;border-bottom-right-radius:6px}
+  .bub .tr{display:block;font-size:11px;color:var(--text-3);margin-top:4px}
+  .hint{font-size:13.5px;margin:13px 0 9px}
+  .opt{display:block;width:100%;text-align:left;margin-bottom:8px;background:var(--card);
+    border:1px solid var(--line);border-radius:18px;border-bottom-right-radius:6px;
+    padding:11px 14px;color:var(--text);font-size:14px;font-family:var(--font);cursor:pointer;
+    transition:.18s var(--ease)}
+  .opt:hover{border-color:rgba(111,156,120,.5)}
+  .opt.ok{border-color:rgba(111,156,120,.75);background:rgba(60,92,70,.55)}
+  .opt.no{border-color:rgba(178,104,86,.7);background:rgba(96,54,44,.45)}
+  .why{margin:9px 0 0;padding:12px 14px;border-radius:14px;background:var(--card);
+    border:1px solid var(--line)}
+  .why b{display:block;font-size:13px;margin-bottom:4px}
+  .why span{display:block;font-size:12.5px;line-height:1.45;color:var(--text-2)}
+  textarea{width:100%;background:rgba(28,33,37,.8);border:1px solid var(--line);
+    border-radius:14px;padding:12px 14px;color:var(--text);font-size:14px;
+    font-family:var(--font);resize:none;outline:none}
+  textarea:focus{border-color:rgba(111,156,120,.6)}
+  .row{display:flex;gap:8px;margin-top:9px}
+  .btn{flex:1;padding:12px;border-radius:14px;border:1px solid var(--line);
+    background:var(--card);color:var(--text);font-size:14px;font-weight:600;
+    font-family:var(--font);cursor:pointer}
+  .btn.moss{background:rgba(90,130,100,.75);border-color:transparent}
+  .btn.small{flex:0 0 auto;padding:12px 15px;font-weight:500;color:var(--text-3)}
+  .verdict{margin-top:11px;padding:12px 14px;border-radius:14px;background:var(--card);
+    border:1px solid var(--line);font-size:13px;line-height:1.5}
+  .verdict .g{color:var(--moss);font-weight:600}
+  .verdict .r{color:var(--clay);font-weight:600}
+  .verdict ul{margin:7px 0 0;padding-left:17px}
+  .verdict li{margin-bottom:4px;color:var(--text-2)}
+  .foot{margin-top:26px;font-size:13px;color:var(--text-3);line-height:1.6;max-width:640px}
+  .foot b{color:var(--text-2)}
+</style>
+</head>
+<body>
+
+<h1>Один диалог — два способа</h1>
+<p class="sub">Ситуация одна и та же: потерял сумку на вокзале. Слева то, что в приложении сейчас.
+Справа то, что я предлагаю. Понажимай оба и реши сам.</p>
+
+<div class="wrap">
+
+  <!-- ЛЕВО: как сейчас -->
+  <div class="col a">
+    <div class="tag">Сейчас</div>
+    <h2>Выбор из трёх</h2>
+    <p class="note">Два варианта — заведомая бессмыслица. Ошибиться почти нельзя,
+      поэтому и думать не надо.</p>
+    <p class="scene">Ты подходишь к сотруднику вокзала.</p>
+    <div class="bub them">Are you alright?<span class="tr">У вас всё в порядке?</span></div>
+    <div class="hint">Твой ход: скажи, что потерял сумку.</div>
+    <div id="optbox">
+      <button class="opt" data-i="0">Bag no have me lost.</button>
+      <button class="opt" data-i="1">I have lost my bag.</button>
+      <button class="opt" data-i="2">Lose bag me now here.</button>
+    </div>
+    <div id="a-after"></div>
+  </div>
+
+  <!-- ПРАВО: как предлагаю -->
+  <div class="col b">
+    <div class="tag">Предлагаю</div>
+    <h2>Скажи сам</h2>
+    <p class="note">Пишешь или говоришь своими словами. Проверка смотрит на смысл,
+      а не на совпадение по буквам, и разбирает ошибки.</p>
+    <p class="scene">Ты подходишь к сотруднику вокзала.</p>
+    <div class="bub them">Are you alright?<span class="tr">У вас всё в порядке?</span></div>
+    <div class="hint">Твой ход: скажи, что потерял сумку.</div>
+    <textarea id="free" rows="2" placeholder="Напиши или надиктуй…"></textarea>
+    <div class="row">
+      <button class="btn moss" id="send">Ответить</button>
+      <button class="btn small" id="dunno">Не знаю</button>
+    </div>
+    <div id="b-after"></div>
+  </div>
+
+</div>
+
+<p class="foot">
+  <b>Зачем это нужно.</b> Слева человек кликает и идёт дальше — навык не растёт,
+  на кассе он всё равно молчит. Справа он обязан произвести фразу сам, а разбор
+  показывает, что именно не так. Это то, за что платят: не «прошёл 200 уровней»,
+  а «смог сказать вслух и меня поняли». Кнопка «Не знаю» страхует новичка —
+  подсказка остаётся, но по запросу, а не вместо задачи.
+</p>
+
+<script>
+/* ---------- ЛЕВАЯ КОЛОНКА ---------- */
+var BEST_I = 1;
+document.querySelectorAll('#optbox .opt').forEach(function(b){
+  b.onclick = function(){
+    document.querySelectorAll('#optbox .opt').forEach(function(x){ x.style.pointerEvents='none'; });
+    var ok = +b.dataset.i === BEST_I;
+    b.classList.add(ok ? 'ok' : 'no');
+    if (!ok) document.querySelector('#optbox .opt[data-i="1"]').classList.add('ok');
+    document.getElementById('a-after').innerHTML =
+      '<div class="bub you">I have lost my bag.</div>' +
+      (ok ? '<div class="why"><b>Верно</b><span>И это всё. Дальше следующая реплика — ' +
+            'разбирать нечего, выбор был очевиден.</span></div>'
+          : '<div class="why"><b>Так не говорят</b><span>Слова стоят не по порядку. ' +
+            'Правильно: I have lost my bag.</span></div>');
+  };
+});
+
+/* ---------- ПРАВАЯ КОЛОНКА ---------- */
+var TARGET = {
+  need: ['lost','lose','bag'],
+  good: 'I have lost my bag.',
+  alt:  ['My bag is gone.', 'I cannot find my bag.', 'Someone took my bag.']
+};
+
+function judge(txt){
+  var t = txt.toLowerCase().replace(/[^a-z' ]/g,' ');
+  var w = t.split(/\s+/).filter(Boolean);
+  var has = function(x){ return w.indexOf(x) >= 0; };
+  var notes = [], ok = true;
+
+  var saidLost = has('lost') || has('lose') || has('gone') || has('missing');
+  var saidBag  = has('bag') || has('suitcase') || has('luggage');
+
+  if (!saidBag){ ok = false; notes.push('Не назван предмет — собеседник не понял, что искать. Нужно слово bag.'); }
+  if (!saidLost){ ok = false; notes.push('Не сказано, что случилось. Подойдёт lost, gone или cannot find.'); }
+  if (saidLost && has('lose') && !has('lost')){
+    notes.push('Форма: прошедшее от lose — lost. «I lost my bag», не «I lose my bag».');
+  }
+  if (has('i') && has('have') && has('lost')){
+    notes.push('Хорошо: have + lost — действие в прошлом, а результат важен сейчас.');
+  }
+  if (!has('i') && !has('my')){
+    notes.push('Добавь I или my — иначе непонятно, чья сумка.');
+  }
+  if (w.length < 3){ ok = false; notes.push('Слишком коротко для просьбы о помощи — скажи целым предложением.'); }
+
+  return { ok: ok, notes: notes };
+}
+
+document.getElementById('send').onclick = function(){
+  var v = document.getElementById('free').value.trim();
+  if (!v) return;
+  var r = judge(v);
+  var li = r.notes.map(function(n){ return '<li>' + n + '</li>'; }).join('');
+  document.getElementById('b-after').innerHTML =
+    '<div class="bub you">' + v + '</div>' +
+    '<div class="verdict">' +
+      (r.ok ? '<span class="g">Тебя поняли.</span>' : '<span class="r">Так не поймут.</span>') +
+      (li ? '<ul>' + li + '</ul>' : '') +
+      '<ul><li>Носитель сказал бы: <b>' + TARGET.good + '</b></li>' +
+      '<li>Тоже верно: ' + TARGET.alt.join(' · ') + '</li></ul>' +
+    '</div>';
+};
+document.getElementById('dunno').onclick = function(){
+  document.getElementById('b-after').innerHTML =
+    '<div class="verdict">Подсказка по запросу:' +
+    '<ul><li><b>I have lost my bag.</b></li>' +
+    '<li>lose → lost. have + lost = потерял и до сих пор нет.</li></ul>' +
+    'Теперь скажи это сам — своими словами.</div>';
+};
+</script>
+</body>
+</html>

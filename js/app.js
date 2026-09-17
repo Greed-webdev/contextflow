@@ -15,12 +15,36 @@ const DEFAULT = {
 };
 let S = load();
 function load(){
-  try{ return Object.assign({}, DEFAULT, JSON.parse(localStorage.getItem(KEY)) || {}); }
-  catch(e){ return Object.assign({}, DEFAULT); }
+  /* Приватный режим/заблокированный localStorage — не роняют старт. */
+  let raw = null;
+  try{ raw = JSON.parse(localStorage.getItem(KEY)); }catch(e){ raw = null; }
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) raw = {};
+  const o = Object.assign({}, DEFAULT, raw);
+  /* Битые/враждебные значения из хранилища приводим к рабочей форме:
+     иначе «stats»:null или «stage»:«пять» кладут отрисовку. */
+  if (typeof o.lang !== 'string') o.lang = null;
+  o.stage = Number(o.stage);
+  if (!(o.stage >= 1 && o.stage <= 5)) o.stage = DEFAULT.stage;
+  if (!o.progress || typeof o.progress !== 'object' || Array.isArray(o.progress)) o.progress = {};
+  if (!o.stats || typeof o.stats !== 'object' || Array.isArray(o.stats)) o.stats = {};
+  o.stats = Object.assign({}, DEFAULT.stats, o.stats);
+  if (!o.sound || typeof o.sound !== 'object' || Array.isArray(o.sound)) o.sound = {};
+  o.sound = Object.assign({}, DEFAULT.sound, o.sound);
+  o.seenIntro = !!o.seenIntro;
+  o.allOpen = !!o.allOpen;
+  return o;
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+let _storageOK = true;
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); _storageOK = true; }
+  catch(e){
+    /* квота/приватный режим: работаем в памяти, один раз говорим об этом */
+    if (_storageOK){ _storageOK = false; try{ toast('Прогресс не сохраняется — нет места в памяти'); }catch(_){} }
+  }
+}
 
 const $  = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.className=cls; if(html!=null)n.innerHTML=html; return n; };
 const dunnoIco = '<span class="dunno-ico">?</span>';
 const mkDunno = () => { const b = el('button','btn dunno wide'); b.innerHTML = dunnoIco + '<span>Не знаю</span>'; return b; };
@@ -37,6 +61,7 @@ const TABBED = ['sc-hub','sc-map','sc-profile'];
 
 function go(id, opts={}){
   if (id === current) return;
+  if (current === 'sc-lesson' && id !== 'sc-lesson' && typeof Lesson !== 'undefined') Lesson.clearTimers();
   if (!opts.noHistory && current) navStack.push(current);
   document.querySelectorAll('.screen').forEach(s=>{ s.classList.remove('on','enter'); });
   const t = $(id); t.classList.add('on','enter');
@@ -194,7 +219,7 @@ const Hub = {
 
     const tile = el('div','lang-tile');
     tile.innerHTML = `
-      <img src="${STAGES[st].art}" alt="">
+      <img src="${(STAGES[st]||{}).art || MAP_OVERVIEW}" alt="">
       <div class="veil"></div>
       <div class="inner">
         <div class="tile-badge"><img class="flag" src="${flagUrl(L.flag)}"> ${L.native} · ${STAGES[st].cefr}</div>
@@ -391,7 +416,7 @@ const Trail = {
     $('sc-back').classList.remove('hidden');
     this.card(n);
     if (S.sound.amb) Sound.ambience(STAGES[n].amb);
-    this.whoosh(STAGES[n].art);
+    this.whoosh((STAGES[n]||{}).art || MAP_OVERVIEW);
     S.stage = n; save();
   },
   overview(silent){
@@ -983,7 +1008,13 @@ const sigWords = (w, extra)=>{
 
 const Lesson = {
   st:1, idx:0, lv:null, step:0, lives:5, right:0, total:0, mode:'', picked:null, built:[],
+  /* реестр таймеров урока: гасим при уходе с экрана, чтобы отложенные
+     колбэки не дописывали чужой DOM и не падали на выгруженном уроке */
+  _timers: [],
+  later(fn, ms){ const id = setTimeout(()=>{ this._timers = this._timers.filter(x=>x!==id); fn(); }, ms); this._timers.push(id); return id; },
+  clearTimers(){ this._timers.forEach(clearTimeout); this._timers = []; },
   start(st, idx, from){
+    this.clearTimers();
     this.st=st; this.idx=idx; this.lv = getCourse(S.lang, st)[idx];
     this.step=from|0; this.lives=5; this.right=0; this.picked=null; this.failStep=0;
     const sc = SCENES[this.lv.scene], L = lang();
@@ -1020,7 +1051,7 @@ const Lesson = {
     if (this.lives <= 0){
       // сердца кончились — запоминаем место, чтобы не терять пройденное
       this.failStep = this.step;
-      setTimeout(()=>this.finish(true), 900);
+      this.later(()=>this.finish(true), 900);
       return true;
     }
     return false;
@@ -1076,7 +1107,7 @@ const Lesson = {
     const item = this.q.shift();
     const text = item.text;
     const code = (S.lang || 'en');
-    const done = ()=>{ this.qBusy = false; setTimeout(()=>this.sayNext(), 260); };
+    const done = ()=>{ this.qBusy = false; this.later(()=>this.sayNext(), 260); };
 
     // 1) заранее начитанный файл — работает везде, в том числе в Telegram
     const m = this.vmap && this.vmap[code] && this.vmap[code][text];
@@ -1120,7 +1151,7 @@ const Lesson = {
       }
       u.onend = fin; u.onerror = fin;
       speechSynthesis.speak(u);
-      setTimeout(fin, Math.min(9000, 1200 + text.length * 75));   // страховка
+      this.later(fin, Math.min(9000, 1200 + text.length * 75));   // страховка
     }catch(e){ fin(); }
   },
   fb(txt, ok){
@@ -1283,7 +1314,7 @@ const Lesson = {
     this.dialogAdvance();
   },
   bubble(who, text, tr){
-    const b = el('div','bub '+who, `${text}${tr?`<span class="tr">${tr}</span>`:''}`);
+    const b = el('div','bub '+who, `${esc(text)}${tr?`<span class="tr">${esc(tr)}</span>`:''}`);
     if (who === 'them'){
       const line = el('div','bub-line');
       line.appendChild(b);
@@ -1321,7 +1352,7 @@ const Lesson = {
     box.appendChild(hint);
 
     const goNext = (delay)=>{
-      setTimeout(()=>{ this.turnIdx++; box.innerHTML=''; this.dialogAdvance(); }, delay);
+      this.later(()=>{ this.turnIdx++; box.innerHTML=''; this.dialogAdvance(); }, delay);
     };
 
     /* ---- разбор свободного ответа ----
@@ -1570,7 +1601,7 @@ const Lesson = {
         (r.notes.length ? '<ul>' + r.notes.map(n=>`<li>${n}</li>`).join('') + '</ul>' : '') +
         `<ul><li>${r.ok ? 'Ещё вариант' : 'Носитель сказал бы'}: <b>${best}</b></li></ul>`;
       box.appendChild(v);
-      setTimeout(()=>v.scrollIntoView({behavior:'smooth', block:'nearest'}), 60);
+      this.later(()=>v.scrollIntoView({behavior:'smooth', block:'nearest'}), 60);
       return r.ok;
     };
 
@@ -1643,7 +1674,7 @@ const Lesson = {
         const tip = el('div','small'); tip.style.marginTop='6px';
         tip.textContent = 'Можно поправить свой ответ — это ещё не ошибка.';
         box.appendChild(tip);
-        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
+        this.later(()=>fix.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
         return;
       }
 
@@ -1657,7 +1688,7 @@ const Lesson = {
       const go = el('button','btn moss wide', 'Дальше');
       go.onclick = ()=>{ this.sayStop(); Sound.fx('step'); goNext(0); };
       box.appendChild(go);
-      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
+      this.later(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
     };
 
     /* ---- страховка: варианты по запросу ---- */
@@ -1859,7 +1890,7 @@ const Lesson = {
         this.at = nextId; box.innerHTML=''; this.lostNode();
       };
       box.appendChild(go);
-      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
+      this.later(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
     };
 
     send.onclick = ()=>{
@@ -1890,7 +1921,7 @@ const Lesson = {
         };
         ta.disabled = true; send.disabled = true;
         box.appendChild(fix); box.appendChild(tip);
-        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
+        this.later(()=>fix.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
         return;
       }
       /* второй промах подряд — ошибка, показываем образец и идём дальше */
@@ -1914,7 +1945,7 @@ const Lesson = {
         this.at = nextId; box.innerHTML=''; this.lostNode();
       };
       box.appendChild(go);
-      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
+      this.later(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
     };
 
     /* страховка: готовые фразы. Любая из них — правильный пример,
@@ -1949,7 +1980,7 @@ const Lesson = {
     Sound.fx(failed?'wrong':'done');
     if (S.sound.amb) Sound.ambience(STAGES[this.st].amb);
 
-    $('done-bg').style.backgroundImage = `url('${STAGES[this.st].art}')`;
+    $('done-bg').style.backgroundImage = `url('${(STAGES[this.st]||{}).art || MAP_OVERVIEW}')`;
     $('done-kicker').textContent = failed ? 'Срыв' : `${STAGES[this.st].cefr} · уровень пройден`;
     $('done-title').textContent = failed ? 'Сердца кончились' : ['Хорошо','Чисто сделано','Ты выше, чем был'][Math.floor(Math.random()*3)];
     const backTo = failed ? Math.max(0, (this.failStep|0) - 1) : 0;   // на шаг назад
@@ -2062,7 +2093,7 @@ const Lesson = {
       this.at = nextId; $('answers').innerHTML=''; this.flowNode();
     };
     $('answers').appendChild(go);
-    setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
+    this.later(()=>go.scrollIntoView({behavior:'smooth', block:'nearest'}), 260);
   },
   flowAsk(node){
     const box = $('answers');
@@ -2141,7 +2172,7 @@ const Lesson = {
         };
         ta.disabled = true; send.disabled = true;
         box.appendChild(fix); box.appendChild(tip);
-        setTimeout(()=>fix.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+        this.later(()=>fix.scrollIntoView({behavior:'smooth', block:'center'}), 260);
         return;
       }
       /* второй промах подряд — ошибка: показываем образец, дальше по его ветке */
@@ -2166,7 +2197,7 @@ const Lesson = {
         this.flowReact(node, this.flowTr(node, resB), node.best, false);
       };
       box.appendChild(go);
-      setTimeout(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
+      this.later(()=>go.scrollIntoView({behavior:'smooth', block:'center'}), 260);
     };
 
     /* страховка: готовая фраза. Она сама выбирает свою ветку. */
@@ -2225,7 +2256,7 @@ const Settings = {
         <button class="btn" style="background:var(--clay);color:#fff" onclick="Settings.doReset()">Сбросить</button>
       </div>`);
   },
-  doReset(){ localStorage.removeItem(KEY); location.reload(); }
+  doReset(){ try{ localStorage.removeItem(KEY); }catch(e){} location.reload(); }
 };
 
 /* ---------------- старт ---------------- */

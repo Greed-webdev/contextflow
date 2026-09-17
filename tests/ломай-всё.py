@@ -1,0 +1,339 @@
+#!/usr/bin/env python3
+"""
+САБАГЕНТ-ЛОМАТЕЛЬ · полный прогон по всему ContextFlow.
+Задача — доказать, что приложение сломано. Никаких поблажек.
+
+  python3 tests/ломай-всё.py [адрес]
+"""
+import sys
+from playwright.sync_api import sync_playwright
+
+URL = sys.argv[1] if len(sys.argv) > 1 else 'https://greed-webdev.github.io/contextflow/'
+
+fails, passed = [], 0
+
+def check(name, ok, detail=''):
+    global passed
+    print(('  ok    ' if ok else '  СЛОМ ') + name + (f'   → {detail}' if detail else ''))
+    if ok: passed += 1
+    else: fails.append(f'{name} ({detail})' if detail else name)
+
+# следим за жестом, синтезом речи и захватом микрофона
+SPY = """
+window.__L__=[]; window.__GUM__=0; window.__SPEAK__=0; window.__BLOCKED__=0;
+window.__GEST__=false; window.__SPEAK_NOGEST__=0; window.__ERR__=[];
+window.addEventListener('error', e=>window.__ERR__.push(String(e.message)));
+
+document.addEventListener('pointerdown', ()=>{ window.__GEST__=true;
+  setTimeout(()=>{window.__GEST__=false;},0); }, true);
+
+if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+  const _g=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+  navigator.mediaDevices.getUserMedia=function(c){
+    window.__GUM__++; window.__L__.push('getUserMedia');
+    return _g(c);
+  };
+}
+// проигрывание заранее начитанных файлов
+window.__AUDIO__=0; window.__AUDIOSRC__=[]; window.__AUDIOFAIL__=0;
+const _play = HTMLMediaElement.prototype.play;
+HTMLMediaElement.prototype.play = function(){
+  if (this.src && this.src.indexOf('/voice/')>=0){
+    window.__AUDIO__++; window.__AUDIOSRC__.push(this.src.split('/').slice(-2).join('/'));
+    window.__L__.push('audio:'+this.src.split('/').pop());
+    this.addEventListener('error',()=>{window.__AUDIOFAIL__++;},{once:true});
+  }
+  try { return _play.call(this); } catch(e){ return Promise.reject(e); }
+};
+// синтез речи: считаем вызовы и ловим запуск вне жеста
+const _speak = speechSynthesis.speak.bind(speechSynthesis);
+speechSynthesis.speak = function(u){
+  window.__SPEAK__++;
+  if (!window.__GEST__) window.__SPEAK_NOGEST__++;
+  window.__L__.push('speak:'+String(u.text).slice(0,18)+' lang='+u.lang);
+  return _speak(u);
+};
+class Rec {
+  constructor(){ this.lang=''; this.interimResults=false; }
+  start(){
+    if (!window.__GEST__){ window.__BLOCKED__++; window.__L__.push('ОТКАЗ вне жеста');
+      const s=this; setTimeout(()=>s.onerror&&s.onerror({error:'not-allowed'}),10); return; }
+    const s=this;
+    setTimeout(()=>s.onstart&&s.onstart(),10);
+    setTimeout(()=>{ s.onerror&&s.onerror({error:'no-speech'}); },200);
+  }
+  stop(){ if(this.onend) this.onend(); }
+  abort(){ if(this.onend) this.onend(); }
+}
+window.SpeechRecognition=Rec; window.webkitSpeechRecognition=Rec;
+
+// ── подменяем голосовой движок: настоящую модель в тесте не качаем ──
+window.__MODELLOAD__=0; window.__RECOG__=0;
+const __VOSK_FAKE__ = {
+  createModel: function(url){
+    window.__MODELLOAD__++; window.__L__.push('model:'+url);
+    return new Promise(res=>setTimeout(()=>res({
+      KaldiRecognizer: function(rate){
+        window.__RECOG__++;
+        this._h={};
+        this.on=(k,f)=>{ this._h[k]=f; };
+        this.acceptWaveform=()=>{
+          if (this._sent) return;
+          this._sent=true;
+          const t=window.__SAY__||'Hello';
+          setTimeout(()=>this._h.partialresult&&this._h.partialresult({result:{partial:t}}),30);
+        };
+        this.retrieveFinalResult=()=>{
+          const t=window.__MODE__==='silence' ? '' : (window.__SAY__||'Hello');
+          setTimeout(()=>this._h.result&&this._h.result({result:{text:t}}),20);
+        };
+        this.remove=()=>{};
+      }
+    }),60));
+  }
+};
+// настоящий vosk.js грузится позже и попытается перезаписать — не даём
+Object.defineProperty(window,'Vosk',{
+  get(){ return __VOSK_FAKE__; }, set(v){}, configurable:false
+});
+"""
+
+FRESH = ("localStorage.clear();localStorage.setItem('contextflow_state_v10',JSON.stringify("
+         "{seenIntro:true,lang:'en',stage:1,progress:{},stats:{},"
+         "sound:{amb:false,fx:false,tts:true}}))")
+
+UA = 'Mozilla/5.0 (Linux; Android 13; Redmi Note 12) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36'
+
+def new_page(b, perms=('microphone',)):
+    ctx = b.new_context(viewport={'width':390,'height':820}, user_agent=UA,
+                        permissions=list(perms))
+    pg = ctx.new_page(); pg.add_init_script(SPY)
+    return ctx, pg
+
+def boot(pg, lesson=None):
+    pg.goto(URL, wait_until='domcontentloaded')
+    pg.evaluate(FRESH)
+    pg.reload(wait_until='domcontentloaded'); pg.wait_for_timeout(900)
+    if lesson is not None:
+        pg.evaluate(f"Lesson.start({lesson[0]},{lesson[1]})"); pg.wait_for_timeout(700)
+
+with sync_playwright() as b_:
+    b = b_.chromium.launch(args=['--use-fake-device-for-media-stream',
+                                 '--use-fake-ui-for-media-stream'])
+    print(f'\nПОЛНЫЙ ПРОГОН: {URL}\n' + '='*64)
+
+    # ── 1. МИКРОФОН: первый раз ──────────────────────────────────
+    print('\n[1] Микрофон · первое нажатие в жизни')
+    ctx, pg = new_page(b); boot(pg, (1,0))
+    check('движок ещё не грузился', pg.evaluate("window.__MODELLOAD__")==0)
+    pg.locator('.say-btn').click(); pg.wait_for_timeout(2500)
+    check('движок скачался один раз', pg.evaluate("window.__MODELLOAD__")==1,
+          f'загрузок: {pg.evaluate("window.__MODELLOAD__")}')
+    check('микрофон взят один раз', pg.evaluate("window.__GUM__")==1,
+          f'вызовов getUserMedia: {pg.evaluate("window.__GUM__")}')
+    check('распознал', '100%' in pg.locator('.say-out').inner_text(),
+          pg.locator('.say-out').inner_text())
+
+    # ── 2. ГЛАВНОЕ: много фраз подряд — окно НЕ должно возвращаться ──
+    print('\n[2] Ещё 8 фраз подряд · окно разрешения не должно возвращаться')
+    for _ in range(8):
+        pg.locator('.say-btn').click(); pg.wait_for_timeout(700)
+    check('микрофон так и остался один раз', pg.evaluate("window.__GUM__")==1,
+          f'ВСЕГО запросов микрофона: {pg.evaluate("window.__GUM__")} (должен быть 1)')
+    check('движок больше не качался', pg.evaluate("window.__MODELLOAD__")==1,
+          f'загрузок: {pg.evaluate("window.__MODELLOAD__")}')
+    check('поток микрофона живой', pg.evaluate("!!(STT.stream && STT.stream.active)"))
+
+    # ── 2b. свернули и вернулись ─────────────────────────────────
+    print('\n[2b] Свернул приложение и вернулся')
+    pg.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+    pg.wait_for_timeout(400)
+    g0 = pg.evaluate("window.__GUM__")
+    pg.locator('.say-btn').click(); pg.wait_for_timeout(1500)
+    check('окно разрешения не вернулось', pg.evaluate("window.__GUM__")==g0,
+          f'было {g0}, стало {pg.evaluate("window.__GUM__")}')
+    check('слышит после возврата', '100%' in pg.locator('.say-out').inner_text(),
+          pg.locator('.say-out').inner_text())
+
+    # ── 2c. ВЫШЕЛ ИЗ УРОКА И ВЕРНУЛСЯ (жалоба пользователя) ──────
+    print('\n[2c] Вышел из урока и зашёл заново')
+    g0 = pg.evaluate("window.__GUM__")
+    pg.evaluate("Lesson.quit()"); pg.wait_for_timeout(500)
+    check('поток микрофона НЕ убит при выходе',
+          pg.evaluate("!!(STT.stream && STT.stream.active)"),
+          'иначе Telegram спросит разрешение заново')
+    pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(600)
+    pg.locator('.say-btn').click(); pg.wait_for_timeout(1600)
+    check('окно разрешения НЕ появилось снова', pg.evaluate("window.__GUM__")==g0,
+          f'было {g0}, стало {pg.evaluate("window.__GUM__")}')
+    check('слышит после возврата в урок', '100%' in pg.locator('.say-out').inner_text(),
+          pg.locator('.say-out').inner_text())
+
+    # ── 2d. Фон глушится на время записи ─────────────────────────
+    print('\n[2d] Шум сцены не мешает записи')
+    check('умеет глушить фон', pg.evaluate("typeof Sound.duck === 'function'"))
+    pg.evaluate("window.__DUCK__=[]; const _d=Sound.duck; Sound.duck=(v)=>{window.__DUCK__.push(v); return _d(v);};")
+    pg.locator('.say-btn').click(); pg.wait_for_timeout(300)
+    check('фон приглушён во время записи',
+          pg.evaluate("window.__DUCK__.indexOf(true)>=0"),
+          str(pg.evaluate("window.__DUCK__")))
+    pg.wait_for_timeout(1800)
+    check('фон вернулся после записи',
+          pg.evaluate("window.__DUCK__.lastIndexOf(false) > window.__DUCK__.indexOf(true)"),
+          str(pg.evaluate("window.__DUCK__")))
+
+    # ── 2e. Словарь сужается под фразу ───────────────────────────
+    print('\n[2e] Точность: словарь сужается под нужную фразу')
+    g = pg.evaluate("STT.grammarFor('Hello')")
+    check('грамматика построена', bool(g) and 'hello' in str(g), str(g)[:80])
+    check('в словаре есть [unk]', '[unk]' in str(g),
+          'без него движок подгонит под ответ любой звук')
+    check('длинную фразу не сужаем',
+          pg.evaluate("STT.grammarFor('a b c d e f g h i j k l m n')")==None)
+
+    # ── 3. Перезагрузка страницы ─────────────────────────────────
+    print('\n[3] После перезагрузки')
+    pg.reload(wait_until='domcontentloaded'); pg.wait_for_timeout(900)
+    pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(600)
+    check('движок помечен как скачанный', pg.evaluate("STT.cached")==True)
+    pg.locator('.say-btn').click(); pg.wait_for_timeout(2500)
+    check('распознаёт после перезагрузки', '100%' in pg.locator('.say-out').inner_text(),
+          pg.locator('.say-out').inner_text())
+    ctx.close()
+
+    # ── 4. ПОСЛУШАТЬ ─────────────────────────────────────────────
+    print('\n[4] Кнопка «Послушать»')
+    ctx, pg = new_page(b); boot(pg, (1,0))
+    pg.wait_for_timeout(600)
+    check('карта озвучки загрузилась',
+          pg.evaluate("Lesson.vmap && Object.keys(Lesson.vmap.en||{}).length>0"),
+          f"фраз: {pg.evaluate('Lesson.vmap ? Object.keys(Lesson.vmap.en||{}).length : 0')}")
+    check('автоозвучки при показе слова нет',
+          pg.evaluate("window.__SPEAK__+window.__AUDIO__")==0,
+          f'сработало {pg.evaluate("window.__SPEAK__+window.__AUDIO__")} раз')
+    pg.locator('#w-say').click(); pg.wait_for_timeout(1400)
+    check('по нажатию играет готовый файл', pg.evaluate("window.__AUDIO__")>=1,
+          str(pg.evaluate("window.__AUDIOSRC__")[:2]))
+    check('файл озвучки реально существует', pg.evaluate("window.__AUDIOFAIL__")==0,
+          f'ошибок загрузки: {pg.evaluate("window.__AUDIOFAIL__")}')
+    pg.locator('#w-say').click(); pg.wait_for_timeout(1000)
+    check('работает повторно', pg.evaluate("window.__AUDIO__")>=2,
+          f'проигрываний: {pg.evaluate("window.__AUDIO__")}')
+    ctx.close()
+
+    # ── 4b. TELEGRAM: синтеза речи НЕТ ВООБЩЕ ────────────────────
+    print('\n[4b] Как в Telegram: speechSynthesis отсутствует')
+    ctx = b.new_context(viewport={'width':390,'height':820}, user_agent=UA,
+                        permissions=['microphone'])
+    pg = ctx.new_page()
+    pg.add_init_script("delete window.speechSynthesis; delete window.SpeechSynthesisUtterance;")
+    pg.add_init_script(SPY.replace("const _speak = speechSynthesis.speak.bind(speechSynthesis);","const _speak=null;")
+                          .replace("speechSynthesis.speak = function(u){","window.__nospeak=function(u){"))
+    boot(pg, (1,0)); pg.wait_for_timeout(700)
+    check('приложение не упало без синтеза', pg.evaluate("window.__ERR__").__len__()==0,
+          str(pg.evaluate("window.__ERR__")[:2]))
+    pg.locator('#w-say').click(); pg.wait_for_timeout(1400)
+    check('«Послушать» ВСЁ РАВНО звучит', pg.evaluate("window.__AUDIO__")>=1,
+          f'проигрываний: {pg.evaluate("window.__AUDIO__")} · {pg.evaluate("window.__AUDIOSRC__")[:1]}')
+    check('файл найден на сервере', pg.evaluate("window.__AUDIOFAIL__")==0,
+          f'ошибок: {pg.evaluate("window.__AUDIOFAIL__")}')
+    ctx.close()
+
+    # ── 5. ЗВУК ВЫКЛЮЧЕН ─────────────────────────────────────────
+    print('\n[5] «Послушать» при выключенном звуке в настройках')
+    ctx, pg = new_page(b)
+    pg.goto(URL, wait_until='domcontentloaded')
+    pg.evaluate("localStorage.clear();localStorage.setItem('contextflow_state_v10',JSON.stringify({seenIntro:true,lang:'en',stage:1,progress:{},stats:{},sound:{amb:false,fx:false,tts:false}}))")
+    pg.reload(wait_until='domcontentloaded'); pg.wait_for_timeout(900)
+    pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(600)
+    pg.locator('#w-say').click(); pg.wait_for_timeout(1000)
+    check('кнопка всё равно озвучивает',
+          pg.evaluate("window.__AUDIO__+window.__SPEAK__")>=1,
+          'иначе кнопка выглядит сломанной')
+    ctx.close()
+
+    # ── 6. НАВИГАЦИЯ ─────────────────────────────────────────────
+    print('\n[6] Экраны и переходы')
+    ctx, pg = new_page(b); boot(pg)
+    pg.evaluate("Trail.open()"); pg.wait_for_timeout(1500)
+    check('карта загрузилась',
+          pg.evaluate("(()=>{const i=document.getElementById('map-photo');return i&&i.naturalWidth>0})()"))
+    for st in (1,3,5):
+        pg.evaluate(f"Trail.zoom({st})"); pg.wait_for_timeout(900)
+        check(f'этап {st} открывается', pg.evaluate("Trail.stage")==st)
+        pg.evaluate("Trail.overview()"); pg.wait_for_timeout(800)
+    pg.evaluate("go('sc-profile')"); pg.wait_for_timeout(600)
+    check('профиль открывается', pg.evaluate("document.getElementById('sc-profile').classList.contains('on')"))
+    pg.evaluate("go('sc-hub')"); pg.wait_for_timeout(600)
+    check('главная открывается', pg.evaluate("document.getElementById('sc-hub').classList.contains('on')"))
+    ctx.close()
+
+    # ── 7. УРОКИ ─────────────────────────────────────────────────
+    print('\n[7] Все типы уровней')
+    ctx, pg = new_page(b); boot(pg)
+    for idx, kind in ((0,'слова'), (1,'фразы'), (2,'диалог')):
+        pg.evaluate(f"Lesson.start(1,{idx})"); pg.wait_for_timeout(900)
+        t = pg.evaluate("Lesson.lv.type")
+        check(f'уровень {idx} ({kind}) запускается', t in ('words','build','dialog'), t)
+        check(f'  фон сцены загружен',
+              pg.evaluate("document.getElementById('scene-img').naturalWidth>0"))
+        check(f'  сердца отрисованы',
+              pg.evaluate("[...document.querySelectorAll('#hearts img')].every(i=>i.naturalWidth>0)"))
+    ctx.close()
+
+    # ── 8. ЖИЗНИ ─────────────────────────────────────────────────
+    print('\n[8] Сердца заканчиваются → уровень заново')
+    ctx, pg = new_page(b); boot(pg)
+    pg.evaluate("Lesson.start(1,1)"); pg.wait_for_timeout(800)
+    for _ in range(5):
+        pg.evaluate("Lesson.loseLife()"); pg.wait_for_timeout(150)
+    pg.wait_for_timeout(1400)
+    check('жизни ушли в 0', pg.evaluate("Lesson.lives")<=0)
+    check('показан экран срыва',
+          'ердц' in (pg.evaluate("document.getElementById('done-title').textContent") or ''),
+          pg.evaluate("document.getElementById('done-title').textContent"))
+    ctx.close()
+
+    # ── 9. СМЕНА ЯЗЫКА ───────────────────────────────────────────
+    print('\n[9] Смена языка')
+    ctx, pg = new_page(b); boot(pg)
+    for code in ('es','de','fr'):
+        pg.evaluate(f"Lang.pick('{code}')"); pg.wait_for_timeout(700)
+        check(f'язык {code} выбирается', pg.evaluate("S.lang")==code)
+    pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(700)
+    check('урок открывается на другом языке', pg.evaluate("!!Lesson.lv"))
+    ctx.close()
+
+    # ── 10. СОХРАНЕНИЕ ───────────────────────────────────────────
+    print('\n[10] Прогресс сохраняется')
+    ctx, pg = new_page(b); boot(pg)
+    pg.evaluate("Progress.mark(1,0,0.9); save()"); pg.wait_for_timeout(400)
+    pg.reload(wait_until='domcontentloaded'); pg.wait_for_timeout(900)
+    check('прогресс пережил перезагрузку',
+          pg.evaluate("!!(S.progress && Object.keys(S.progress).length)"),
+          str(pg.evaluate("Object.keys(S.progress||{})")))
+    ctx.close()
+
+    # ── 11. ОШИБКИ И РЕСУРСЫ ─────────────────────────────────────
+    print('\n[11] Ошибки в консоли и битые файлы')
+    bad = []
+    ctx, pg = new_page(b)
+    pg.on('response', lambda r: bad.append(f'{r.status} {r.url.split("/")[-1]}') if r.status>=400 else None)
+    boot(pg)
+    pg.evaluate("Trail.open()"); pg.wait_for_timeout(1200)
+    pg.evaluate("Lesson.start(1,0)"); pg.wait_for_timeout(1000)
+    pg.evaluate("go('sc-profile')"); pg.wait_for_timeout(800)
+    errs = pg.evaluate("window.__ERR__")
+    check('нет ошибок JS', len(errs)==0, str(errs[:2]))
+    check('нет битых файлов', len(bad)==0, str(bad[:3]))
+    ctx.close()
+
+    b.close()
+
+print('\n' + '='*64)
+print(f'Проверок пройдено: {passed}')
+if fails:
+    print(f'СЛОМАНО: {len(fails)}')
+    for f in fails: print('  ·', f)
+    sys.exit(1)
+print('Сломать не удалось.')
