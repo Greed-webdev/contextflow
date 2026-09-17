@@ -242,9 +242,30 @@ for (const st of stages) {
         const dunno = btns().reverse().find(b => (b._html || '').includes('Не знаю') || (b.textContent || '').includes('Не знаю'));
         dunnoRes = dunno ? (guard(tag + ' · «Не знаю»', () => dunno.click()) ? 'ок' : 'падение') : 'нет кнопки';
       } else dunnoRes = 'сбой';
+      /* сквозной best-путь: от старта до «Завершить» — ловит петли и битые next */
+      let e2e = 'ок', e2eSteps = 0; const chain = [];
+      REG = [];
+      if (!guard(tag + ' · e2e старт', () => APP.Lesson.start(st, idx))) e2e = 'сбой старта';
+      else while (e2eSteps++ < want + 2) {
+        const at = APP.Lesson.at; const node = lv.flow.nodes[at];
+        if (!node) { e2e = 'нет узла «' + at + '»'; break; }
+        if (chain.includes(at)) { e2e = 'петля на «' + at + '»'; break; }
+        chain.push(at);
+        const ta = lastTa();
+        const send = btns().reverse().find(b => /Ответить/.test(b._html + b.textContent));
+        if (!ta || !send) { e2e = 'нет UI на «' + at + '»'; break; }
+        ta.value = node.best;
+        const mark = REG.length;
+        send.click();
+        const goB = REG.slice(mark).reverse().find(b => b.tag === 'button' && /Дальше|Завершить/.test(b._html + b.textContent));
+        if (!goB) { e2e = 'best не принят на «' + at + '»'; break; }
+        if (/Завершить/.test(goB._html + goB.textContent)) { goB.click(); break; }
+        goB.click();
+      }
+      if (e2e === 'ок' && !chain.length) e2e = 'не стартовал';
       const nActs = flushActs();
-      DET.push(`${tag} · узлов ${visited}/${want}${bad.length ? ' · провал: ' + bad.join(',') : ''} · мусор:${junk} · незнаю:${dunnoRes} · действий:${nActs}`);
-      if (visited < want || junk !== 'ок' || dunnoRes !== 'ок') line(`⚠ ${tag}: visited=${visited}/${want} junk=${junk} dunno=${dunnoRes}`);
+      DET.push(`${tag} · узлов ${visited}/${want}${bad.length ? ' · провал: ' + bad.join(',') : ''} · e2e:${e2e}(${chain.length}) · мусор:${junk} · незнаю:${dunnoRes} · действий:${nActs}`);
+      if (visited < want || junk !== 'ок' || dunnoRes !== 'ок' || e2e !== 'ок') line(`⚠ ${tag}: visited=${visited}/${want} junk=${junk} dunno=${dunnoRes} e2e=${e2e}`);
     } else if (lv.type === 'dialog') {
       /* репликовые (turns) и lost: играем лучшими ответами из данных до
          экрана «уровень пройден» (у finish() — onclick на done-next) */
