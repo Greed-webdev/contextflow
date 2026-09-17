@@ -1579,6 +1579,55 @@ const COURSE = {
         tr:{ ok:{them:'Get well soon!',ruThem:'Выздоравливайте!',next:null} } }
         }}
       },
+      { type:'dialog', variant:'flow', title:'Медицинская страховка', scene:'clinic', cefr:'A1: Can say what hurts and ask for a doctor.',
+        intro:'Ты заболел. Звонишь в страховую: сказать, что случилось, и попросить врача.',
+        flow:{ start:'reason',
+        intro:'Ты заболел. Звонишь в страховую: сказать, что случилось, и попросить врача.',
+        opener:{them:'Insurance company. How can I help you?', ru:'Страховая компания. Чем могу помочь?'},
+        nodes:{
+      reason:{ task:'Скажи, что заболел и нужен врач (например: я заболел, мне нужен врач).', best:'I am sick. I need a doctor.',
+        judge(w){
+          if(has(w,'sick','ill','hurt','pain','fever','headache','cough','doctor','appointment','unwell')) return {br:'sick'};
+          if(has(w,'policy','number','card')) return {br:'sick'};
+          return {huh:1}; },
+        tr:{ sick:{them:'I am sorry to hear that. Do you have your policy number with you?',ruThem:'Сожалею. Номер полиса у вас под рукой?',next:'policy'} } },
+      policy:{ task:'Назови номер полиса или скажи, что не знаешь его (например: мой номер 4512 889).', best:'My number is 4512 889.',
+        judge(w,mem){
+          if(isNegatedIntent(w,['know'])||(has(w,'no','not')&&has(w,'number','policy'))) return {br:'nopol'};
+          if((mem._digits||[]).length||has(w,'number','policy')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Thank you. What are your symptoms?',ruThem:'Спасибо. Какие симптомы?',next:'symptom'},
+             nopol:{them:'No problem. What is your name and date of birth?',ruThem:'Не страшно. Ваши имя и дата рождения?',next:'name'} } },
+      name:{ task:'Назови имя и дату рождения (например: Анна, 12 мая 1990).', best:'Anna, 12 May 1990.',
+        judge(w,mem){
+          if((mem._digits||[]).length||has(w,'january','february','march','april','may','june','july','august','september','october','november','december')) return {br:'ok'};
+          if(w.length>=2) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Thank you. What are your symptoms?',ruThem:'Спасибо. Какие симптомы?',next:'symptom'} } },
+      symptom:{ task:'Скажи, что болит (например: у меня болит голова и температура).', best:'I have a headache and a fever.',
+        judge(w){
+          if(has(w,'head','fever','temperature','cough','throat','stomach','pain','hurt','cold','sore','dizzy')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'I see. Since when?',ruThem:'Понятно. С каких пор?',next:'since'} } },
+      since:{ task:'Скажи, когда началось (например: со вчера, два дня).', best:'Since yesterday. Two days.',
+        judge(w,mem){
+          if((mem._digits||[]).length||has(w,'yesterday','today','morning','night','week','days','day','monday','tuesday','wednesday','thursday','friday','saturday','sunday')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Ok. The doctor can see you at 3 pm at the clinic, or he can come to you. What do you prefer?',ruThem:'Хорошо. Врач примет вас в 15:00 в клинике или может приехать к вам. Что выберете?',next:'plan'} } },
+      plan:{ task:'Выбери: придёшь в клинику или врач приедет домой (например: я приду в клинику).', best:'I will come to the clinic.',
+        judge(w){
+          if(has(w,'home','house','visit')) return {br:'home'};
+          if(has(w,'clinic','office','myself','come','go')) return {br:'clinic'};
+          return {huh:1}; },
+        tr:{ clinic:{them:'The clinic, 3 pm. Get well soon!',ruThem:'Клиника, 15:00. Выздоравливайте!',next:'bye'},
+             home:{them:'The doctor will come to you at 3 pm. Get well soon!',ruThem:'Врач приедет к вам в 15:00. Выздоравливайте!',next:'bye'} } },
+      bye:{ task:'Поблагодари и попрощайся (например: спасибо, до свидания).', best:'Thank you. Goodbye!',
+        judge(w){
+          if(has(w,'thanks','thank','bye','goodbye','see','later','ok','okay','great','perfect')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'You are welcome. Bye!',ruThem:'Пожалуйста. До свидания!',next:null} } }
+        }}
+      },
       { type:'words', title:'Одежда · 1', scene:'market', cefr:'A1: Can name clothes and ask for a size.', newCount:11, words:[
         {t:'Clothes', r:'Одежда'},
         {t:'Shirt', r:'Рубашка'},
@@ -2989,7 +3038,7 @@ const COURSE = {
       ]},
       { type:'dialog', variant:'flow', title:'На языковых курсах', scene:'office', cefr:'A1: Can talk about school and studying.',
         intro:'Первое занятие. Перед группой преподаватель — он знакомится с каждым.',
-        flow:{ title:'На языковых курсах · ур. 86', start:'dur',
+        flow:{ title:'На языковых курсах · ур. 87', start:'dur',
         intro:'Первое занятие. Перед группой преподаватель — он знакомится с каждым.',
         opener:{them:'Welcome to our English course! First tell me - how long have you studied English?', ru:'Добро пожаловать на наши курсы английского! Сначала скажите: как долго вы учите английский?'},
         nodes:{
@@ -3106,7 +3155,7 @@ const COURSE = {
       ]},
       { type:'dialog', variant:'flow', title:'Оплата на кассе', scene:'bank', cefr:'A1: Can handle money, prices and simple payments.',
         intro:'Кассир пробивает покупки и называет сумму.',
-        flow:{ title:'Оплата на кассе · ур. 90', start:'pay',
+        flow:{ title:'Оплата на кассе · ур. 91', start:'pay',
         intro:'Кассир пробивает покупки и называет сумму.',
         opener:{them:'That will be twenty-two euros, please.', ru:'С вас двадцать два евро.'},
         nodes:{
@@ -3251,7 +3300,7 @@ const COURSE = {
       ]},
       { type:'dialog', variant:'flow', title:'Открыть счёт', scene:'bank', cefr:'A1: Can carry out simple bank transactions.',
         intro:'Ты в отделении банка, подходишь к окошку.',
-        flow:{ title:'Открыть счёт · ур. 96', start:'open',
+        flow:{ title:'Открыть счёт · ур. 97', start:'open',
         intro:'Ты в отделении банка, подходишь к окошку.',
         opener:{them:'Good morning. How can I help you?', ru:'Доброе утро. Чем могу помочь?'},
         nodes:{
@@ -4192,7 +4241,7 @@ const COURSE = {
       ]},
       { type:'dialog', variant:'flow', title:'Проблема с интернетом', scene:'office', cefr:'A1: Can use simple digital vocabulary.',
         intro:'Вечер, а у тебя не работает интернет. Ты звонишь хозяину квартиры.',
-        flow:{ title:'Проблема с интернетом · ур. 144', start:'problem',
+        flow:{ title:'Проблема с интернетом · ур. 145', start:'problem',
         intro:'Вечер, а у тебя не работает интернет. Ты звонишь хозяину квартиры.',
         opener:{them:'Hello, what is the matter?', ru:'Здравствуйте, что случилось?'},
         nodes:{
@@ -4547,7 +4596,7 @@ const COURSE = {
       ]},
       { type:'dialog', variant:'flow', title:'Перевод денег', scene:'bank', cefr:'A1: Can handle larger numbers and dates.',
         intro:'Ты в банке оформляешь перевод домой.',
-        flow:{ title:'Перевод денег · ур. 162', start:'amount',
+        flow:{ title:'Перевод денег · ур. 163', start:'amount',
         intro:'Ты в банке оформляешь перевод домой.',
         opener:{them:'How much would you like to send?', ru:'Сколько хотите отправить?'},
         nodes:{
@@ -4761,7 +4810,7 @@ const COURSE = {
       ]},
       { type:'dialog', variant:'flow', title:'Не расслышал', scene:'street', cefr:'A1: Can ask for repetition and clarification.',
         intro:'Прохожий объясняет тебе дорогу быстро и с акцентом. Ты теряешь нить.',
-        flow:{ title:'Не расслышал · ур. 172', start:'ask1',
+        flow:{ title:'Не расслышал · ур. 173', start:'ask1',
         intro:'Прохожий объясняет тебе дорогу быстро и с акцентом. Ты теряешь нить.',
         opener:{them:'So you take the second left after the lights.', ru:'Значит, второй поворот налево после светофора.'},
         nodes:{
