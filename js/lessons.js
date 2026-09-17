@@ -4376,29 +4376,54 @@ const COURSE = {
         {ru:'Это точно такое же.', parts:['This','is','exactly','the','same'], answer:'This is exactly the same', full:'This is exactly the same.',
          whyT:'Артикль the', why:'the — когда собеседник понимает, о чём речь: «the bill», «the shop». Уже упоминали или предмет единственный в этом месте.'}
       ]},
-      { type:'dialog', title:'Вернуть товар', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.',
+            { type:'dialog', variant:'flow', title:'Вернуть товар', scene:'market', cefr:'A1: Can describe simple objects and say what is wrong.',
         intro:'Ты возвращаешь покупку в магазин.',
-        turns:[
-          {who:'them', text:'Hello, how can I help?', ru:'Здравствуйте, чем помочь?'},
-          {who:'you', ru:'Скажи, что вещь сломана.', best:2,
-            options:['Broken this is bad.','Thing no good bad have.','Hello. This is broken.']},
-          {who:'them', text:'When did you buy it?', ru:'Когда покупали?'},
-          {who:'you', ru:'Скажи: вчера.', best:0,
-            options:['Yesterday.','Day before buy me.','Buy me one day past.']},
-          {who:'them', text:'Do you have the receipt?', ru:'Чек есть?'},
-          {who:'you', ru:'Скажи «да, вот он».', best:1,
-            options:['Paper here take yes.','Yes, here it is.','Receipt have me give you.']},
-          {who:'them', text:'Anything else?', ru:'Что-нибудь ещё?'},
-          {who:'you', ru:'Скажи, что это всё.', best:1,
-            options:['All finish me.','No, that is all, thank you.','Everything have me now.']},
-          {who:'them', text:'That is fine. Cash or card?', ru:'Хорошо. Наличные или карта?'},
-          {who:'you', ru:'Скажи: картой.', best:0,
-            options:['By card, please.','Card me pay yes.','Money card take you.']},
-          {who:'them', text:'Thank you. Have a good day.', ru:'Спасибо. Хорошего дня.'},
-          {who:'you', ru:'Пожелай того же.', best:2,
-            options:['You day good.','Ok bye go me.','Thanks, you too!']}
-        ]},
-      { type:'words', title:'Простые действия · 1', scene:'flat', cefr:'A1: Can describe daily actions.', newCount:11, words:[
+        flow:{ title:'Вернуть товар · ур. 151', start:'broken',
+        intro:'Ты возвращаешь покупку в магазин.',
+        opener:{them:'Hello, how can I help?', ru:'Здравствуйте, чем помочь?'},
+        nodes:{
+      broken:{ task:'Скажи, что вещь сломана (например: здравствуйте, это сломано).', best:'Hello. This is broken.',
+        judge(w){
+          if(has(w,'broken','broke','faulty','defective','cracked')) return {br:'ok'};
+          if(has(w,'not','no')&&has(w,'work','working')) return {br:'ok'};   /* «не работает» = сломана */
+          if(has(w,'return','refund','back')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'I see. When did you buy it?',ruThem:'Понятно. Когда вы это купили?',next:'when'} } },
+      when:{ task:'Скажи, когда купил (например: вчера).', best:'Yesterday.',
+        judge(w,mem){
+          if(isNegatedIntent(w,['know'])||(has(w,'no','not')&&has(w,'remember'))) return {br:'noknow'};
+          if((mem._digits||[]).length||has(w,'yesterday','today','morning','week','month','days','day','ago','monday','tuesday','wednesday','thursday','friday','saturday','sunday','last')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Do you have the receipt?',ruThem:'Чек у вас есть?',next:'receipt'},
+             noknow:{them:'No problem. Do you have the receipt?',ruThem:'Не страшно. Чек у вас есть?',next:'receipt'} } },
+      receipt:{ task:'Скажи, есть ли чек (например: да, вот он).', best:'Yes, here it is.',
+        judge(w){
+          if(isNegatedIntent(w,['receipt'])||(has(w,'no','not')&&has(w,'receipt'))) return {br:'norec'};
+          if(has(w,'yes','here','receipt','have','got','sure')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Thank you. Anything else?',ruThem:'Спасибо. Что-нибудь ещё?',next:'more'},
+             norec:{them:'Ok, we will find it in the system. Anything else?',ruThem:'Хорошо, найдём в системе. Что-нибудь ещё?',next:'more'} } },
+      more:{ task:'Скажи, что это всё (например: нет, это всё, спасибо).', best:'No, that is all, thank you.',
+        judge(w){
+          if(has(w,'yes','also','another','plus')||has(w,'too')&&w.length>2) return {br:'more'};
+          if(has(w,'no','not','nothing','all','only')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'That is fine. How do you want the refund: cash or card?',ruThem:'Хорошо. Как вернуть деньги: наличными или на карту?',next:'refund'},
+             more:{them:'Ok, one moment. That is fine. How do you want the refund: cash or card?',ruThem:'Хорошо, минутку. Как вернуть деньги: наличными или на карту?',next:'refund'} } },
+      refund:{ task:'Скажи, как вернуть деньги (например: на карту, пожалуйста / наличными).', best:'By card, please.',
+        judge(w){
+          if((has(w,'no','not')&&has(w,'card'))||has(w,'cash')) return {br:'cash'};   /* «не картой» = наличными */
+          if(has(w,'card')) return {br:'card'};
+          return {huh:1}; },
+        tr:{ card:{them:'By card. The money will come in 3 days. Thank you. Have a good day.',ruThem:'На карту. Деньги придут за 3 дня. Спасибо. Хорошего дня.',next:'bye'},
+             cash:{them:'Cash, here you are. Thank you. Have a good day.',ruThem:'Наличными, пожалуйста. Спасибо. Хорошего дня.',next:'bye'} } },
+      bye:{ task:'Поблагодари и пожелай хорошего дня (например: спасибо, вам тоже).', best:'Thanks, you too!',
+        judge(w){
+          if(has(w,'thanks','thank','too','also','bye','goodbye','you','day')) return {br:'ok'};
+          return {huh:1}; },
+        tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
+        }}
+      },      { type:'words', title:'Простые действия · 1', scene:'flat', cefr:'A1: Can describe daily actions.', newCount:11, words:[
         {t:'Wake', r:'Просыпаться'},
         {t:'Sleep', r:'Спать'},
         {t:'Wash', r:'Мыть'},
