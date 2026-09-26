@@ -53,9 +53,21 @@
 .dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.22);transition:all .3s var(--ease)}
 .dots i.on{background:var(--amber);width:18px;border-radius:99px}
 
-/* ---------- ХАБ (главный экран) ---------- */
+/* ---------- ХАБ (главный экран) — весь экран как старая карта ---------- */
 #sc-hub{background:
+  radial-gradient(120% 62% at 50% 110%, rgba(217,164,65,.10), transparent 62%),
+  radial-gradient(90% 50% at 50% -6%, rgba(125,160,190,.10), transparent 62%),
   radial-gradient(90% 55% at 50% 0%,#232a2c 0%,#171b1e 55%,#101315 100%)}
+#sc-hub::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><circle cx='32' cy='32' r='20' fill='none' stroke='%23F5E6C8' stroke-opacity='.28' stroke-dasharray='2 3'/><path d='M32 14l4.5 13.5L50 32l-13.5 4.5L32 50l-4.5-13.5L14 32l13.5-4.5z' fill='none' stroke='%23F5E6C8' stroke-opacity='.42'/><circle cx='32' cy='32' r='2.4' fill='%23F5E6C8' fill-opacity='.45'/></svg>") left 14px bottom 86px/64px 64px no-repeat;
+  opacity:.9}
+#hub-h1{color:#F2E7D5;font-size:46px;line-height:1.02;letter-spacing:-.02em}
+#sc-hub::after{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:url("../assets/hub-art.jpg") center top/cover no-repeat;
+  opacity:.32;
+  -webkit-mask-image:linear-gradient(180deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.28) 16%,rgba(0,0,0,.12) 34%,rgba(0,0,0,.07) 64%,rgba(0,0,0,.18) 100%);
+  mask-image:linear-gradient(180deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.28) 16%,rgba(0,0,0,.12) 34%,rgba(0,0,0,.07) 64%,rgba(0,0,0,.18) 100%)}
+.hub-sec i{width:9px;height:9px;box-shadow:0 0 9px rgba(245,230,200,.30)}
 .hub-top{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 6px}
 .avatar{
   width:42px;height:42px;border-radius:50%;cursor:pointer;
@@ -66,7 +78,7 @@
 }
 .avatar:active{transform:scale(.94)}
 
-.hub-mid{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 22px 24px;gap:18px}
+.hub-mid{flex:1;display:flex;flex-direction:column;justify-content:flex-start;padding:8px 22px 16px;gap:0}
 
 /* прямоугольная плитка выбранного языка — чуть выше середины */
 .lang-tile{
@@ -97,11 +109,13 @@
 .lang-list{display:flex;flex-direction:column;gap:10px}
 .lang-row{
   display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;
-  background:var(--bg-2);border:1px solid var(--line-soft);border-radius:var(--r-m);
+  background:transparent;border:1px dashed rgba(255,255,255,.22);border-radius:14px;
   transition:transform .16s var(--ease),border-color .2s;
 }
+.lang-row h3{font-family:var(--font-serif)}
+.lang-row .small{font-style:italic}
 .lang-row:active{transform:scale(.985)}
-.lang-row.cur{border-color:rgba(111,156,120,.55);background:rgba(111,156,120,.09)}
+.lang-row.cur{border:1px solid rgba(212,165,116,.6);background:rgba(212,165,116,.08)}
 
 /* ---------- КАРТА ГОРЫ (перенесено, поведение не менялось) ---------- */
 #sc-map{background:#12161a;padding:0}
@@ -305,6 +319,7 @@
   font-size:13.5px;line-height:1;cursor:pointer;
   transition:transform .14s var(--ease),background .15s;
 }
+.bub-say img{width:16px;height:16px;display:block;pointer-events:none}
 .bub-say:active{transform:scale(.88);background:rgba(44,52,58,.95)}
 .bub.them,.bub.you{background:rgba(32,38,43,.86);backdrop-filter:blur(18px);
   border:1px solid var(--line);color:var(--text)}
@@ -355,27 +370,20 @@
 #sc-welcome{background:#05070a;overflow:hidden;padding:0}
 
 /* живой градиент — как обои iOS при первом включении */
-.ios-aurora{position:absolute;inset:0;z-index:0;overflow:hidden;background:#05070a}
-.ios-aurora .au{
-  position:absolute;border-radius:50%;filter:blur(64px);opacity:.85;
-  will-change:transform;
-}
-.au.a1{width:118%;height:56%;left:-30%;top:4%;
-  background:radial-gradient(circle at 50% 50%,#e9c46a 0%,rgba(233,196,106,0) 68%);
-  animation:auroraA 17s ease-in-out infinite alternate}
-.au.a2{width:105%;height:52%;right:-34%;top:20%;
-  background:radial-gradient(circle at 50% 50%,#5b8fb9 0%,rgba(91,143,185,0) 70%);
-  animation:auroraB 21s ease-in-out infinite alternate}
-.au.a3{width:110%;height:50%;left:-22%;bottom:12%;
-  background:radial-gradient(circle at 50% 50%,#6f9c78 0%,rgba(111,156,120,0) 70%);
-  animation:auroraC 19s ease-in-out infinite alternate}
-.au.a4{width:78%;height:38%;right:-14%;bottom:2%;
-  background:radial-gradient(circle at 50% 50%,#c2705a 0%,rgba(194,112,90,0) 72%);
-  animation:auroraD 23s ease-in-out infinite alternate}
-@keyframes auroraA{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(12%,8%,0) scale(1.22)}}
-@keyframes auroraB{from{transform:translate3d(0,0,0) scale(1.1)}to{transform:translate3d(-14%,12%,0) scale(.92)}}
-@keyframes auroraC{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(16%,-10%,0) scale(1.18)}}
-@keyframes auroraD{from{transform:translate3d(0,0,0) scale(.95)}to{transform:translate3d(-12%,-8%,0) scale(1.2)}}
+.ios-aurora{position:absolute;inset:0;z-index:0;overflow:hidden;background:#0b0e10;
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 22%, rgba(255,255,255,.55), transparent 60%),
+    radial-gradient(1px 1px at 28% 12%, rgba(255,255,255,.35), transparent 60%),
+    radial-gradient(1.6px 1.6px at 44% 30%, rgba(245,230,200,.5), transparent 60%),
+    radial-gradient(1px 1px at 61% 16%, rgba(255,255,255,.3), transparent 60%),
+    radial-gradient(1.6px 1.6px at 74% 26%, rgba(255,255,255,.45), transparent 60%),
+    radial-gradient(1px 1px at 87% 12%, rgba(255,255,255,.3), transparent 60%),
+    radial-gradient(1px 1px at 18% 44%, rgba(255,255,255,.25), transparent 60%),
+    radial-gradient(1.6px 1.6px at 68% 46%, rgba(212,165,116,.45), transparent 60%),
+    radial-gradient(1px 1px at 34% 62%, rgba(255,255,255,.2), transparent 60%),
+    radial-gradient(1.4px 1.4px at 82% 58%, rgba(74,123,124,.5), transparent 60%),
+    radial-gradient(120% 90% at 50% 0%, #141a1f 0%, #0b0e10 72%);}
+.ios-aurora .au{display:none}
 /* затемнение к краям, чтобы текст читался */
 .ios-aurora::after{
   content:'';position:absolute;inset:0;
@@ -392,6 +400,8 @@
   font-family:'Hello Script','Segoe Script',cursive;
   font-size:72px;line-height:1.25;font-weight:400;
   color:#fdfcf8;text-align:center;white-space:nowrap;
+  /* стабильная коробка: подпись ниже не прыгает при смене hello/привет */
+  min-height:96px;display:flex;align-items:center;justify-content:center;
   text-shadow:0 2px 30px rgba(0,0,0,.4),0 0 60px rgba(255,255,255,.14);
   /* пропись: маска едет слева направо, буквы «пишутся» */
   -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 calc(var(--pen,0%) - 16%),rgba(0,0,0,.55) calc(var(--pen,0%) - 7%),transparent var(--pen,0%),transparent 100%);
@@ -424,10 +434,12 @@
 .ios-sub{
   font-size:16.5px;line-height:1.45;color:rgba(240,244,242,.82);
   text-align:center;max-width:320px;margin:0 auto 18px;
-  animation:riseIn 1.1s var(--ease) 1s both;
+  animation:riseIn .7s var(--ease) .25s both;
 }
-.ios-start{animation:riseIn 1s var(--spring) 1.35s both}
-.ios-bottom .btn.quiet{animation:riseIn 1s var(--ease) 1.55s both}
+.ios-start{animation:riseIn .6s var(--spring) .4s both}
+.ios-bottom .btn.quiet{animation:riseIn .6s var(--ease) .55s both}
+/* фолбэк, если браузер не знает @property: пропись через blur/fade */
+.ios-hello.noprop{-webkit-mask-image:none;mask-image:none;animation:helloDraw .9s var(--ease) both}
 
 /* объяснение правила по кнопке «Почему?» */
 .why-text{display:block;margin-top:10px;padding:13px 15px;border-radius:15px;
@@ -476,3 +488,161 @@
 .miss-txt{ flex:1; min-width:0 }
 .miss-txt h3{ margin:0 }
 .miss-txt p{ margin-top:2px }
+
+/* живое небо на welcome */
+.ws-tw{position:absolute;width:3px;height:3px;background:#F5E6C8;border-radius:50%;
+  box-shadow:0 0 6px 1px rgba(245,230,200,.5);opacity:.25;animation:wsTw 3.4s ease-in-out infinite}
+@keyframes wsTw{0%,100%{opacity:.15;transform:scale(.8)}50%{opacity:.8;transform:scale(1.15)}}
+.ws-shoot{position:absolute;left:14%;top:18%;width:70px;height:1px;opacity:0;
+  background:linear-gradient(90deg,rgba(245,230,200,0),rgba(245,230,200,.8));
+  transform:rotate(18deg);animation:wsShoot 9s linear infinite}
+@keyframes wsShoot{0%{opacity:0;transform:rotate(18deg) translateX(0)}3%{opacity:.9}
+  9%{opacity:0;transform:rotate(18deg) translateX(150px)}100%{opacity:0;transform:rotate(18deg) translateX(150px)}}
+@media (prefers-reduced-motion: reduce){.ws-tw,.ws-shoot{animation:none}.ws-tw{opacity:.4}.ws-shoot{display:none}}
+
+/* ---------- плотность и атмосфера (анти-пустота) ---------- */
+#sc-hub,#sc-lang,#sc-levels,#sc-lesson{
+  background-image:radial-gradient(70% 45% at 18% 0%,rgba(217,164,65,.045),transparent 60%),
+    radial-gradient(60% 45% at 85% 100%,rgba(125,148,168,.05),transparent 60%);
+}
+#sc-lesson{background-color:#0d1012;
+  background-image:
+    linear-gradient(rgba(255,255,255,.024) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.024) 1px, transparent 1px),
+    radial-gradient(70% 45% at 18% 0%,rgba(217,164,65,.05),transparent 60%),
+    radial-gradient(60% 45% at 85% 100%,rgba(125,148,168,.05),transparent 60%);
+  background-size:44px 44px,44px 44px,auto,auto;
+}
+.scene{background:
+  radial-gradient(80% 60% at 70% 20%,rgba(125,148,168,.12),transparent 60%),
+  radial-gradient(60% 50% at 20% 80%,rgba(217,164,65,.08),transparent 60%),
+  linear-gradient(#0c1013,#141a1f)}
+.l-div{position:relative;margin:10px 20px 2px;border-top:1px dashed rgba(255,255,255,.14)}
+.l-div::after{content:"";position:absolute;left:50%;top:-4px;width:7px;height:7px;background:#D4A574;
+  transform:translateX(-50%) rotate(45deg);opacity:.8}
+.hub-secs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.hub-sec{display:flex;align-items:center;gap:8px;padding:10px 12px;background:transparent;
+  border:1px dashed rgba(255,255,255,.2);border-radius:12px;cursor:pointer;color:var(--text-2);
+  font-family:var(--font);font-size:12px;font-weight:600;transition:transform .12s var(--ease)}
+.hub-sec:active{transform:scale(.96)}
+.hub-sec i{width:7px;height:7px;transform:rotate(45deg);flex:none}
+.hub-sec b{margin-left:auto;color:var(--text-3);font-weight:600;font-family:var(--font-serif);font-style:italic}
+
+/* ---------- декоративная красота (не функционал) ---------- */
+.l-wm{position:absolute;right:16px;bottom:150px;width:120px;height:90px;opacity:.14;pointer-events:none;z-index:0}
+.star-div{position:relative;margin:2px 0;border-top:1px dashed rgba(255,255,255,.12)}
+.star-div::after{content:"";position:absolute;left:50%;top:-5px;width:9px;height:9px;opacity:.7;
+  transform:translateX(-50%);background:#D4A574;
+  clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.hub-tile-atlas::after{content:"";position:absolute;inset:8px;pointer-events:none;opacity:.5;
+  background:
+    linear-gradient(#D4A574,#D4A574) left top/10px 1px,
+    linear-gradient(#D4A574,#D4A574) left top/1px 10px,
+    linear-gradient(#D4A574,#D4A574) right top/10px 1px,
+    linear-gradient(#D4A574,#D4A574) right top/1px 10px,
+    linear-gradient(#D4A574,#D4A574) left bottom/10px 1px,
+    linear-gradient(#D4A574,#D4A574) left bottom/1px 10px,
+    linear-gradient(#D4A574,#D4A574) right bottom/10px 1px,
+    linear-gradient(#D4A574,#D4A574) right bottom/1px 10px;
+  background-repeat:no-repeat}
+
+/* уход велкома: мягкий фейд с блюром, потом вход следующего экрана */
+#sc-welcome.bye{animation:wbye .45s var(--ease) both}
+@keyframes wbye{to{opacity:0;transform:scale(1.04);filter:blur(6px)}}
+@media (prefers-reduced-motion: reduce){#sc-welcome.bye{animation:none}}
+
+/* ---------- искра отклика: сайт отвечает теплом (не функционал) ---------- */
+.hub-tile-atlas{transition:transform .13s var(--ease)}
+.hub-tile-atlas:active{transform:scale(.985)}
+h1.big{position:relative}
+h1.big::after{content:"";position:absolute;left:2px;bottom:-9px;width:min(150px,62%);height:6px;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 6' preserveAspectRatio='none'><path d='M2 4 C 28 1.5, 52 5.5, 78 3.2 S 122 4.8, 148 2.6' fill='none' stroke='%23F5E6C8' stroke-width='1.4' stroke-linecap='round' opacity='.9'/></svg>") no-repeat 0 0/100% 100%;
+  opacity:0;transform-origin:left center;
+  animation:uline .7s var(--ease-out, cubic-bezier(.23,1,.32,1)) .2s forwards}
+@keyframes uline{from{opacity:0;transform:scaleX(.15)}to{opacity:.6;transform:scaleX(1)}}
+.spk-wrap{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden}
+.spk{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;color:#F5E6C8;opacity:0;
+  transform:translate(0,0) scale(.4)}
+.spk i{display:block;width:100%;height:100%;transform:rotate(var(--rot,0deg));
+  background:
+    linear-gradient(currentColor,currentColor) 50% 0/1.2px 100% no-repeat,
+    linear-gradient(currentColor,currentColor) 0 50%/100% 1.2px no-repeat}
+.spk.go{animation:spk .62s cubic-bezier(.23,1,.32,1) forwards}
+@keyframes spk{
+  0%{transform:translate(0,0) scale(.35);opacity:0}
+  16%{opacity:.9}
+  100%{transform:translate(var(--dx,0),var(--dy,0)) scale(1);opacity:0}
+}
+@media (prefers-reduced-motion:reduce){
+  h1.big::after{animation:none;opacity:.6;transform:none}
+  .spk.go{animation:none}
+}
+
+/* ---------- искра в дизайне: видимая жизнь хаба (декор) ---------- */
+.hub-shoot{position:absolute;left:8%;top:13%;width:86px;height:1px;opacity:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(245,230,200,0),rgba(245,230,200,.75));
+  transform:rotate(12deg);animation:hubshoot 9s linear 2.2s infinite}
+.hub-shoot::after{content:"";position:absolute;right:-2px;top:-1.5px;width:4px;height:4px;border-radius:50%;
+  background:rgba(245,230,200,.9)}
+@keyframes hubshoot{
+  0%,84%{opacity:0;transform:rotate(12deg) translateX(0)}
+  87%{opacity:.85}
+  96%,100%{opacity:0;transform:rotate(12deg) translateX(150px)}
+}
+.hub-mid > div:first-child{position:relative}
+.hub-mid > div:first-child::before{content:"";position:absolute;left:-34px;top:-40px;width:240px;height:130px;
+  pointer-events:none;background:radial-gradient(50% 50% at 50% 50%,rgba(217,164,65,.10),transparent 70%);
+  animation:hubglow 7s ease-in-out infinite}
+@keyframes hubglow{0%,100%{opacity:.55}50%{opacity:1}}
+.hub-note{align-self:flex-start;margin:-8px 0 0 6px;padding:7px 11px 8px;position:relative;
+  font-family:var(--font-serif);font-style:italic;font-size:12px;color:var(--text-2);
+  background:rgba(245,230,200,.06);border:1px dashed rgba(245,230,200,.32);border-radius:2px;
+  transform:rotate(-1.6deg)}
+.hub-note::before{content:"";position:absolute;left:50%;top:-7px;width:34px;height:9px;
+  transform:translateX(-50%) rotate(1.5deg);background:rgba(245,230,200,.16);border-radius:1px}
+@media (prefers-reduced-motion:reduce){
+  .hub-shoot{display:none}
+  .hub-mid > div:first-child::before{animation:none;opacity:.7}
+}
+
+/* ---------- не проходняк: типовые детали в характере атласа ---------- */
+/* кнопка-плита → экспедиционный ярлык */
+.btn.tag{
+  background:rgba(245,230,200,.045);color:#E9DCC3;border:1px dashed rgba(212,165,116,.55);
+  border-radius:12px;min-height:58px;font-family:var(--font-serif);font-style:italic;
+  font-weight:600;font-size:17px;letter-spacing:.03em}
+.btn.tag::before{content:"";width:9px;height:9px;flex:none;background:#D4A574;
+  clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.btn.tag:active{background:rgba(245,230,200,.10)}
+/* аватар → штамп с рваным кольцом */
+.avatar{background:radial-gradient(120% 120% at 30% 25%,#2c3a33,#1a2320 70%);
+  border:1px dashed rgba(212,165,116,.6);box-shadow:none;color:#E9DCC3;
+  font-family:var(--font-serif);font-style:italic;font-weight:600}
+/* таб-бар → линия старой карты + рукописная черта под активным */
+.tabbar{border-top:1px dashed rgba(255,255,255,.16)}
+.tab span{position:relative}
+.tab.on span::after{content:"";position:absolute;left:50%;bottom:-6px;width:30px;height:4px;
+  transform:translateX(-50%);opacity:.85;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 4' preserveAspectRatio='none'><path d='M1 2.6 C 8 1.2, 15 3.4, 22 1.9 S 27 2.8, 29 1.7' fill='none' stroke='%23D4A574' stroke-width='1.2' stroke-linecap='round'/></svg>") no-repeat 0 0/100% 100%}
+
+/* ---------- живое небо хаба ---------- */
+#hub-sky{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+#sc-hub .hub-top,#sc-hub .hub-mid{position:relative;z-index:1}
+#sc-hub .hub-shoot{z-index:0}
+
+/* глазная иерархия: небо (фон) → «В путь» → вход в атлас → темы → язык */
+.hub-mid > div:first-child{margin-bottom:20px}
+.hub-mid > div:first-child::before{display:none}
+#hub-caption{color:rgba(232,226,214,.46)}
+#hub-tile-slot{display:flex;flex-direction:column;gap:8px}
+#sc-hub .hub-tile-atlas{border:1px solid rgba(212,165,116,.32)}
+#sc-hub .hub-secs{opacity:.72}
+#sc-hub .hub-sec{padding:8px 10px;border-color:rgba(255,255,255,.12);font-weight:500}
+#sc-hub .hub-sec i{box-shadow:none;width:6px;height:6px}
+#sc-hub .btn.tag{
+  margin-top:auto;
+  min-height:46px;font-size:14px;letter-spacing:.02em;
+  background:transparent;color:rgba(233,220,195,.62);
+  border-color:rgba(212,165,116,.28)}
+#sc-hub .btn.tag::before{opacity:.55;width:7px;height:7px}
+#sc-hub::before{opacity:.45}

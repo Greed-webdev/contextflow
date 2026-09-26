@@ -4,9 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>ContextFlow</title>
-<link rel="stylesheet" href="css/fonts.css?v=1788911026">
-<link rel="stylesheet" href="css/theme.css?v=1788911026">
-<link rel="stylesheet" href="css/map.css?v=1788911026">
+<link rel="stylesheet" href="css/fonts.css?v=1790426200">
+<link rel="stylesheet" href="css/theme.css?v=1790426200">
+<link rel="stylesheet" href="css/map.css?v=1790426200">
+  <link rel="stylesheet" href="css/atlas.css?v=1790426200">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -21,10 +22,17 @@
       <div class="ios-aurora">
         <span class="au a1"></span><span class="au a2"></span>
         <span class="au a3"></span><span class="au a4"></span>
+        <i class="ws-tw" style="left:18%;top:22%"></i>
+        <i class="ws-tw" style="left:70%;top:16%;animation-delay:1.1s"></i>
+        <i class="ws-tw" style="left:42%;top:34%;animation-delay:2.3s"></i>
+        <i class="ws-tw" style="left:84%;top:44%;animation-delay:.6s"></i>
+        <i class="ws-tw" style="left:12%;top:56%;animation-delay:1.8s"></i>
+        <i class="ws-shoot"></i>
       </div>
+      
       <div class="ios-hello-wrap">
         <div class="ios-hello" id="ios-hello">hello</div>
-        <div class="ios-sub">Английский в живых ситуациях — диалоги вместо зубрёжки</div>
+        <div class="ios-sub">Прорепетируй важные разговоры — и выходи в город спокойно</div>
       </div>
       <div class="ios-bottom">
         <button class="btn ios-start" onclick="Onb.start()">Начать</button>
@@ -47,10 +55,9 @@
           <h1 class="big" style="margin-top:6px" id="hub-h1">Твой язык</h1>
           <p class="small" style="margin-top:8px" id="hub-caption">Выбери язык — и сразу в путь.</p>
         </div>
-
         <div id="hub-tile-slot"></div>
 
-        <button class="btn ghost" onclick="Lang.open()">
+        <button class="btn tag" onclick="Lang.open()">
           <span id="hub-lang-btn">Выбрать язык</span>
         </button>
       </div>
@@ -67,55 +74,35 @@
           <div style="width:38px"></div>
         </div>
         <h2 class="mid" style="margin-top:18px">Что будем учить</h2>
-        <p class="small" style="margin-top:6px;margin-bottom:16px">Нажми — и обучение начнётся сразу. Сменить можно в любой момент.</p>
+        <p class="small" style="margin-top:6px;margin-bottom:16px">Сменить можно в любой момент.</p>
       </div>
       <div class="scroll pad pad-b"><div class="lang-list" id="lang-list"></div></div>
     </div>
 
-    <!-- ============ 5. КАРТА ГОРЫ ============ -->
+    <!-- ============ 5. НОЧНОЙ АТЛАС (v4, вместо горы) ============ -->
     <div class="screen" id="sc-map">
-      <div class="map-header">
-        <button class="icon-btn" onclick="Trail.exit()">
+      <div class="atlas-head">
+        <button class="icon-btn" onclick="Atlas.exit()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
-        <div style="text-align:center;flex:1">
-          <div class="kicker">Маршрут</div>
-          <div style="font-size:13.5px;font-weight:650;display:flex;align-items:center;gap:6px;justify-content:center;margin-top:2px" id="map-lang">—</div>
-        </div>
-        <button class="pill" onclick="Lang.open()">Сменить</button>
-      </div>
-
-      <div class="map-viewport">
-        <img id="map-blur" class="map-blur" src="assets/map/mountain-map.png" alt="">
-        <div class="map-frame" id="map-frame">
-          <img id="map-photo" class="map-photo" src="assets/map/mountain-map.png" alt="Карта маршрута">
-          <div class="hotspots" id="hotspots">
-            <button class="hotspot" id="hot-5" type="button" aria-label="Stage 5" onclick="Trail.zoom(5)"></button>
-            <button class="hotspot" id="hot-4" type="button" aria-label="Stage 4" onclick="Trail.zoom(4)"></button>
-            <button class="hotspot" id="hot-3" type="button" aria-label="Stage 3" onclick="Trail.zoom(3)"></button>
-            <button class="hotspot" id="hot-2" type="button" aria-label="Stage 2" onclick="Trail.zoom(2)"></button>
-            <button class="hotspot" id="hot-1" type="button" aria-label="Stage 1" onclick="Trail.zoom(1)"></button>
-          </div>
+        <div class="atlas-titles">
+          <h1 class="atlas-h1">Ночной атлас</h1>
+          <div class="atlas-sub">разговоры, которые тебя ждут, — по созвездиям</div>
         </div>
       </div>
-
-      <div class="stage-card" id="stage-card">
-        <div class="row between">
-          <span class="kicker moss" id="sc-tag">Обзор маршрута</span>
-          <span class="kicker" id="sc-status">Карта</span>
-        </div>
-        <div>
-          <h3 class="sm" id="sc-title">Выбери этап на горе</h3>
-          <p class="small" style="margin-top:4px" id="sc-desc">Нажми на табличку Stage 1–5.</p>
-        </div>
-        <div class="row gap12" id="sc-prog-row" style="display:none">
-          <div class="bar" style="flex:1"><i id="sc-prog" style="width:0"></i></div>
-          <span class="small" id="sc-prog-txt">0 / 0</span>
-        </div>
-        <div class="btn-row">
-          <button class="btn ghost hidden" id="sc-back" style="flex:0 0 44%" onclick="Trail.overview()">К карте</button>
-          <button class="btn moss" id="sc-go" onclick="Trail.enterStage()">Выбери этап</button>
-        </div>
+      <div class="atlas-wrap">
+        <canvas id="atlas-cv"></canvas>
+        <div class="atlas-tag tl">cf · ночной атлас</div>
+        <div class="atlas-tag br">ты здесь · день 1</div>
+      </div>
+      <div class="atlas-legend">
+        <span class="atlas-cur" id="atlas-cur">Срочное</span>
+        <div class="atlas-dots" id="atlas-dots"></div>
+      </div>
+      <div class="atlas-hint">нажми на звезду — откроется разговор · точки внизу меняют тему</div>
+      <div class="atlas-panel" id="atlas-panel">
+        <div class="atlas-nm" id="atlas-nm"></div>
+        <button class="atlas-go" id="atlas-go" onclick="Atlas.startSel()">Начать</button>
       </div>
     </div>
 
@@ -142,6 +129,15 @@
     <!-- ============ 7. УРОК ============ -->
     <div class="screen" id="sc-lesson">
       <div class="scene" id="scene"><img id="scene-img" alt=""><div class="veil"></div></div>
+      <svg class="l-wm" viewBox="0 0 120 90" aria-hidden="true">
+        <path d="M12 70L38 44L64 58L92 22L108 34" fill="none" stroke="#F5E6C8" stroke-width="1" stroke-dasharray="3.5 4.5"/>
+        <g fill="#F5E6C8">
+          <path d="M12 64l1.6 4.4L18 70l-4.4 1.6L12 76l-1.6-4.4L6 70l4.4-1.6z"/>
+          <path d="M38 38l1.6 4.4L44 44l-4.4 1.6L38 50l-1.6-4.4L34 44l4.4-1.6z"/>
+          <path d="M64 52l1.6 4.4L70 58l-4.4 1.6L64 64l-1.6-4.4L58 58l4.4-1.6z"/>
+          <path d="M92 16l1.6 4.4L98 22l-4.4 1.6L92 28l-1.6-4.4L88 22l4.4-1.6z"/>
+        </g>
+      </svg>
       <div class="lesson-wrap">
         <div class="lesson-top">
           <button class="icon-btn" onclick="Lesson.quit()">
@@ -154,6 +150,7 @@
           <span class="kicker amber" id="l-scene">Сцена</span>
           <div class="small" id="l-kind" style="margin-top:2px">—</div>
         </div>
+        <div class="l-div" aria-hidden="true"></div>
         <div class="scroll" id="l-body"></div>
         <div class="pad" style="padding-bottom:var(--safe-b);padding-top:8px">
           <div class="small" id="l-feedback" style="min-height:18px;margin-bottom:8px"></div>
@@ -186,13 +183,13 @@
 
     <!-- ============ 9. ПРОФИЛЬ ============ -->
     <div class="screen" id="sc-profile">
-      <div class="pad" style="padding-top:16px">
-        <div class="row between">
-          <button class="icon-btn" onclick="back()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
-          </button>
-          <span class="kicker">Профиль</span>
-          <div style="width:38px"></div>
+      <div class="atlas-head">
+        <button class="icon-btn" onclick="back()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="atlas-titles">
+          <h1 class="atlas-h1">Бортовой журнал</h1>
+          <div class="atlas-sub">кто ты в этом городе и что включено</div>
         </div>
       </div>
       <div class="scroll pad pad-b" style="padding-top:14px">
@@ -252,7 +249,7 @@
     </button>
     <button class="tab" data-go="sc-map">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M3 20l6.5-13 4 7 2.5-4 5 10z"/></svg>
-      <span>Маршрут</span>
+      <span>Атлас</span>
     </button>
     <button class="tab" data-go="sc-profile">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.2-3.7 4-5.5 7.5-5.5s6.3 1.8 7.5 5.5"/></svg>
@@ -264,10 +261,12 @@
   <div class="toast" id="toast"></div>
 </div>
 
-<script src="js/sound.js?v=1788911026"></script>
-<script src="js/lessons.js?v=1788911026"></script>
-<script src="js/vosk/vosk.js?v=1788911026"></script>
-<script src="js/stt.js?v=1788911026"></script>
-<script src="js/app.js?v=1788911026"></script>
+<script src="js/sound.js?v=1790426200"></script>
+<script src="js/lessons.js?v=1790426200"></script>
+<script src="js/vosk/vosk.js?v=1790426200"></script>
+<script src="js/stt.js?v=1790426200"></script>
+<script src="js/atlas.js?v=1790426200"></script>
+<script src="js/app.js?v=1790426200"></script>
+
 </body>
 </html>

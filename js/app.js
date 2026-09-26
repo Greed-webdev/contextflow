@@ -49,7 +49,15 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const dunnoIco = '<span class="dunno-ico">?</span>';
 const mkDunno = () => { const b = el('button','btn dunno wide'); b.innerHTML = dunnoIco + '<span>Не знаю</span>'; return b; };
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
-const flagUrl = c => `assets/flags/${c}.png`;
+const FLAG_SVG = {
+  gb: '<rect width="30" height="20" fill="#012169"/><path d="M0 0L30 20M30 0L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0L30 20M30 0L0 20" stroke="#C8102E" stroke-width="2"/><path d="M15 0V20M0 10H30" stroke="#fff" stroke-width="6"/><path d="M15 0V20M0 10H30" stroke="#C8102E" stroke-width="3.4"/>',
+  es: '<rect width="30" height="20" fill="#C60B1E"/><rect y="5" width="30" height="10" fill="#FFC400"/>',
+  de: '<rect width="30" height="20" fill="#FFCE00"/><rect width="30" height="13.4" fill="#DD0000"/><rect width="30" height="6.7" fill="#000"/>',
+  fr: '<rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#0055A4"/><rect x="20" width="10" height="20" fill="#EF4135"/>',
+  it: '<rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#009246"/><rect x="20" width="10" height="20" fill="#CE2B37"/>',
+  pl: '<rect width="30" height="20" fill="#DC143C"/><rect width="30" height="10" fill="#fff"/>'
+};
+const flagSvg = c => `<svg class="flag" viewBox="0 0 30 20" style="width:34px;height:23px;border-radius:5px;flex:none" aria-hidden="true">${FLAG_SVG[c] || ''}</svg>`;
 const EMOJI = 'assets/emoji';
 const APP_VERSION = 'v34';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
@@ -58,6 +66,25 @@ const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 let navStack = [];
 let current = 'sc-welcome';
 const TABBED = ['sc-hub','sc-map','sc-profile'];
+
+/* искра отклика: тёплые искорки из-под пальца (декор, не функционал) */
+function sparksAt(cx, cy) {
+  if (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  let w = document.querySelector('.spk-wrap');
+  if (!w) { w = document.createElement('div'); w.className = 'spk-wrap'; document.body.appendChild(w); }
+  for (let k = 0; k < 6; k++) {
+    const s = document.createElement('span'); s.className = 'spk';
+    const an = Math.random() * Math.PI * 2, d = 14 + Math.random() * 26;
+    s.style.left = cx + 'px'; s.style.top = cy + 'px';
+    s.style.setProperty('--dx', (Math.cos(an) * d).toFixed(1) + 'px');
+    s.style.setProperty('--dy', (Math.sin(an) * d).toFixed(1) + 'px');
+    s.style.setProperty('--rot', Math.round(Math.random() * 90) + 'deg');
+    s.innerHTML = '<i></i>';
+    w.appendChild(s);
+    requestAnimationFrame(() => s.classList.add('go'));
+    s.addEventListener('animationend', () => s.remove());
+  }
+}
 
 function go(id, opts={}){
   if (id === current) return;
@@ -73,6 +100,7 @@ function go(id, opts={}){
   if (id === 'sc-hub') Hub.render();
   if (id === 'sc-lang') Lang.render();
   if (id === 'sc-profile') Profile.render();
+  if (id === 'sc-map' && typeof Atlas !== 'undefined') Atlas.open();
 }
 function back(){
   const prev = navStack.pop();
@@ -127,15 +155,16 @@ const HelloScreen = {
     const el = $('ios-hello'); if (!el) return;
     this.stop();
     this.i = 0;
+    if (!(window.CSS && CSS.registerProperty)) el.classList.add('noprop');
     this.paint(el);
-    this.timer = setInterval(()=>{
-      el.classList.add('out');
-      setTimeout(()=>{
-        this.i = (this.i+1) % this.words.length;
-        el.classList.remove('out');
-        this.paint(el);
-      }, 560);
-    }, 2900);
+    this.first = setTimeout(()=>this.next(el), 1300);
+    // страховка: UI велкома не должен зависеть от анимаций
+    this.safe = setTimeout(()=>{
+      document.querySelectorAll('.ios-start,.ios-sub,.ios-bottom .btn.quiet').forEach(e=>{
+        e.style.animation = 'none'; e.style.opacity = '1';
+      });
+    }, 1800);
+    this.timer = setInterval(()=>this.next(el), 2600);
   },
   paint(el){
     const w = this.words[this.i];
@@ -144,17 +173,35 @@ const HelloScreen = {
     // перезапуск анимации появления
     el.style.animation='none'; void el.offsetWidth; el.style.animation='';
   },
-  stop(){ if (this.timer){ clearInterval(this.timer); this.timer=null; } }
+  next(el){
+    el.classList.add('out');
+    setTimeout(()=>{
+      this.i = (this.i+1) % this.words.length;
+      el.classList.remove('out');
+      this.paint(el);
+    }, 560);
+  },
+  stop(){
+    if (this.timer){ clearInterval(this.timer); this.timer=null; }
+    if (this.safe){ clearTimeout(this.safe); this.safe=null; }
+    if (this.first){ clearTimeout(this.first); this.first=null; }
+  }
 };
 
 /* ---------------- онбординг ---------------- */
 const Onb = {
   start(){
-    S.seenIntro = true; save();
     Sound.boot(); Sound.fx('unlock');
-    navStack = [];
-    go(S.lang ? 'sc-hub' : 'sc-lang', {noHistory:true});
-    if (!S.lang) navStack = ["sc-hub"];
+    const w = $('sc-welcome');
+    const done = ()=>{
+      S.seenIntro = true; save();
+      navStack = [];
+      go(S.lang ? 'sc-hub' : 'sc-lang', {noHistory:true});
+      if (!S.lang) navStack = ["sc-hub"];
+      if (w) w.classList.remove('bye');
+    };
+    if (w && !w.classList.contains('bye')) { w.classList.add('bye'); setTimeout(done, 400); }
+    else done();
   }
 };
 
@@ -214,32 +261,137 @@ const Hub = {
     const st = S.stage || 1;
     const stStat = Progress.stageStat(st);
     $('hub-h1').textContent = stStat.done ? 'Продолжай' : 'В путь';
-    $('hub-caption').textContent = stStat.done ? 'Ты уже прошёл часть этапа — иди дальше.' : 'Курс идёт этапами. Сейчас — первый: дальше пойдёт само.';
+    $('hub-caption').textContent = stStat.done ? 'Продолжай с того места, где остановился.' : 'Открой атлас — там разговоры.';
     $('hub-lang-btn').textContent = 'Сменить язык';
 
-    const tile = el('div','lang-tile');
+    const tile = el('div','hub-tile-atlas');
     tile.innerHTML = `
-      <img src="${(STAGES[st]||{}).art || MAP_OVERVIEW}" alt="">
-      <div class="veil"></div>
-      <div class="inner">
-        <div class="tile-badge"><img class="flag" src="${flagUrl(L.flag)}"> ${L.native} · ${STAGES[st].cefr}</div>
-        <div>
-          <span class="kicker amber">${stStat.done ? 'Продолжить' : 'Начать'}</span>
-          <h2 class="mid" style="margin-top:4px">${STAGES[st].name}</h2>
-          <p class="small" style="margin-top:4px">${STAGES[st].sub}</p>
-          <div class="tile-progress">
-            <div class="bar" style="flex:1"><i style="width:${total?Math.round(done/total*100):0}%"></i></div>
-            <span class="small">${done}/${total}</span>
-          </div>
-        </div>
+      <canvas class="stars"></canvas>
+      <div class="coords">cf · ночной атлас · ${done}/${total}</div>
+      <div>
+        <h2>Ночной атлас</h2>
+        <p>${stStat.done ? 'маршрут продолжается — коснись и продолжим' : 'выбери созвездие и начни с первой ситуации'}</p>
       </div>`;
-    tile.onclick = ()=>{
-      Sound.fx('whoosh');
-      if (stStat.done > 0){ Trail.open(); return; }
-      S.stage = st; save();
-      Levels.open(st);          // новичок сразу к урокам, минуя карту
-    };
+    tile.onclick = (e)=>{ Sound.fx('whoosh'); sparksAt(e.clientX, e.clientY); Atlas.open(); };
     slot.appendChild(tile);
+
+    // созвездия-превью: плотность + навигация
+    const secs = el('div','hub-secs');
+    secs.innerHTML = Atlas.SECTIONS.map((sec,i)=>
+      `<button class="hub-sec" data-i="${i}"><i style="background:${sec.color}"></i><span>${sec.name}</span><b>${sec.nodes.filter(n=>!n[3]).length}</b></button>`).join('');
+    slot.appendChild(secs);
+    secs.querySelectorAll('.hub-sec').forEach(b=>{
+      b.onclick = (e)=>{ Sound.fx('whoosh'); sparksAt(e.clientX, e.clientY); Atlas.open(); Atlas.pick(+b.dataset.i); };
+    });
+
+
+    const RM0 = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const drawTile = (t) => {
+      const c = tile.querySelector('canvas'); if (!c) return;
+      const r = tile.getBoundingClientRect(); if (!r.width) return;
+      if (c.width !== Math.round(r.width * 2)) { c.width = Math.round(r.width * 2); c.height = Math.round(r.height * 2); }
+      const x = c.getContext('2d');
+      x.setTransform(2, 0, 0, 2, 0, 0);
+      x.clearRect(0, 0, r.width, r.height);
+      for (let s2 = 0; s2 < 40; s2++) {
+        const al = RM0 ? .14 : .07 + .12 * Math.abs(Math.sin(t / (600 + (s2 % 7) * 150) + s2 * 1.7));
+        x.fillStyle = 'rgba(255,255,255,' + al.toFixed(3) + ')';
+        x.fillRect((s2 * 61.7) % r.width, (s2 * 37.3) % r.height, 1.4, 1.4);
+      }
+      x.strokeStyle = 'rgba(255,255,255,.10)'; x.lineWidth = 1; x.setLineDash([3, 4]);
+      x.beginPath();
+      x.moveTo(r.width * .18, r.height * .30); x.lineTo(r.width * .42, r.height * .22);
+      x.lineTo(r.width * .63, r.height * .38); x.lineTo(r.width * .84, r.height * .28);
+      x.stroke(); x.setLineDash([]);
+      x.fillStyle = '#7fa98a';
+      [[.18,.30],[.42,.22],[.63,.38],[.84,.28]].forEach((p, i2) => {
+        const rr = 2.4 + (RM0 ? 0 : .5 * Math.sin(t / 800 + i2 * 1.9));
+        x.beginPath(); x.arc(p[0] * r.width, p[1] * r.height, rr, 0, 7); x.fill();
+      });
+    };
+    if (this.tileRaf) cancelAnimationFrame(this.tileRaf);
+    const tileLoop = (t) => {
+      if (!$('sc-hub').classList.contains('on')) { this.tileRaf = 0; return; }
+      drawTile(t);
+      this.tileRaf = requestAnimationFrame(tileLoop);
+    };
+    this.tileRaf = requestAnimationFrame(tileLoop);
+
+    /* живое небо хаба: параллакс за пальцем + «своя звезда» на тап */
+    let sky = $('hub-sky');
+    if (!sky) {
+      sky = document.createElement('canvas'); sky.id = 'hub-sky';
+      $('sc-hub').insertBefore(sky, $('sc-hub').firstChild);
+    }
+    if (!this.skyBound) {
+      this.skyBound = true;
+      this.skyPar = { x: 0, y: 0, tx: 0, ty: 0 };
+      this.skyGuest = [];
+      const hubEl = $('sc-hub');
+      hubEl.addEventListener('pointermove', (e) => {
+        const r = hubEl.getBoundingClientRect();
+        this.skyPar.tx = ((e.clientX - r.left) / r.width - .5) * 2;
+        this.skyPar.ty = ((e.clientY - r.top) / r.height - .5) * 2;
+      });
+      hubEl.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('button, a, .hub-tile-atlas, .avatar')) return;
+        const r = hubEl.getBoundingClientRect();
+        this.skyGuest.push({ x: e.clientX - r.left, y: e.clientY - r.top, born: performance.now() });
+        if (this.skyGuest.length > 24) this.skyGuest.shift();
+        if (typeof sparksAt === 'function') sparksAt(e.clientX, e.clientY);
+      });
+    }
+    if (this.skyRaf) cancelAnimationFrame(this.skyRaf);
+    const skyLoop = (t) => {
+      if (!$('sc-hub').classList.contains('on')) { this.skyRaf = 0; return; }
+      const r = sky.parentElement.getBoundingClientRect();
+      if (r.width) {
+        if (sky.width !== Math.round(r.width * 2)) { sky.width = Math.round(r.width * 2); sky.height = Math.round(r.height * 2); }
+        const x = sky.getContext('2d');
+        x.setTransform(2, 0, 0, 2, 0, 0);
+        x.clearRect(0, 0, r.width, r.height);
+        const P = this.skyPar;
+        P.x += (P.tx - P.x) * .06; P.y += (P.ty - P.y) * .06;
+        const layers = [[46, .06, 3.5], [26, .12, 5], [12, .2, 7.5]];
+        for (let li = 0; li < layers.length; li++) {
+          const n = layers[li][0], depth = layers[li][1], amp = layers[li][2];
+          const ox = RM0 ? 0 : P.x * amp, oy = RM0 ? 0 : P.y * amp;
+          for (let s2 = 0; s2 < n; s2++) {
+            const al = RM0 ? .16 : .07 + .17 * Math.abs(Math.sin(t / (700 + (s2 % 6) * 160 + li * 90) + s2 * 2.1 + li));
+            x.fillStyle = 'rgba(255,255,255,' + al.toFixed(3) + ')';
+            const gx = ((s2 * 137.51 + li * 61) % r.width) + ox;
+            const gy = ((s2 * 89.7 + li * 143) % r.height) + oy;
+            x.fillRect(gx, gy, 1 + depth * 6, 1 + depth * 6);
+          }
+        }
+        const now = performance.now();
+        for (const g of this.skyGuest) {
+          const age = (now - g.born) / 1000;
+          const flash = (!RM0 && age < 1.6) ? Math.sin(Math.min(1, age / 1.6) * Math.PI) : 0;
+          const tw = RM0 ? .55 : .38 + .3 * Math.abs(Math.sin(now / 620 + g.x));
+          if (flash > .03) {
+            const halo = x.createRadialGradient(g.x, g.y, 1, g.x, g.y, 20 + 10 * flash);
+            halo.addColorStop(0, 'rgba(245,230,200,' + (.30 * flash).toFixed(3) + ')');
+            halo.addColorStop(1, 'rgba(245,230,200,0)');
+            x.fillStyle = halo;
+            x.beginPath(); x.arc(g.x, g.y, 20 + 10 * flash, 0, 7); x.fill();
+          }
+          x.fillStyle = 'rgba(245,230,200,' + Math.min(1, tw + .6 * flash).toFixed(3) + ')';
+          x.beginPath(); x.arc(g.x, g.y, 1.8 + 2.4 * flash, 0, 7); x.fill();
+          if (flash > .05) {
+            x.strokeStyle = 'rgba(245,230,200,' + (.65 * flash).toFixed(3) + ')';
+            x.lineWidth = 1.2;
+            const L = 7 + 9 * flash;
+            x.beginPath();
+            x.moveTo(g.x - L, g.y); x.lineTo(g.x + L, g.y);
+            x.moveTo(g.x, g.y - L); x.lineTo(g.x, g.y + L);
+            x.stroke();
+          }
+        }
+      }
+      this.skyRaf = requestAnimationFrame(skyLoop);
+    };
+    this.skyRaf = requestAnimationFrame(skyLoop);
 
     // карточка «Разбор ошибок» — только если есть что разбирать
     const n = Miss.count();
@@ -338,7 +490,7 @@ const Lang = {
     LANGUAGES.forEach(L=>{
       const row = el('div','lang-row' + (L.code===S.lang?' cur':''));
       row.innerHTML = `
-        <img class="flag" style="width:34px;height:23px;border-radius:5px" src="${flagUrl(L.flag)}">
+        ${flagSvg(L.flag)}
         <div style="flex:1">
           <h3 class="sm">${L.name}</h3>
           <p class="small">${L.native} · ${L.place}</p>
@@ -389,73 +541,14 @@ const Progress = {
 
 /* ---------------- карта горы (поведение перенесено как есть) ---------------- */
 const MAP_OVERVIEW = 'assets/map/mountain-map.png';
+/* Гора ушла в отставку 22.09: главный экран — ночной атлас (js/atlas.js).
+   Trail оставлен мостом, чтобы редкие внешние вызовы не падали. */
 const Trail = {
-  stage:0,
-  open(){ this.overview(true); go('sc-map'); this.header(); },
-  header(){
-    const L = lang();
-    $('map-lang').innerHTML = L ? `<img class="flag" src="${flagUrl(L.flag)}"> ${L.native}` : '—';
-  },
-  whoosh(src, after){
-    const img = $('map-photo');
-    Sound.fx('whoosh');
-    img.classList.remove('whoosh-in'); img.classList.add('whoosh-out');
-    setTimeout(()=>{
-      img.src = src;
-      const bl = $('map-blur'); if (bl) bl.src = src;
-      img.classList.remove('whoosh-out'); img.classList.add('whoosh-in');
-      requestAnimationFrame(()=>requestAnimationFrame(()=>img.classList.remove('whoosh-in')));
-      if (after) after();
-    }, 280);
-  },
-  zoom(n){
-    if (this.stage === n) { this.enterStage(); return; }
-    this.stage = n;
-    $('hotspots').classList.add('hidden');
-    $('map-frame').classList.add('zoomed');
-    $('sc-back').classList.remove('hidden');
-    this.card(n);
-    if (S.sound.amb) Sound.ambience(STAGES[n].amb);
-    this.whoosh((STAGES[n]||{}).art || MAP_OVERVIEW);
-    S.stage = n; save();
-  },
-  overview(silent){
-    this.stage = 0;
-    $('hotspots').classList.remove('hidden');
-    $('map-frame').classList.remove('zoomed');
-    $('sc-back').classList.add('hidden');
-    this.card(0);
-    if (silent){ $('map-photo').src = MAP_OVERVIEW; const bl=$('map-blur'); if(bl) bl.src=MAP_OVERVIEW; }
-    else this.whoosh(MAP_OVERVIEW);
-    if (S.sound.amb) Sound.ambience('ridge');
-  },
-  card(n){
-    if (n === 0){
-      $('sc-tag').textContent = 'Обзор маршрута';
-      $('sc-status').textContent = 'Карта';
-      $('sc-title').textContent = 'Выбери этап на горе';
-      $('sc-desc').textContent = 'Нажми на табличку Stage 1–5. Каждый этап — свой уровень: A1, A2, B1, B2, C1.';
-      $('sc-prog-row').style.display = 'none';
-      $('sc-go').textContent = 'Продолжить с этапа ' + (S.stage||1);
-      return;
-    }
-    const st = STAGES[n], p = Progress.stageStat(n);
-    $('sc-tag').textContent = `${st.cefr} · Этап ${n}`;
-    $('sc-status').textContent = p.done === p.total && p.total ? 'Пройден' : `${p.done}/${p.total}`;
-    $('sc-title').textContent = st.name;
-    $('sc-desc').textContent = st.desc;
-    $('sc-prog-row').style.display = 'flex';
-    $('sc-prog').style.width = (p.total? p.done/p.total*100:0) + '%';
-    $('sc-prog-txt').textContent = `${p.done} / ${p.total}`;
-    $('sc-go').textContent = p.done ? 'Продолжить этап' : 'Начать этап';
-  },
-  exit(){ Sound.fx('back'); go('sc-hub'); },
-  enterStage(){
-    const n = this.stage || S.stage || 1;
-    this.stage = n; S.stage = n; save();
-    Sound.fx('step');
-    Levels.open(n);
-  }
+  open(){ Atlas.open(); },
+  exit(){ Atlas.exit(); },
+  zoom(){ Atlas.open(); },
+  overview(){},
+  enterStage(){ Atlas.open(); }
 };
 
 /* ---------------- уровни этапа ---------------- */
@@ -963,7 +1056,8 @@ const NOT_NAME=new Set(['banana','pizza','apple','orange','potato','tomato','bur
 'cat','dog','fish','bird','horse','mouse','table','chair','door','window','book','phone','car','house','tree',
 'lorem','ipsum','dolor','test','testing','asdf','asdfgh','qwerty','xyz','abc','blah','hmm','uh','um','eh',
 'why','who','when','where','which','because','maybe','nothing','something','anything','everything','nobody',
-'fuck','fucking','shit','damn','bitch','ass','crap','hell','idiot','stupid']);
+'fuck','fucking','shit','damn','bitch','ass','crap','hell','idiot','stupid',
+'null','undefined','script','foo','bar','baz','zzz']);
 const looksLikeName = x =>
   x.length>=2 && x.length<=15 &&
   /^[a-z']+$/.test(x) &&
@@ -1034,10 +1128,10 @@ const Lesson = {
   hearts(animateLoss){
     const h=$('hearts'); h.innerHTML='';
     for(let i=0;i<5;i++){
-      // Apple-эмодзи — тот же набор, что и ракета в графитовой версии
-      const d=document.createElement('img');
-      d.src=`${EMOJI}/2764-fe0f.png`;
-      d.alt='';
+      // инлайн-SVG сердце в span: классы живут на span (у svg className read-only)
+      const d=document.createElement('span');
+      d.style.display='block';
+      d.innerHTML='<svg viewBox="0 0 24 24" style="width:100%;height:100%;display:block"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#e0564f"/></svg>';
       const gone = i>=this.lives;
       d.className='heart'+(gone?' gone':'');
       if (gone && animateLoss && i===this.lives) d.classList.add('losing');
@@ -1318,7 +1412,7 @@ const Lesson = {
     if (who === 'them'){
       const line = el('div','bub-line');
       line.appendChild(b);
-      const rep = el('button','bub-say','🔊');
+      const rep = el('button','bub-say', `<img src="${EMOJI}/1f50a.png" alt="" width="16" height="16">`);
       rep.type = 'button';
       rep.setAttribute('aria-label','Слушать реплику');
       rep.onclick = ()=>{ Sound.fx('tap'); this.say(text, {now:true}); };
@@ -2229,7 +2323,7 @@ const Profile = {
     $('avatar-big').textContent = L ? L.native.slice(0,2).toUpperCase() : '—';
     $('pf-name').textContent = 'Путник';
     $('pf-lang').textContent = L ? `${L.name} · этап ${S.stage} (${STAGES[S.stage].cefr})` : 'Язык не выбран';
-    $('pf-lang-2').innerHTML = L ? `<img class="flag" src="${flagUrl(L.flag)}"> ${L.native}` : '—';
+    $('pf-lang-2').innerHTML = L ? `${flagSvg(L.flag)} ${L.native}` : '—';
     $('pf-levels').textContent = S.stats.levels;
     $('pf-words').textContent = S.stats.words;
     $('pf-acc').textContent = S.stats.total ? Math.round(S.stats.right/S.stats.total*100)+'%' : '—';

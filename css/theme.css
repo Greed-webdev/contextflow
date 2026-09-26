@@ -33,8 +33,9 @@
   --shadow-2:0 24px 60px rgba(0,0,0,.55);
 
   --font:"Inter","Inter Variable",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
-  --font-serif:"New York","Iowan Old Style",Georgia,"Times New Roman",serif;
+  --font-serif:"Lora","New York",Georgia,"Times New Roman",serif;
   --ease:cubic-bezier(.16,1,.3,1);
+  --ease-drawer:cubic-bezier(.32,.72,0,1);
   --spring:cubic-bezier(.34,1.56,.64,1);
   /* Apple-эмодзи, тот же набор что и ракета в графитовой версии */
   --emoji-cdn:assets/emoji;
@@ -236,3 +237,9 @@ p.small{font-size:12.5px;line-height:1.45;color:var(--text-3)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 ::-webkit-scrollbar{width:0;height:0}
+
+/* отклик нижней навигации (emilkowalski-motion: press 100–160ms ease-out) */
+.tab{transition:color .16s var(--ease),transform .12s var(--ease)}
+.tab:active{transform:scale(.92)}
+h2.mid{font-family:var(--font-serif);letter-spacing:0}
+@media (prefers-reduced-motion: reduce){.tab{transition:none}}

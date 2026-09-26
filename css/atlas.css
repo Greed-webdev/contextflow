@@ -1,0 +1,208 @@
+/* ==========================================================
+   ContextFlow · atlas.css — ЗОНА: ночной атлас (главный экран v4)
+   Характер вместо «ИИшки»: сериф, зерно, рваный пунктир, стикер.
+   ========================================================== */
+
+/* плёночное зерно поверх корпуса телефона */
+.phone::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:60;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* серифные заголовки — во всём приложении, ломает шаблонность */
+#hub-h1, .atlas-h1, .hub-empty h3, .hub-tile-atlas h2{
+  font-family:'Lora',Georgia,serif;font-weight:600;letter-spacing:.1px;
+}
+#hub-caption, .atlas-sub, .atlas-hint, .atlas-nm small{
+  font-family:'Raleway',var(--font);font-style:italic;
+}
+
+/* ---------- хаб: плитка-тизер вместо горного арта ---------- */
+.hub-tile-atlas{
+  position:relative;border-radius:var(--r-l);overflow:hidden;min-height:150px;
+  background:
+    radial-gradient(90% 80% at 75% 15%, rgba(135,160,181,.10), transparent 60%),
+    radial-gradient(70% 60% at 20% 90%, rgba(127,169,138,.08), transparent 60%),
+    var(--bg-0);
+  border:1px solid var(--line-soft);
+  padding:16px;display:flex;flex-direction:column;justify-content:space-between;
+}
+.hub-tile-atlas .stars{position:absolute;inset:0;pointer-events:none}
+.hub-tile-atlas h2{font-family:var(--font-serif);font-size:19px;font-weight:600}
+.hub-tile-atlas p{font-style:italic;color:var(--text-2);font-size:12px;margin-top:4px}
+.hub-tile-atlas .coords{font-size:9.5px;letter-spacing:.16em;color:var(--text-3);text-transform:uppercase}
+
+/* ---------- экран атласа ---------- */
+.atlas-head{display:flex;align-items:center;gap:10px;padding:14px 14px 8px}
+.atlas-titles{flex:1}
+.atlas-h1{font-size:21px}
+.atlas-sub{font-size:12px;color:var(--text-2);font-style:italic;margin-top:2px}
+
+.atlas-wrap{
+  position:relative;flex:1;margin:0 12px;border-radius:22px;overflow:hidden;
+  background:
+    radial-gradient(90% 70% at 70% 20%, rgba(135,160,181,.07), transparent 60%),
+    radial-gradient(80% 60% at 20% 85%, rgba(127,169,138,.06), transparent 60%),
+    var(--bg-0);
+  border:1px solid var(--line-soft);
+  min-height:280px;
+}
+/* миллиметровка старой карты */
+.atlas-wrap::before{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size:44px 44px;}
+#atlas-cv{position:absolute;inset:0;width:100%;height:100%}
+.atlas-tag{position:absolute;font-size:9px;letter-spacing:.16em;color:var(--text-3);
+  text-transform:uppercase;pointer-events:none}
+.atlas-tag.tl{top:10px;left:14px}
+.atlas-tag.br{bottom:10px;right:14px}
+
+/* прошитые ярлыки-созвездия */
+.atlas-legend{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 0}
+.atlas-cur{font-family:'Lora',Georgia,serif;font-size:16px;font-weight:600;letter-spacing:.02em;transition:color .3s}
+.atlas-dots{display:flex;gap:4px}
+.atlas-dot{width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+  background:transparent;border:none;cursor:pointer;padding:0}
+.atlas-dot i{width:8px;height:8px;transform:rotate(45deg);display:block;transition:transform .25s}
+.atlas-dot.on i{transform:rotate(45deg) scale(1.4)}
+.atlas-dot:focus-visible{outline:2px solid #D4A574;outline-offset:2px;border-radius:6px}
+.atlas-hint, .atlas-nm small{
+  font-family:'Raleway',var(--font);font-style:italic;
+}
+
+/* ---------- хаб: плитка-тизер вместо горного арта ---------- */
+.hub-tile-atlas{
+  position:relative;border-radius:var(--r-l);overflow:hidden;min-height:150px;
+  background:
+    radial-gradient(90% 80% at 75% 15%, rgba(135,160,181,.10), transparent 60%),
+    radial-gradient(70% 60% at 20% 90%, rgba(127,169,138,.08), transparent 60%),
+    var(--bg-0);
+  border:1px solid var(--line-soft);
+  padding:16px;display:flex;flex-direction:column;justify-content:space-between;
+}
+.hub-tile-atlas .stars{position:absolute;inset:0;pointer-events:none}
+.hub-tile-atlas h2{font-family:var(--font-serif);font-size:19px;font-weight:600}
+.hub-tile-atlas p{font-style:italic;color:var(--text-2);font-size:12px;margin-top:4px}
+.hub-tile-atlas .coords{font-size:9.5px;letter-spacing:.16em;color:var(--text-3);text-transform:uppercase}
+
+/* ---------- экран атласа ---------- */
+.atlas-head{display:flex;align-items:center;gap:10px;padding:14px 14px 8px}
+.atlas-titles{flex:1}
+.atlas-h1{font-size:21px}
+.atlas-sub{font-size:12px;color:var(--text-2);font-style:italic;margin-top:2px}
+
+.atlas-wrap{
+  position:relative;flex:1;margin:0 12px;border-radius:22px;overflow:hidden;
+  background:
+    radial-gradient(90% 70% at 70% 20%, rgba(135,160,181,.07), transparent 60%),
+    radial-gradient(80% 60% at 20% 85%, rgba(127,169,138,.06), transparent 60%),
+    var(--bg-0);
+  border:1px solid var(--line-soft);
+  min-height:280px;
+}
+/* миллиметровка старой карты */
+.atlas-wrap::before{content:"";position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size:44px 44px;}
+#atlas-cv{position:absolute;inset:0;width:100%;height:100%}
+.atlas-tag{position:absolute;font-size:9px;letter-spacing:.16em;color:var(--text-3);
+  text-transform:uppercase;pointer-events:none}
+.atlas-tag.tl{top:10px;left:14px}
+.atlas-tag.br{bottom:10px;right:14px}
+
+/* прошитые ярлыки-созвездия */
+.atlas-pills{display:flex;gap:8px;padding:10px 14px 2px;overflow-x:auto;scrollbar-width:none}
+.atlas-pills::-webkit-scrollbar{display:none}
+.atlas-pill{
+  flex:none;display:flex;align-items:center;gap:8px;border-radius:6px;cursor:pointer;
+  min-height:44px;padding:8px 14px;font-size:12.5px;font-weight:600;font-family:'Raleway',var(--font);letter-spacing:.03em;
+  background:transparent;border:1px dashed rgba(255,255,255,.22);color:var(--text-2);
+  transition:border-color .2s, background .2s, color .2s;
+}
+.atlas-pill:focus-visible{outline:2px solid #D4A574;outline-offset:2px}
+.atlas-pill svg{flex:none}
+.atlas-pill.on{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.28);color:var(--text)}
+.atlas-pill .d{width:6px;height:6px;transform:rotate(45deg)}
+
+.atlas-hint{padding:6px 18px 0;font-size:11px;color:var(--text-3);font-style:italic}
+
+.atlas-panel{
+  margin:8px 14px 14px;background:var(--bg-2);border:1px solid var(--line);
+  border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:12px;
+  visibility:hidden;
+}
+.atlas-nm{flex:1;font-size:13.5px;font-weight:600}
+.atlas-nm small{display:block;font-size:11px;color:var(--text-3);font-weight:500;margin-top:2px;font-style:italic}
+.atlas-go{
+  border:none;font-family:var(--font-serif);font-weight:700;font-size:13px;border-radius:999px;
+  padding:9px 16px;cursor:pointer;background:#D4A574;color:#171310;
+}
+.atlas-go.soonb{background:transparent;border:1px dashed rgba(245,230,200,.55);color:#F5E6C8;cursor:default}
+
+@media (prefers-reduced-motion: reduce){
+  .atlas-pill, .atlas-go{transition:none}
+}
+
+.chain{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.chain-b{font-family:'Raleway',var(--font);font-size:11px;font-weight:600;letter-spacing:.03em;
+  color:var(--text-2);background:transparent;border:1px dashed rgba(255,255,255,.25);
+  border-radius:999px;padding:5px 11px;cursor:pointer;min-height:28px}
+.chain-b.on{border:1px solid #D4A574;color:#D4A574}
+.chain-b:focus-visible{outline:2px solid #D4A574;outline-offset:2px}
+
+/* line-mask reveal имени созвездия (приём из витрины 21st.dev) */
+.atlas-cur.rev{animation:curIn .55s cubic-bezier(.3,.7,.3,1)}
+@keyframes curIn{from{clip-path:inset(-6px 100% -6px 0)}to{clip-path:inset(-6px 0 -6px 0)}}
+@media (prefers-reduced-motion: reduce){.atlas-cur.rev{animation:none}}
+
+/* ---------- профиль: экспедиционный лист в характере атласа ---------- */
+#sc-profile{
+  background-image:
+    linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px);
+  background-size:44px 44px;
+}
+#sc-profile .avatar{background:transparent;border:1px dashed rgba(255,255,255,.35);position:relative}
+#sc-profile .avatar::after{content:"";position:absolute;right:-4px;top:-4px;width:9px;height:9px;
+  background:#D4A574;transform:rotate(45deg)}
+#sc-profile #pf-name{font-family:'Lora',Georgia,serif;font-size:17px}
+#sc-profile #pf-lang{font-style:italic}
+#sc-profile .stat{background:transparent;border:1px dashed rgba(255,255,255,.22);border-radius:12px;position:relative}
+#sc-profile .stat b{font-family:'Lora',Georgia,serif;font-weight:600;letter-spacing:0}
+#sc-profile .stat::after{content:"";position:absolute;top:11px;right:11px;width:7px;height:7px;transform:rotate(45deg);opacity:.75}
+#sc-profile .stat:nth-child(1)::after{background:#E8B4B8}
+#sc-profile .stat:nth-child(2)::after{background:#4A7B7C}
+#sc-profile .stat:nth-child(3)::after{background:#D4A574}
+#sc-profile .stat:nth-child(4)::after{background:#F5E6C8}
+#sc-profile .card{background:rgba(13,16,19,.45);border:1px dashed rgba(255,255,255,.22);border-radius:14px;padding:2px 16px}
+#sc-profile .set-row{border-bottom:1px dashed rgba(255,255,255,.14)}
+#sc-profile .set-row h3{font-family:'Lora',Georgia,serif}
+#sc-profile .set-row .small{font-style:italic}
+#sc-profile .switch{background:transparent;border:1px dashed rgba(255,255,255,.32)}
+#sc-profile .switch.on{background:rgba(212,165,116,.22);border-color:#D4A574}
+#sc-profile .switch i{border-radius:5px;transform:rotate(45deg) scale(.72);background:var(--text-2)}
+#sc-profile .switch.on i{transform:translateX(18px) rotate(45deg) scale(.72);background:#D4A574}
+#sc-profile .btn.ghost{border-style:dashed}
+#sc-profile .small[style*="text-align:center"]{font-style:italic}
+@media (prefers-reduced-motion: reduce){#sc-profile *{transition:none}}
+
+/* дыхание активного ромба */
+.atlas-dot.on i{animation:dotBreath 2.8s ease-in-out infinite}
+@keyframes dotBreath{0%,100%{transform:rotate(45deg) scale(1.4)}50%{transform:rotate(45deg) scale(1.62)}}
+@media (prefers-reduced-motion: reduce){.atlas-dot.on i{animation:none}}
+
+/* появление панели звезды: 180ms ease-out, вход сдвигом (emilkowalski-motion) */
+.atlas-panel{opacity:0;transform:translateY(8px);
+  transition:opacity .18s var(--ease),transform .18s var(--ease),visibility 0s linear .18s}
+.atlas-panel.show{opacity:1;transform:none;visibility:visible;
+  transition:opacity .18s var(--ease),transform .18s var(--ease)}
+.chain-b,.atlas-go{transition:transform .12s var(--ease)}
+.chain-b:active,.atlas-go:active{transform:scale(.95)}
+@media (prefers-reduced-motion: reduce){
+  .atlas-panel,.atlas-panel.show{transition:none}
+  .chain-b,.atlas-go{transition:none}
+}
