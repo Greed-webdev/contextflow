@@ -10,7 +10,7 @@ const DEFAULT = {
   stage:1,             // последний открытый этап
   progress:{},         // "en:1:0" -> {done:true, acc:0.83}
   stats:{levels:0, words:0, right:0, total:0},
-  allOpen:true,        // режим проверки: все уровни открыты (выключается в профиле)
+  allOpen:false,
   sound:{amb:true, fx:true, tts:true}
 };
 let S = load();
@@ -31,7 +31,8 @@ function load(){
   if (!o.sound || typeof o.sound !== 'object' || Array.isArray(o.sound)) o.sound = {};
   o.sound = Object.assign({}, DEFAULT.sound, o.sound);
   o.seenIntro = !!o.seenIntro;
-  o.allOpen = !!o.allOpen;
+  o.allOpen = false;
+  if (o.lang && o.lang !== 'en') o.lang = 'en';
   return o;
 }
 let _storageOK = true;
@@ -49,6 +50,38 @@ const el = (tag, cls, html) => { const n=document.createElement(tag); if(cls)n.c
 const dunnoIco = '<span class="dunno-ico">?</span>';
 const mkDunno = () => { const b = el('button','btn dunno wide'); b.innerHTML = dunnoIco + '<span>Не знаю</span>'; return b; };
 const lang = () => LANGUAGES.find(l => l.code === S.lang) || null;
+const LIVE_LANG = 'en';
+const langOpen = (code) => (code || S.lang) === LIVE_LANG;
+const isLinearDialog = (lv) => !!(lv && lv.type === 'dialog' && lv.variant !== 'flow');
+const isReviewLesson = (lv) => !!(lv && /^(Контроль:|Повтори фразы:|Проверка A1)/.test(lv.title || ''));
+/* Тема открыта только 3/3: слова + предложения + ветвящийся диалог.
+   Блок вроде «Животные» (слова и фразы, а ветки нет) — тёмный, пока не соберём. */
+function blockOpenMap(st){
+  const arr = getCourse(S.lang, st) || [];
+  const open = {};
+  let i = 0;
+  while (i < arr.length){
+    if (isReviewLesson(arr[i])) { open[i] = false; i++; continue; }
+    const ids = [];
+    while (i < arr.length && (arr[i].type==='words' || arr[i].type==='build') && !isReviewLesson(arr[i])) ids.push(i++);
+    const dIds = [];
+    while (i < arr.length && arr[i].type==='dialog') dIds.push(i++);
+    const all = ids.concat(dIds);
+    if (!all.length) { i++; continue; }
+    const hasW = ids.some(j => arr[j].type==='words');
+    const hasB = ids.some(j => arr[j].type==='build');
+    const hasF = dIds.some(j => arr[j].variant==='flow');
+    const ok = hasW && hasB && hasF;
+    all.forEach(j => { open[j] = !!(ok && !isLinearDialog(arr[j]) && !isReviewLesson(arr[j])); });
+  }
+  return open;
+}
+const lessonOpen = (lv, st, idx) => {
+  if (!lv || !langOpen()) return false;
+  if (isLinearDialog(lv) || isReviewLesson(lv)) return false;
+  if (st != null && idx != null) return !!blockOpenMap(st)[idx];
+  return false;
+};
 const FLAG_SVG = {
   gb: '<rect width="30" height="20" fill="#012169"/><path d="M0 0L30 20M30 0L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0L30 20M30 0L0 20" stroke="#C8102E" stroke-width="2"/><path d="M15 0V20M0 10H30" stroke="#fff" stroke-width="6"/><path d="M15 0V20M0 10H30" stroke="#C8102E" stroke-width="3.4"/>',
   es: '<rect width="30" height="20" fill="#C60B1E"/><rect y="5" width="30" height="10" fill="#FFC400"/>',
@@ -119,7 +152,7 @@ const Ambience = {
       'sc-welcome':'ridge','sc-hub':'quiet',
       'sc-lang':'quiet','sc-map':null,'sc-levels':null,'sc-profile':'quiet','sc-done':'summit'
     };
-    if (id === 'sc-map' || id === 'sc-levels'){ Sound.ambience(STAGES[Trail.stage||1].amb); return; }
+    if (id === 'sc-map' || id === 'sc-levels'){ Sound.ambience('quiet'); return; }
     if (id === 'sc-lesson') return;
     Sound.ambience(m[id] || 'quiet');
   }
@@ -157,14 +190,14 @@ const HelloScreen = {
     this.i = 0;
     if (!(window.CSS && CSS.registerProperty)) el.classList.add('noprop');
     this.paint(el);
-    this.first = setTimeout(()=>this.next(el), 1300);
+    this.first = setTimeout(()=>this.next(el), 2600);
     // страховка: UI велкома не должен зависеть от анимаций
     this.safe = setTimeout(()=>{
       document.querySelectorAll('.ios-start,.ios-sub,.ios-bottom .btn.quiet').forEach(e=>{
         e.style.animation = 'none'; e.style.opacity = '1';
       });
     }, 1800);
-    this.timer = setInterval(()=>this.next(el), 2600);
+    this.timer = setInterval(()=>this.next(el), 3400);
   },
   paint(el){
     const w = this.words[this.i];
@@ -488,19 +521,21 @@ const Lang = {
   render(){
     const list = $('lang-list'); list.innerHTML = '';
     LANGUAGES.forEach(L=>{
-      const row = el('div','lang-row' + (L.code===S.lang?' cur':''));
+      const live = langOpen(L.code);
+      const row = el('div','lang-row' + (L.code===S.lang?' cur':'') + (live?'':' locked'));
       row.innerHTML = `
         ${flagSvg(L.flag)}
         <div style="flex:1">
           <h3 class="sm">${L.name}</h3>
           <p class="small">${L.native} · ${L.place}</p>
         </div>
-        <span class="small">${L.code===S.lang?'сейчас':'›'}</span>`;
-      row.onclick = ()=>this.pick(L.code);
+        <span class="small">${!live?'скоро':(L.code===S.lang?'сейчас':'›')}</span>`;
+      if (live) row.onclick = ()=>this.pick(L.code);
       list.appendChild(row);
     });
   },
   pick(code){
+    if (!langOpen(code)) return;
     const changed = S.lang !== code;
     S.lang = code;
     if (changed) S.stage = S.stage || 1;
@@ -526,9 +561,8 @@ const Progress = {
     return {done,total};
   },
   unlocked(st, idx){
-    if (S.allOpen) return true;          // режим проверки: открыто всё
-    if (idx === 0) return true;
-    return this.levelDone(st, idx-1);
+    const lv = getCourse(S.lang, st)[idx];
+    return lessonOpen(lv, st, idx);
   },
   mark(st, idx, acc){
     const k = pkey(st,idx);
@@ -553,32 +587,36 @@ const Trail = {
 
 /* ---------------- уровни этапа ---------------- */
 const Levels = {
-  open(st){
-    const stage = STAGES[st], arr = getCourse(S.lang, st);
-    $('lv-cefr').textContent = `${stage.cefr} · Этап ${st}`;
-    $('lv-title').textContent = stage.name;
-    $('lv-sub').textContent = stage.desc;
-    const p = Progress.stageStat(st);
+  open(){
+    $('lv-cefr').textContent = '';
+    $('lv-title').textContent = 'Уровни';
+    $('lv-sub').textContent = '';
+    $('lv-sub').style.display = 'none';
+    const p = Progress.overall();
     $('lv-prog').style.width = (p.total? p.done/p.total*100:0)+'%';
     $('lv-prog-txt').textContent = `${p.done} / ${p.total}`;
 
     const list = $('lv-list'); list.innerHTML = '';
-    arr.forEach((lv,i)=>{
-      const done = Progress.levelDone(st,i);
-      const open = Progress.unlocked(st,i);
-      const row = el('div','level-row' + (done?' done':'') + (open?'':' locked'));
-      const ic = {words:'A', build:'¶', dialog:'“”'}[lv.type];
-      row.innerHTML = `
-        <div class="lvl-dot ${done?'done':lv.type}">${done?'✓':ic}</div>
-        <div style="flex:1">
-          <div class="row gap8"><span class="kicker">${levelKind(lv.type)}</span>
-            <span class="kicker" style="color:var(--text-3)">· ${SCENES[lv.scene].label}</span></div>
-          <h3 class="sm" style="margin-top:3px">${lv.title}</h3>
-        </div>
-        <span class="small">${open?'›':'🔒'}</span>`;
-      if (open) row.onclick = ()=>{ Sound.fx('step'); Lesson.start(st,i); };
-      list.appendChild(row);
-    });
+    for (let st = 1; st <= 5; st++) {
+      const arr = getCourse(S.lang, st);
+      arr.forEach((lv,i)=>{
+        if (isReviewLesson(lv)) return;
+        const done = Progress.levelDone(st,i);
+        const open = Progress.unlocked(st,i);
+        const row = el('div','level-row' + (done?' done':'') + (open?'':' locked'));
+        const ic = {words:'A', build:'¶', dialog:'“”'}[lv.type];
+        row.innerHTML = `
+          <div class="lvl-dot ${done?'done':lv.type}">${done?'✓':ic}</div>
+          <div style="flex:1">
+            <div class="row gap8"><span class="kicker">${levelKind(lv.type)}</span>
+              <span class="kicker" style="color:var(--text-3)">· ${SCENES[lv.scene].label}</span></div>
+            <h3 class="sm" style="margin-top:3px">${lv.title}</h3>
+          </div>
+          <span class="small">${open?'›':'скоро'}</span>`;
+        if (open) row.onclick = ()=>{ Sound.fx('step'); Lesson.start(st,i); };
+        list.appendChild(row);
+      });
+    }
     go('sc-levels');
   }
 };
@@ -1110,6 +1148,7 @@ const Lesson = {
   start(st, idx, from){
     this.clearTimers();
     this.st=st; this.idx=idx; this.lv = getCourse(S.lang, st)[idx];
+    if (!lessonOpen(this.lv, this.st, this.idx)){ toast('скоро'); return; }
     this.step=from|0; this.lives=5; this.right=0; this.picked=null; this.failStep=0;
     const sc = SCENES[this.lv.scene], L = lang();
     $('scene-img').src = `assets/scenes/${L.scenes}/${sc.img}`;
@@ -2072,22 +2111,23 @@ const Lesson = {
     if (!failed) Progress.mark(this.st, this.idx, acc/100);
     save();
     Sound.fx(failed?'wrong':'done');
-    if (S.sound.amb) Sound.ambience(STAGES[this.st].amb);
+    if (S.sound.amb) Sound.ambience('quiet');
 
-    $('done-bg').style.backgroundImage = `url('${(STAGES[this.st]||{}).art || MAP_OVERVIEW}')`;
-    $('done-kicker').textContent = failed ? 'Срыв' : `${STAGES[this.st].cefr} · уровень пройден`;
-    $('done-title').textContent = failed ? 'Сердца кончились' : ['Хорошо','Чисто сделано','Ты выше, чем был'][Math.floor(Math.random()*3)];
+    $('done-bg').style.backgroundImage = `url('${MAP_OVERVIEW}')`;
+    $('done-kicker').textContent = failed ? 'Срыв' : 'Уровень пройден';
+    $('done-title').textContent = failed ? 'Сердца кончились' : ['Хорошо','Чисто сделано','Готово'][Math.floor(Math.random()*3)];
     const backTo = failed ? Math.max(0, (this.failStep|0) - 1) : 0;   // на шаг назад
     $('done-text').textContent = failed
       ? (backTo > 0
           ? `Пять ошибок — сердца кончились. Пройденное осталось при тебе: продолжишь с задания ${backTo+1}, а не с начала.`
           : 'Пять ошибок — сердца кончились. Отдышись и пройди уровень ещё раз.')
-      : `${levelKind(this.lv.type)}: ${this.lv.title}. Следующий кусок тропы открыт.`;
+      : `${levelKind(this.lv.type)}: ${this.lv.title}.`;
     $('done-acc').textContent = acc + '%';
-    $('done-stage').textContent = `${this.st} · ${STAGES[this.st].name}`;
+    $('done-stage').textContent = this.lv.title;
 
     const arr = getCourse(S.lang, this.st);
-    const nextIdx = this.idx + 1;
+    let nextIdx = this.idx + 1;
+    while (nextIdx < arr.length && !lessonOpen(arr[nextIdx], this.st, nextIdx)) nextIdx++;
     const btn = $('done-next');
     if (failed){
       btn.textContent = backTo > 0 ? 'Продолжить с этого места' : 'Начать уровень заново';
@@ -2095,12 +2135,21 @@ const Lesson = {
     } else if (nextIdx < arr.length){
       btn.textContent = `Дальше: ${levelKind(arr[nextIdx].type)}`;
       btn.onclick = ()=>{ Sound.fx('step'); Lesson.start(this.st, nextIdx); };
-    } else if (this.st < 5){
-      btn.textContent = `Этап ${this.st+1} · ${STAGES[this.st+1].cefr}`;
-      btn.onclick = ()=>{ S.stage=this.st+1; save(); Sound.fx('unlock'); Trail.open(); Trail.zoom(this.st+1); };
     } else {
-      btn.textContent = failed ? 'Начать уровень заново' : 'Повторить уровень';
-      btn.onclick = ()=>{ Sound.fx('step'); Lesson.start(this.st, this.idx); };
+      let found = null;
+      for (let st = this.st + 1; st <= 5 && !found; st++) {
+        const nxt = getCourse(S.lang, st);
+        for (let i = 0; i < nxt.length; i++) {
+          if (lessonOpen(nxt[i], st, i)) { found = {st, i, lv: nxt[i]}; break; }
+        }
+      }
+      if (found) {
+        btn.textContent = `Дальше: ${levelKind(found.lv.type)}`;
+        btn.onclick = ()=>{ Sound.fx('step'); Lesson.start(found.st, found.i); };
+      } else {
+        btn.textContent = 'Повторить уровень';
+        btn.onclick = ()=>{ Sound.fx('step'); Lesson.start(this.st, this.idx); };
+      }
     }
     go('sc-done');
   },
@@ -2312,7 +2361,7 @@ const Lesson = {
   quit(){
     STT.stop(); Sound.duck(false);   // поток микрофона остаётся живым
     Sound.fx('back');
-    Levels.open(this.st);
+    Levels.open();
   }
 };
 
@@ -2322,17 +2371,16 @@ const Profile = {
     const L = lang();
     $('avatar-big').textContent = L ? L.native.slice(0,2).toUpperCase() : '—';
     $('pf-name').textContent = 'Путник';
-    $('pf-lang').textContent = L ? `${L.name} · этап ${S.stage} (${STAGES[S.stage].cefr})` : 'Язык не выбран';
+    $('pf-lang').textContent = L ? L.name : 'Язык не выбран';
     $('pf-lang-2').innerHTML = L ? `${flagSvg(L.flag)} ${L.native}` : '—';
     $('pf-levels').textContent = S.stats.levels;
     $('pf-words').textContent = S.stats.words;
     $('pf-acc').textContent = S.stats.total ? Math.round(S.stats.right/S.stats.total*100)+'%' : '—';
     const {done,total} = Progress.overall();
-    $('pf-alt').textContent = Math.round((total? done/total:0) * 3400) + ' м';
+    $('pf-alt').textContent = total ? done+' / '+total : '—';
     $('sw-amb').classList.toggle('on', S.sound.amb);
     $('sw-fx').classList.toggle('on', S.sound.fx);
     $('sw-tts').classList.toggle('on', S.sound.tts);
-    if ($('sw-all')) $('sw-all').classList.toggle('on', !!S.allOpen);
   }
 };
 
@@ -2340,7 +2388,6 @@ const Settings = {
   toggleAmb(){ S.sound.amb=!S.sound.amb; save(); if(!S.sound.amb) Sound.stopAmbience(); else Ambience.forScreen(current); Profile.render(); Sound.fx('tap'); },
   toggleFx(){ S.sound.fx=!S.sound.fx; save(); Sound.set(S.sound.fx||S.sound.amb); Profile.render(); },
   toggleTts(){ S.sound.tts=!S.sound.tts; save(); Profile.render(); Sound.fx('tap'); },
-  toggleAll(){ S.allOpen=!S.allOpen; save(); Profile.render(); Sound.fx(S.allOpen?'unlock':'tap'); },
   reset(){
     Sheet.open(`
       <h3 class="sm">Сбросить прогресс?</h3>
@@ -2399,7 +2446,14 @@ const Settings = {
   kbdFit();
 
   const pv = $('pf-ver'); if (pv) pv.textContent = APP_VERSION;
-  if (S.lang){ go('sc-hub', {noHistory:true}); }
-  else if (S.seenIntro){ go('sc-lang', {noHistory:true}); navStack=['sc-hub']; }
-  else { current='sc-welcome'; HelloScreen.start(); }
+  if (!S.seenIntro){
+    current = 'sc-welcome';
+    const w = $('sc-welcome');
+    if (w) w.classList.add('on');
+    HelloScreen.start();
+  } else if (S.lang){
+    go('sc-hub', {noHistory:true});
+  } else {
+    go('sc-lang', {noHistory:true}); navStack=['sc-hub'];
+  }
 })();

@@ -116,6 +116,10 @@
 .lang-row .small{font-style:italic}
 .lang-row:active{transform:scale(.985)}
 .lang-row.cur{border:1px solid rgba(212,165,116,.6);background:rgba(212,165,116,.08)}
+.lang-row.locked{
+  opacity:.38;filter:grayscale(1) brightness(.55);pointer-events:none;cursor:default;
+}
+.lang-row.locked:active{transform:none}
 
 /* ---------- КАРТА ГОРЫ (перенесено, поведение не менялось) ---------- */
 #sc-map{background:#12161a;padding:0}
@@ -171,7 +175,7 @@
   transition:transform .16s var(--ease);
 }
 .level-row:active{transform:scale(.985)}
-.level-row.locked{opacity:.42;pointer-events:none}
+.level-row.locked{opacity:.38;filter:grayscale(1) brightness(.55);pointer-events:none}
 .level-row.done{border-color:rgba(111,156,120,.4)}
 .lvl-dot{
   width:40px;height:40px;border-radius:13px;flex-shrink:0;

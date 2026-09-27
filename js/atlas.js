@@ -66,7 +66,7 @@ const Atlas = {
           return;
         }
         if (lv.type === 'dialog' && lv.variant === 'flow') {
-          refs[lv.title] = { st, i, prep };
+          refs[lv.title] = { st, i, prep: prep.filter(p => typeof lessonOpen !== 'function' || lessonOpen(arr[p.i], st, p.i)) };
           prep = [];
           this.SECTIONS.forEach((sec, ci) => {
             if (sec.nodes.some(n => n[0] === lv.title)) {
@@ -428,14 +428,13 @@ const Atlas = {
     const ref = this.refs && this.refs[n[0]];
     if (ref && ref.prep && ref.prep.length) {
       const chain = ref.prep.map(p =>
-        '<button class="chain-b" data-i="' + p.i + '" data-st="' + ref.st + '">' + p.kind + '</button>').join('');
+        '<button class="chain-b on" data-i="' + p.i + '" data-st="' + ref.st + '">' + p.kind + '</button>').join('');
       nm.innerHTML = n[0] +
-        '<small>подготовка → диалог</small>' +
+        '<small>слова · фразы · диалог</small>' +
         '<div class="chain">' + chain +
-        '<button class="chain-b on">Диалог</button></div>';
+        '<button class="chain-b on" data-i="' + ref.i + '" data-st="' + ref.st + '">Диалог</button></div>';
       panel.querySelectorAll('.chain-b').forEach(b => {
         b.onclick = () => {
-          if (b.classList.contains('on')) { this.startSel(); return; }
           const st = +b.dataset.st, i = +b.dataset.i;
           S.stage = st; save(); Sound.fx('step'); Lesson.start(st, i);
         };
@@ -458,6 +457,9 @@ const Atlas = {
     if (!ref) return;
     S.stage = ref.st; save();
     Sound.fx('step');
-    Lesson.start(ref.st, ref.i);
+    const arr = getCourse(S.lang, ref.st);
+    const chain = (ref.prep || []).concat([{ i: ref.i }]);
+    const next = chain.find(p => lessonOpen(arr[p.i], ref.st, p.i) && !Progress.levelDone(ref.st, p.i));
+    Lesson.start(ref.st, (next || { i: ref.i }).i);
   }
 };

@@ -4,11 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>ContextFlow</title>
-<link rel="stylesheet" href="css/fonts.css?v=1790426200">
-<link rel="stylesheet" href="css/theme.css?v=1790426200">
-<link rel="stylesheet" href="css/map.css?v=1790426200">
-  <link rel="stylesheet" href="css/atlas.css?v=1790426200">
+<link rel="stylesheet" href="css/fonts.css?v=1790487211">
+<link rel="stylesheet" href="css/theme.css?v=1790487211">
+<link rel="stylesheet" href="css/map.css?v=1790487211">
+  <link rel="stylesheet" href="css/atlas.css?v=1790487211">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+try {
+  var _cf = JSON.parse(localStorage.getItem('contextflow_state_v10') || '{}');
+  if (_cf.seenIntro) document.documentElement.classList.add('seen-intro');
+} catch (e) {}
+</script>
 </head>
 <body>
 
@@ -113,11 +119,11 @@
           <button class="icon-btn" onclick="go('sc-map')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>
           </button>
-          <span class="kicker" id="lv-cefr">A1</span>
+          <span class="kicker" id="lv-cefr"></span>
           <div style="width:38px"></div>
         </div>
-        <h2 class="mid" style="margin-top:16px" id="lv-title">Базовый лагерь</h2>
-        <p class="small" style="margin-top:6px" id="lv-sub">—</p>
+        <h2 class="mid" style="margin-top:16px" id="lv-title">Уровни</h2>
+        <p class="small" style="margin-top:6px" id="lv-sub"></p>
         <div class="row gap12" style="margin-top:14px;margin-bottom:16px">
           <div class="bar" style="flex:1"><i id="lv-prog" style="width:0"></i></div>
           <span class="small" id="lv-prog-txt">0 / 0</span>
@@ -172,11 +178,11 @@
         <p class="body" style="margin-top:10px;max-width:290px;align-self:center" id="done-text">—</p>
         <div class="card" style="margin-top:24px;text-align:left">
           <div class="row between"><span class="small">Точность</span><b id="done-acc">—</b></div>
-          <div class="row between" style="margin-top:8px"><span class="small">Этап</span><b id="done-stage">—</b></div>
+          <div class="row between" style="margin-top:8px"><span class="small">Уровень</span><b id="done-stage">—</b></div>
         </div>
         <div style="margin-top:auto;padding-top:24px">
           <button class="btn amber" id="done-next">Следующий уровень</button>
-          <button class="btn quiet" onclick="go('sc-map');Trail.overview()">Вернуться на гору</button>
+          <button class="btn quiet" onclick="go('sc-map');Trail.overview()">Вернуться к атласу</button>
         </div>
       </div>
     </div>
@@ -205,7 +211,7 @@
           <div class="stat"><span class="kicker">Пройдено</span><b id="pf-levels">0</b><span class="small">уровней</span></div>
           <div class="stat"><span class="kicker">Слов встречено</span><b id="pf-words">0</b><span class="small">карточек</span></div>
           <div class="stat"><span class="kicker">Точность</span><b id="pf-acc">—</b><span class="small">в среднем</span></div>
-          <div class="stat"><span class="kicker">Высота</span><b id="pf-alt">0 м</b><span class="small">по маршруту</span></div>
+          <div class="stat"><span class="kicker">Курс</span><b id="pf-alt">—</b><span class="small">уроков</span></div>
         </div>
 
         <div class="card" style="margin-bottom:12px">
@@ -214,16 +220,12 @@
             <div class="switch on" id="sw-amb" onclick="Settings.toggleAmb()"><i></i></div>
           </div>
           <div class="set-row">
-            <div><h3 class="sm">Звуки нажатий</h3><p class="small">Шаги по тропе, отклик кнопок</p></div>
+            <div><h3 class="sm">Звуки нажатий</h3><p class="small">Отклик кнопок</p></div>
             <div class="switch on" id="sw-fx" onclick="Settings.toggleFx()"><i></i></div>
           </div>
           <div class="set-row">
             <div><h3 class="sm">Озвучка фраз</h3><p class="small">Читать вслух на изучаемом языке</p></div>
             <div class="switch on" id="sw-tts" onclick="Settings.toggleTts()"><i></i></div>
-          </div>
-          <div class="set-row">
-            <div><h3 class="sm">Открыть все уровни</h3><p class="small">Режим проверки: ходить по курсу без замков</p></div>
-            <div class="switch" id="sw-all" onclick="Settings.toggleAll()"><i></i></div>
           </div>
         </div>
 
@@ -261,12 +263,12 @@
   <div class="toast" id="toast"></div>
 </div>
 
-<script src="js/sound.js?v=1790426200"></script>
-<script src="js/lessons.js?v=1790426200"></script>
-<script src="js/vosk/vosk.js?v=1790426200"></script>
-<script src="js/stt.js?v=1790426200"></script>
-<script src="js/atlas.js?v=1790426200"></script>
-<script src="js/app.js?v=1790426200"></script>
+<script src="js/sound.js?v=1790487211"></script>
+<script src="js/lessons.js?v=1790487211"></script>
+<script src="js/vosk/vosk.js?v=1790487211"></script>
+<script src="js/stt.js?v=1790487211"></script>
+<script src="js/atlas.js?v=1790487211"></script>
+<script src="js/app.js?v=1790487211"></script>
 
 </body>
 </html>

@@ -374,7 +374,31 @@ const COURSE = {
         judge(w){ if(has(w,'thanks','thank','ok','great','sure')) return {br:'ok'}; return {huh:1}; },
         tr:{ ok:{them:'You are welcome. Goodbye!',ruThem:'Пожалуйста. До свидания!',next:null} } },
       }}
-      },      { type:'dialog', variant:'flow', title:'Регистрация после приезда', scene:'office', cefr:'A1: Can handle a simple administrative task and give personal details.',
+      },            { type:'words', title:'Регистрация', scene:'office', cefr:'A1: Can handle a simple administrative task and give personal details.', newCount:11, words:[
+        {t:'Registration', r:'Регистрация'},
+        {t:'Appointment', r:'Запись на приём'},
+        {t:'Passport', r:'Паспорт'},
+        {t:'Papers', r:'Документы'},
+        {t:'Address', r:'Адрес'},
+        {t:'Rental contract', r:'Договор аренды'},
+        {t:'Fee', r:'Сбор / пошлина'},
+        {t:'Cash', r:'Наличные'},
+        {t:'Receipt', r:'Чек'},
+        {t:'Ticket', r:'Талон'},
+        {t:'Letter', r:'Письмо'},
+        {t:'Need', r:'Нуждаться', rev:true}
+      ]},
+      { type:'build', title:'Собери: Регистрация', scene:'office', cefr:'A1: Can handle a simple administrative task and give personal details.', tasks:[
+        {ru:'У меня запись на сегодня.', parts:['I','have','an','appointment','for','today'], answer:'I have an appointment for today', full:'I have an appointment for today.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Вот мой договор аренды.', parts:['Here','is','my','rental','contract'], answer:'Here is my rental contract', full:'Here is my rental contract.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Картой, пожалуйста.', parts:['By','card,','please'], answer:'By card, please', full:'By card, please.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Когда будет готова карточка?', parts:['When','will','my','card','be','ready'], answer:'When will my card be ready', full:'When will my card be ready?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Регистрация после приезда', scene:'office', cefr:'A1: Can handle a simple administrative task and give personal details.',
         intro:'Регистрационный офис. Очередь, люди с папками документов. Твоя папка — с собой.',
         flow:{ title:'Регистрация после приезда · ур. 7', start:'appoint',
         intro:'Регистрационный офис. Очередь, люди с папками документов. Твоя папка — с собой.',
@@ -443,6 +467,30 @@ const COURSE = {
         tr:{ ok:{them:'Goodbye! Welcome to the country.',ruThem:'До свидания! Добро пожаловать в страну.',next:null} } }
         }}
       },
+            { type:'words', title:'Экстренный звонок', scene:'office', cefr:'A1: Can give essential information in an emergency.', newCount:11, words:[
+        {t:'Emergency', r:'Экстренная служба'},
+        {t:'Police', r:'Полиция'},
+        {t:'Ambulance', r:'Скорая'},
+        {t:'Fire', r:'Пожар'},
+        {t:'Address', r:'Адрес'},
+        {t:'Street', r:'Улица'},
+        {t:'Hurt', r:'Пострадал'},
+        {t:'Nobody', r:'Никто'},
+        {t:'Phone number', r:'Номер телефона'},
+        {t:'Wait', r:'Ждать'},
+        {t:'Help', r:'Помощь'},
+        {t:'Need', r:'Нуждаться', rev:true}
+      ]},
+      { type:'build', title:'Собери: Экстренный звонок', scene:'office', cefr:'A1: Can give essential information in an emergency.', tasks:[
+        {ru:'Скорая, пожалуйста.', parts:['Ambulance,','please'], answer:'Ambulance, please', full:'Ambulance, please.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Двенадцать Парк-стрит.', parts:['12','Park','Street'], answer:'12 Park Street', full:'12 Park Street.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Никто не пострадал.', parts:['Nobody','is','hurt'], answer:'Nobody is hurt', full:'Nobody is hurt.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Мой номер 555 010 20.', parts:['My','number','is','555','010','20'], answer:'My number is 555 010 20', full:'My number is 555 010 20.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
       { type:'dialog', variant:'flow', title:'Экстренный звонок 112', scene:'office', cefr:'A1: Can give essential information in an emergency.',
         intro:'Что-то случилось. Ты звонишь 112. Говори коротко и просто.',
         flow:{ title:'Экстренный звонок 112 · ур. 8', start:'service',
@@ -488,6 +536,30 @@ const COURSE = {
         tr:{ ok:{them:'The help is coming. Goodbye.',ruThem:'Помощь едет. До свидания.',next:null} } }
         }}
       },
+            { type:'words', title:'Украли паспорт', scene:'office', cefr:'A1: Can report a simple problem and ask for a document.', newCount:11, words:[
+        {t:'Stolen', r:'Украденный'},
+        {t:'Lost', r:'Потерянный'},
+        {t:'Report', r:'Заявление / протокол'},
+        {t:'Certificate', r:'Справка'},
+        {t:'Embassy', r:'Посольство'},
+        {t:'Metro', r:'Метро'},
+        {t:'Wallet', r:'Кошелёк'},
+        {t:'Bank card', r:'Банковская карта'},
+        {t:'Police station', r:'Полицейский участок'},
+        {t:'Form', r:'Бланк'},
+        {t:'Documents', r:'Документы'},
+        {t:'Passport', r:'Паспорт', rev:true}
+      ]},
+      { type:'build', title:'Собери: Украли паспорт', scene:'office', cefr:'A1: Can report a simple problem and ask for a document.', tasks:[
+        {ru:'У меня украли паспорт.', parts:['My','passport','was','stolen'], answer:'My passport was stolen', full:'My passport was stolen.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Вчера вечером в метро.', parts:['Yesterday','evening','in','the','metro'], answer:'Yesterday evening in the metro', full:'Yesterday evening, in the metro.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Мне нужна справка для посольства.', parts:['I','need','a','certificate','for','the','embassy'], answer:'I need a certificate for the embassy', full:'I need a certificate for the embassy.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я не помню номер.', parts:['I','do','not','remember','the','number'], answer:'I do not remember the number', full:'I do not remember the number.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
       { type:'dialog', variant:'flow', title:'Украли паспорт', scene:'office', cefr:'A1: Can report a simple problem and ask for a document.',
         intro:'Полицейский участок. Ты объясняешь, что случилось, и просишь справку.',
         flow:{ title:'Украли паспорт · ур. 9', start:'what',
@@ -795,7 +867,31 @@ const COURSE = {
           tr:{ ok:{them:'Goodbye!',ruThem:'До свидания!',next:null} } }
           }
       }
-      },      { type:'dialog', variant:'flow', title:'СИМ-карта и контракт', scene:'office', cefr:'A1: Can ask for basic services and understand simple conditions.',
+      },            { type:'words', title:'СИМ-карта', scene:'office', cefr:'A1: Can ask for basic services and understand simple conditions.', newCount:11, words:[
+        {t:'SIM card', r:'Сим-карта'},
+        {t:'Prepaid', r:'Предоплата'},
+        {t:'Monthly plan', r:'Месячный план'},
+        {t:'Contract', r:'Контракт'},
+        {t:'Activate', r:'Активировать'},
+        {t:'Gigabyte', r:'Гигабайт'},
+        {t:'Postcode', r:'Почтовый индекс'},
+        {t:'Coverage', r:'Покрытие'},
+        {t:'Restart', r:'Перезагрузить'},
+        {t:'Router', r:'Роутер'},
+        {t:'Tariff', r:'Тариф'},
+        {t:'Passport', r:'Паспорт', rev:true}
+      ]},
+      { type:'build', title:'Собери: СИМ-карта', scene:'office', cefr:'A1: Can ask for basic services and understand simple conditions.', tasks:[
+        {ru:'Мне нужна сим-карта, пожалуйста.', parts:['I','need','a','SIM','card,','please'], answer:'I need a SIM card, please', full:'I need a SIM card, please.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Предоплата, пожалуйста.', parts:['Prepaid,','please'], answer:'Prepaid, please', full:'Prepaid, please.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Да, вот он.', parts:['Yes,','here','it','is'], answer:'Yes, here it is', full:'Yes, here it is.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Как её активировать?', parts:['How','do','I','activate','it'], answer:'How do I activate it', full:'How do I activate it?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'СИМ-карта и контракт', scene:'office', cefr:'A1: Can ask for basic services and understand simple conditions.',
         intro:'Салон связи. Нужна связь как можно скорее: без неё не работает ничего.',
         flow:{ title:'СИМ-карта и контракт · ур. 17', start:'need',
         intro:'Салон связи. Нужна связь как можно скорее: без неё не работает ничего.',
@@ -1546,7 +1642,35 @@ const COURSE = {
             th:{them:'You are welcome. Take care!',ruThem:'Пожалуйста. Берегите себя!',next:null},
           } },  }
       }
-      },      { type:'dialog', variant:'flow', title:'В аптеке', scene:'clinic', cefr:'A1: Can describe simple physical states.',
+      },
+      { type:'words', title:'Аптека', scene:'clinic', cefr:'A1: Can ask for medicine at a pharmacy.', newCount:11, words:[
+        {t:'Pharmacy', r:'Аптека'},
+        {t:'Medicine', r:'Лекарство'},
+        {t:'Tablet', r:'Таблетка'},
+        {t:'Painkiller', r:'Обезболивающее'},
+        {t:'Prescription', r:'Рецепт'},
+        {t:'Cough', r:'Кашель'},
+        {t:'Headache', r:'Головная боль'},
+        {t:'Fever', r:'Температура'},
+        {t:'Pharmacist', r:'Фармацевт'},
+        {t:'Dose', r:'Доза'},
+        {t:'Twice', r:'Дважды'},
+        {t:'Hospital', r:'Больница', rev:true},
+        {t:'Doctor', r:'Врач', rev:true},
+        {t:'Sick', r:'Больной', rev:true},
+        {t:'Hurts', r:'Болит', rev:true}
+      ]},
+      { type:'build', title:'Собери: Аптека', scene:'clinic', cefr:'A1: Can ask for medicine at a pharmacy.', tasks:[
+        {ru:'Мне нужно лекарство от головы.', parts:['I','need','something','for','a','headache'], answer:'I need something for a headache', full:'I need something for a headache.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Где ближайшая аптека?', parts:['Where','is','the','nearest','pharmacy'], answer:'Where is the nearest pharmacy', full:'Where is the nearest pharmacy?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что. «Where is the pharmacy?» — не «Where the pharmacy is».'},
+        {ru:'Принимайте это дважды в день.', parts:['Take','this','twice','a','day'], answer:'Take this twice a day', full:'Take this twice a day.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное.'},
+        {ru:'У меня кашель.', parts:['I','have','a','cough'], answer:'I have a cough', full:'I have a cough.',
+         whyT:'have + a + симптом', why:'Про симптом говорят «I have a cough / a headache / a fever» — с артиклем a.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'В аптеке', scene:'clinic', cefr:'A1: Can describe simple physical states.',
         intro:'Ты подходишь к окошку аптеки. За прилавком фармацевт.',
         flow:{ title:'В аптеке · ур. 42', start:'need',
         intro:'Ты подходишь к окошку аптеки. За прилавком фармацевт.',
@@ -1600,6 +1724,30 @@ const COURSE = {
         tr:{ ok:{them:'Get well soon!',ruThem:'Выздоравливайте!',next:null} } }
         }}
       },
+            { type:'words', title:'Медицинская страховка', scene:'clinic', cefr:'A1: Can say what hurts and ask for a doctor.', newCount:11, words:[
+        {t:'Insurance', r:'Страховка'},
+        {t:'Policy', r:'Полис'},
+        {t:'Policy number', r:'Номер полиса'},
+        {t:'Symptom', r:'Симптом'},
+        {t:'Fever', r:'Температура'},
+        {t:'Clinic', r:'Клиника'},
+        {t:'Sick', r:'Больной'},
+        {t:'Date of birth', r:'Дата рождения'},
+        {t:'Appointment', r:'Приём'},
+        {t:'Unwell', r:'Плохо себя чувствую'},
+        {t:'Ill', r:'Болен'},
+        {t:'Doctor', r:'Врач', rev:true}
+      ]},
+      { type:'build', title:'Собери: Медицинская страховка', scene:'clinic', cefr:'A1: Can say what hurts and ask for a doctor.', tasks:[
+        {ru:'Я заболел. Мне нужен врач.', parts:['I','am','sick.','I','need','a','doctor'], answer:'I am sick. I need a doctor', full:'I am sick. I need a doctor.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Мой номер 4512 889.', parts:['My','number','is','4512','889'], answer:'My number is 4512 889', full:'My number is 4512 889.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'У меня болит голова и температура.', parts:['I','have','a','headache','and','a','fever'], answer:'I have a headache and a fever', full:'I have a headache and a fever.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я приду в клинику.', parts:['I','will','come','to','the','clinic'], answer:'I will come to the clinic', full:'I will come to the clinic.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
+      ]},
       { type:'dialog', variant:'flow', title:'Медицинская страховка', scene:'clinic', cefr:'A1: Can say what hurts and ask for a doctor.',
         intro:'Ты заболел. Звонишь в страховую: сказать, что случилось, и попросить врача.',
         flow:{ start:'reason',
@@ -6925,6 +7073,16 @@ const COURSE = {
         {t:'Gas leak',     r:'Утечка газа'},
         {t:'Fire brigade', r:'Пожарная бригада'}
       ]},
+            { type:'build', title:'Собери: Пожарная тревога', scene:'street', cefr:'A2: Can give details after an evacuation and ask what to do next.', tasks:[
+        {ru:'Да, я здесь живу, на пятом этаже.', parts:['Yes,','I','live','here,','on','the','fifth','floor'], answer:'Yes, I live here, on the fifth floor', full:'Yes, I live here, on the fifth floor.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Все вышли. Мы все здесь.', parts:['Everyone','is','out.','We','are','all','here'], answer:'Everyone is out. We are all here', full:'Everyone is out. We are all here.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Кажется, кухня на третьем этаже. Там был дым.', parts:['I','think','the','kitchen','on','the','third','floor'], answer:'I think the kitchen on the third floor', full:'I think the kitchen on the third floor. There was smoke.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Когда можно вернуться?', parts:['When','can','we','go','back'], answer:'When can we go back', full:'When can we go back?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что.'}
+      ]},
       { type:'dialog', variant:'flow', title:'Пожарная тревога', scene:'street', cefr:'A2: Can give details after an evacuation and ask what to do next.',
         intro:'В доме пожар. Ты на улице, у здания уже пожарные.',
         flow:{ title:'Пожарная тревога · ур. 284', start:'live',
@@ -7237,7 +7395,31 @@ const COURSE = {
           return {huh:1}; },
         tr:{ ok:{them:'Ten working days. We’ll email you. Next, please!',ruThem:'Десять рабочих дней. Напишем на почту. Следующий, пожалуйста!',next:null} } }
         }}
-      },      { type:'dialog', variant:'flow', title:'Договор аренды и хозяин', scene:'flat', cefr:'B1: Can clarify key contract terms before signing.',
+      },            { type:'words', title:'Договор аренды', scene:'flat', cefr:'B1: Can clarify key contract terms before signing.', newCount:11, words:[
+        {t:'Tenancy agreement', r:'Договор аренды'},
+        {t:'Landlord', r:'Хозяин / арендодатель'},
+        {t:'Deposit', r:'Залог'},
+        {t:'Rent', r:'Аренда'},
+        {t:'Included', r:'Входит'},
+        {t:'Heating', r:'Отопление'},
+        {t:'Electricity', r:'Электричество'},
+        {t:'Notice', r:'Предупреждение о выезде'},
+        {t:'To sign', r:'Подписать'},
+        {t:'Keys', r:'Ключи'},
+        {t:'To repair', r:'Чинить'},
+        {t:'Water', r:'Вода', rev:true}
+      ]},
+      { type:'build', title:'Собери: Договор аренды', scene:'flat', cefr:'B1: Can clarify key contract terms before signing.', tasks:[
+        {ru:'Сколько залог?', parts:['How','much','is','the','deposit'], answer:'How much is the deposit', full:'How much is the deposit?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что.'},
+        {ru:'Вода и отопление входят в аренду?', parts:['Are','water','and','heating','included','in','the','rent'], answer:'Are water and heating included in the rent', full:'Are water and heating included in the rent?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что.'},
+        {ru:'За сколько нужно предупредить о выезде?', parts:['How','much','notice','do','I','need','to','give'], answer:'How much notice do I need to give', full:'How much notice do I need to give?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что.'},
+        {ru:'Кто чинит, если что-то сломается?', parts:['Who','fixes','things','if','something','breaks'], answer:'Who fixes things if something breaks', full:'Who fixes things if something breaks?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что.'}
+      ]},
+      { type:'dialog', variant:'flow', title:'Договор аренды и хозяин', scene:'flat', cefr:'B1: Can clarify key contract terms before signing.',
         intro:'Хозяин пришёл с договором. Ручка уже на столе.',
         flow:{ title:'Договор аренды и хозяин · ур. 292', start:'deposit',
         intro:'Хозяин пришёл с договором. Ручка уже на столе.',
@@ -7283,6 +7465,16 @@ const COURSE = {
         {t:'Fingerprints',        r:'Отпечатки пальцев'},
         {t:'Border officer',      r:'Пограничник'},
         {t:'Luggage claim',       r:'Выдача багажа'}
+      ]},
+            { type:'build', title:'Собери: Паспортный контроль', scene:'airport', cefr:'A2: Can answer border questions about purpose and length of stay.', tasks:[
+        {ru:'Я переезжаю сюда работать. У меня рабочая виза.', parts:['I','am','relocating','here','for','work'], answer:'I am relocating here for work', full:'I am relocating here for work. I have a work visa.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'На год. Виза до следующего июня.', parts:['For','one','year'], answer:'For one year', full:'For one year. My visa is valid until next June.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Первые две недели в отеле, потом сниму квартиру.', parts:['The','first','two','weeks','at','a','hotel'], answer:'The first two weeks at a hotel', full:'The first two weeks at a hotel, then I will rent a flat.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'У меня трудовой договор и сбережения на карте.', parts:['I','have','a','job','contract','and','savings'], answer:'I have a job contract and savings', full:'I have a job contract and savings on my bank card.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'}
       ]},
       { type:'dialog', variant:'flow', title:'Паспортный контроль', scene:'airport', cefr:'A2: Can answer border questions about purpose and length of stay.',
         intro:'Ты у стойки паспортного контроля. Офицер листает твой паспорт.',
@@ -7344,6 +7536,16 @@ const COURSE = {
         {t:'Reference number', r:'Номер обращения'},
         {t:'Waiting list',     r:'Лист ожидания'}
       ]},
+            { type:'build', title:'Собери: Налоговый номер', scene:'office', cefr:'B1: Can apply for a tax number and ask about timing.', tasks:[
+        {ru:'Мне нужен налоговый номер. На следующей неделе выхожу на работу.', parts:['I','need','a','tax','number'], answer:'I need a tax number', full:'I need a tax number. I start a new job next week.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Вот паспорт, виза и договор аренды.', parts:['Here','are','my','passport','and','my','visa'], answer:'Here are my passport and my visa', full:'Here are my passport, my visa and my rental contract.',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Я заполнил анкету. Всё верно?', parts:['I','filled','in','the','form'], answer:'I filled in the form', full:'I filled in the form. Is everything correct?',
+         whyT:'Порядок слов в английском', why:'Строгий порядок: сначала кто, потом что делает, потом остальное. Подлежащее и глагол местами не меняются, даже если в русском они переставлены.'},
+        {ru:'Сколько это займёт?', parts:['How','long','does','it','take'], answer:'How long does it take', full:'How long does it take?',
+         whyT:'Вопрос со словом-вопросом', why:'Порядок: вопросительное слово → is/are → кто или что.'}
+      ]},
       { type:'dialog', variant:'flow', title:'Налоговый номер', scene:'office', cefr:'B1: Can apply for a tax number and ask about timing.',
         intro:'Налоговая служба. Без номера не заплатят зарплату. Ты в очереди у окна.',
         flow:{ title:'Налоговый номер · ур. 296', start:'need',
@@ -7381,6 +7583,18 @@ const COURSE = {
         tr:{ ok:{them:'Here is your reference number. Keep it safe.',ruThem:'Вот номер вашего обращения. Сохраните его.',next:null} } }
         }}
       },
+      { type:'words', title:'Депозит', scene:'flat', cefr:'B1: Can dispute deposit deductions politely but firmly.', newCount:10, words:[
+        {t:'Deposit', r:'Залог'},
+        {t:'Deduction', r:'Удержание'},
+        {t:'Scratch', r:'Царапина'},
+        {t:'Stain', r:'Пятно'},
+        {t:'Proof', r:'Доказательство'},
+        {t:'Check-in photos', r:'Фото при заселении'},
+        {t:'Dispute', r:'Спор'},
+        {t:'Moving out', r:'Съезд'},
+        {t:'Inventory', r:'Опись'},
+        {t:'Damage', r:'Повреждение'}
+      ]},
       { type:'build', title:'Разговор о депозите', scene:'flat', tasks:[
         {ru:'Когда вы вернёте депозит?', parts:['When','will','you','return','the','deposit?'], answer:'When will you return the deposit?'},
         {ru:'Хочу письменный список удержаний.', parts:['I','want','a','written','list','of','deductions.'], answer:'I want a written list of deductions.'},

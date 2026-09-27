@@ -90,6 +90,7 @@ body{
   overflow:hidden;
 }
 .screen.on{display:flex}
+html.seen-intro #sc-welcome{display:none !important}
 .screen.enter{animation:scEnter .42s var(--ease) both}
 @keyframes scEnter{from{opacity:0;transform:translateY(14px) scale(.994)}to{opacity:1;transform:none}}
 
