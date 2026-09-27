@@ -1,41 +1,40 @@
-/** Relocue — дверь в Telegram. Касса не в вебку. Токен только из env Netlify. */
+/** Relocue — дверь. Касса не в вебку. Токен только из env Netlify. */
 const TOKEN = process.env.BOT_TOKEN;
 const APP_URL = process.env.APP_URL || 'https://greed-webdev.github.io/contextflow/';
 const API = 'https://api.telegram.org/bot' + TOKEN;
 
 const HOME_TEXT =
   'Relocue.\n\n' +
-  'Разговоры после переезда: врач, банк, паспорт, жильё.\n' +
-  'Открыл курс — пошёл в атлас, говоришь своими словами.';
-
-const ACCESS_TEXT =
-  'Мой доступ\n\n' +
-  'Сейчас курс открыт, оплата ещё не стоит.\n' +
-  'Когда будет касса — здесь тариф и срок, не отдельная кнопка «заплати».';
+  'Ты уже там. Врач не ждёт грамматику.\n' +
+  'Банк, паспорт, жильё — своими словами, как есть.\n\n' +
+  'Войти — и сразу атлас.';
 
 const INFO_TEXT =
-  'Как это\n\n' +
-  'Ситуации из жизни после переезда. Зашёл в урок — отвечаешь как человеку напротив, не выбираешь готовые фразы.';
+  'Как это выглядит\n\n' +
+  'Атлас. Берёшь «паспорт» или «врач».\n' +
+  'На экране человек. Ты отвечаешь как в жизни — криво, своими словами.\n' +
+  'Понял — разговор идёт. Не понял — переспросит, не поставит двойку.';
 
 const HELP_TEXT =
-  'Поддержка\n\n' +
-  'Напиши сюда, в этот чат. Это не автоответчик с десятью ветками.';
+  'Напиши сюда, в этот чат.\nЯ читаю сам, не очередь из десяти кнопок.';
 
 function kbHome() {
   return {
     inline_keyboard: [
-      [{ text: 'Открыть курс', web_app: { url: APP_URL } }],
-      [{ text: '🔒 Мой доступ', callback_data: 'access' }],
-      [
-        { text: 'Как это', callback_data: 'info' },
-        { text: 'Поддержка', callback_data: 'help' },
-      ],
+      [{ text: 'Войти в курс', web_app: { url: APP_URL } }],
+      [{ text: 'Как это выглядит', callback_data: 'info' }],
+      [{ text: 'Написать мне', callback_data: 'help' }],
     ],
   };
 }
 
 function kbBack() {
-  return { inline_keyboard: [[{ text: '← Назад', callback_data: 'home' }]] };
+  return {
+    inline_keyboard: [
+      [{ text: 'Войти в курс', web_app: { url: APP_URL } }],
+      [{ text: '← Назад', callback_data: 'home' }],
+    ],
+  };
 }
 
 async function tg(method, body) {
@@ -61,7 +60,6 @@ async function paint(chatId, text, kb, messageId) {
 }
 
 function screenFor(data) {
-  if (data === 'access') return { text: ACCESS_TEXT, kb: kbBack() };
   if (data === 'info') return { text: INFO_TEXT, kb: kbBack() };
   if (data === 'help') return { text: HELP_TEXT, kb: kbBack() };
   return { text: HOME_TEXT, kb: kbHome() };
@@ -92,9 +90,7 @@ exports.handler = async (event) => {
   const chat = msg && msg.chat && msg.chat.id;
   if (!chat) return { statusCode: 200, body: 'ok' };
 
-  const t = (msg.text || '').trim();
-  const wantAccess = t === 'Мой доступ' || t === '🔒 Мой доступ';
-  const s = wantAccess ? screenFor('access') : screenFor('home');
+  const s = screenFor('home');
   await paint(chat, s.text, s.kb);
   return { statusCode: 200, body: 'ok' };
 };
