@@ -6,16 +6,15 @@ const SUPPORT = 'https://t.me/L_webdev';
 const COVER_FILE_ID = process.env.COVER_FILE_ID || 'AgACAgIAAxkDAAM6arvME9E-KEE1LipXRfuf3g0IO98AAlwiaxv65OFJJZW5g2Q_3LoBAAMCAAN4AAM9BA';
 const TZ = 'Asia/Vladivostok';
 const TRIAL_MS = 3 * 24 * 60 * 60 * 1000;
+const PRICE = 179;
+const RECEIVER = process.env.YOOMONEY_RECEIVER || '4100119642837356';
 
 const INFO_TEXT =
   'информация о нашем сервисе:\n\n' +
   'как это работает? после оформления подписки нажми кнопку подключить и начинай учится с этого момента\n\n' +
   'если вам нужна помощь: @L_webdev';
 
-const MONTHS = [
-  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
-];
+
 
 function startKb() {
   return {
@@ -30,9 +29,24 @@ function startKb() {
   };
 }
 
-function accessKb(active) {
+function payUrl(tgId) {
+  const q = new URLSearchParams({
+    receiver: RECEIVER,
+    'quickpay-form': 'shop',
+    targets: 'Relocue',
+    paymentType: 'AC',
+    sum: String(PRICE),
+    label: String(tgId || ''),
+  });
+  return 'https://yoomoney.ru/quickpay/confirm.xml?' + q.toString();
+}
+
+function accessKb(active, tgId) {
   const rows = [];
   if (active) rows.push([{ text: 'Подключиться', callback_data: 'connect', style: 'success' }]);
+  else if (RECEIVER) {
+    rows.push([{ text: 'Оплатить 179 ₽', url: payUrl(tgId), style: 'success' }]);
+  }
   rows.push([{ text: 'Назад', callback_data: 'home' }]);
   return { inline_keyboard: rows };
 }
@@ -65,9 +79,31 @@ function parseDt(s) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function fmtDay(d) {
-  const local = new Date(d.toLocaleString('en-US', { timeZone: TZ }));
-  return local.getDate() + ' ' + MONTHS[local.getMonth()];
+function ruNum(n, one, few, many) {
+  const n10 = n % 10;
+  const n100 = n % 100;
+  if (n10 === 1 && n100 !== 11) return n + ' ' + one;
+  if (n10 >= 2 && n10 <= 4 && (n100 < 12 || n100 > 14)) return n + ' ' + few;
+  return n + ' ' + many;
+}
+
+function remainingText(until) {
+  let ms = until.getTime() - Date.now();
+  if (ms < 0) ms = 0;
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  const mins = Math.floor((ms % 3600000) / 60000);
+  const parts = [];
+  if (days > 0) {
+    parts.push(ruNum(days, 'день', 'дня', 'дней'));
+    if (hours > 0) parts.push(ruNum(hours, 'час', 'часа', 'часов'));
+  } else if (hours > 0) {
+    parts.push(ruNum(hours, 'час', 'часа', 'часов'));
+    if (mins > 0) parts.push(ruNum(mins, 'минута', 'минуты', 'минут'));
+  } else {
+    parts.push(ruNum(Math.max(mins, 1), 'минута', 'минуты', 'минут'));
+  }
+  return parts.join(' ');
 }
 
 function whoText(from, rec) {
@@ -146,7 +182,7 @@ async function ensureTrial(from) {
 
 function accessText(from, rec) {
   const who = whoText(from, rec);
-  if (isActive(rec)) return who + '\nстатус: активна\nсрок: ' + fmtDay(activeUntil(rec));
+  if (isActive(rec)) return who + '\nстатус: активна\nосталось: ' + remainingText(activeUntil(rec));
   return who + '\nстатус: не активна';
 }
 
@@ -203,7 +239,7 @@ async function onCallback(cq) {
   const from = cq.from || {};
   if (data === 'access') {
     const rec = await ensureTrial(from);
-    await editCaptionOrText(msg, accessText(from, rec), accessKb(isActive(rec)));
+    await editCaptionOrText(msg, accessText(from, rec), accessKb(isActive(rec), from.id));
   } else if (data === 'info') {
     await editCaptionOrText(msg, INFO_TEXT, backKb());
   } else if (data === 'home') {
