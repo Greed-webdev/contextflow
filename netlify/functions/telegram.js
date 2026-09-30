@@ -44,8 +44,8 @@ function payUrl(tgId) {
 function accessKb(active, tgId) {
   const rows = [];
   if (active) rows.push([{ text: 'Подключиться', callback_data: 'connect', style: 'success' }]);
-  else if (RECEIVER) {
-    rows.push([{ text: 'Оплатить 179 ₽', url: payUrl(tgId), style: 'success' }]);
+  if (RECEIVER) {
+    rows.push([{ text: 'Оплатить 179 ₽', url: payUrl(tgId), style: active ? 'primary' : 'success' }]);
   }
   rows.push([{ text: 'Назад', callback_data: 'home' }]);
   return { inline_keyboard: rows };
