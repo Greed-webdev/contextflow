@@ -2407,7 +2407,7 @@ const Settings = {
 (function boot(){
   try{ if (window.Telegram && Telegram.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); } }catch(e){}
 
-  ['assets/map/mountain-map.png', ...Object.values(STAGES).map(s=>s.art)]
+  Object.values(STAGES).map(s=>s.art)
     .forEach(src=>{ const i=new Image(); i.src=src; });
 
   // карта заранее начитанных фраз: без неё «Послушать» молчит в Telegram
