@@ -1,4 +1,4 @@
-/** Relocue webhook. Курс в прод не открываем. Не bot.mjs. */
+/** Relocue webhook. Курс только через Подключиться при живом доступе. Не bot.mjs. */
 const TOKEN = process.env.BOT_TOKEN;
 const API = TOKEN ? 'https://api.telegram.org/bot' + TOKEN : '';
 const CHANNEL = 'https://t.me/Relocue';
@@ -8,6 +8,7 @@ const TZ = 'Asia/Vladivostok';
 const TRIAL_MS = 3 * 24 * 60 * 60 * 1000;
 const PRICE = 179;
 const RECEIVER = process.env.YOOMONEY_RECEIVER || '4100119642837356';
+const COURSE = 'https://relocue.netlify.app/';
 
 const INFO_TEXT =
   'информация о нашем сервисе:\n\n' +
@@ -43,7 +44,7 @@ function payUrl(tgId) {
 
 function accessKb(active, tgId) {
   const rows = [];
-  if (active) rows.push([{ text: 'Подключиться', callback_data: 'connect', style: 'success' }]);
+  if (active) rows.push([{ text: 'Подключиться', web_app: { url: COURSE }, style: 'success' }]);
   if (RECEIVER) {
     rows.push([{ text: 'Оплатить 179 ₽', url: payUrl(tgId), style: active ? 'primary' : 'success' }]);
   }
@@ -247,6 +248,15 @@ async function onCallback(cq) {
   } else if (data === 'connect') {
     const rec = await ensureTrial(from);
     if (!isActive(rec)) return;
+    const chat = msg.chat && msg.chat.id;
+    if (!chat) return;
+    await tg('sendMessage', {
+      chat_id: chat,
+      text: 'Relocue.',
+      reply_markup: {
+        inline_keyboard: [[{ text: 'Подключиться', web_app: { url: COURSE }, style: 'success' }]],
+      },
+    });
   }
 }
 

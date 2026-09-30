@@ -92,7 +92,7 @@ const FLAG_SVG = {
 };
 const flagSvg = c => `<svg class="flag" viewBox="0 0 30 20" style="width:34px;height:23px;border-radius:5px;flex:none" aria-hidden="true">${FLAG_SVG[c] || ''}</svg>`;
 const EMOJI = 'assets/emoji';
-const APP_VERSION = 'v34';   // видно в профиле: свежая ли версия открыта
+const APP_VERSION = 'v35';   // видно в профиле: свежая ли версия открыта
 const pkey = (st, idx) => `${S.lang}:${st}:${idx}`;
 
 /* ---------------- навигация ---------------- */
@@ -2370,7 +2370,10 @@ const Profile = {
   render(){
     const L = lang();
     $('avatar-big').textContent = L ? L.native.slice(0,2).toUpperCase() : '—';
-    $('pf-name').textContent = 'Путник';
+    try {
+      const u = window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user;
+      $('pf-name').textContent = (u && (u.first_name || u.username)) ? (u.first_name || ('@' + u.username)) : 'Путник';
+    } catch (e) { $('pf-name').textContent = 'Путник'; }
     $('pf-lang').textContent = L ? L.name : 'Язык не выбран';
     $('pf-lang-2').innerHTML = L ? `${flagSvg(L.flag)} ${L.native}` : '—';
     $('pf-levels').textContent = S.stats.levels;
