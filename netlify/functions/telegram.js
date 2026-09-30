@@ -42,9 +42,17 @@ function payUrl(tgId) {
   return 'https://yoomoney.ru/quickpay/confirm.xml?' + q.toString();
 }
 
-function accessKb(active, tgId) {
+function canClaimTrial(rec) {
+  return !(rec && rec.trial_until);
+}
+
+function accessKb(rec, tgId) {
+  const active = isActive(rec);
   const rows = [];
   if (active) rows.push([{ text: 'Подключиться', web_app: { url: COURSE }, style: 'success' }]);
+  else if (canClaimTrial(rec)) {
+    rows.push([{ text: 'Пробные 3 дня', callback_data: 'trial', style: 'success' }]);
+  }
   if (RECEIVER) {
     rows.push([{ text: 'Оплатить 179 ₽', url: payUrl(tgId), style: active ? 'primary' : 'success' }]);
   }
@@ -160,25 +168,27 @@ async function saveRec(id, rec) {
   }
 }
 
-async function ensureTrial(from) {
+async function getRec(from) {
   const id = from && from.id;
   const username = (from && from.username) || null;
-  if (!id) return { username, trial_until: null, paid_until: null };
+  if (!id) return { username, trial_until: null, paid_until: null, mark: null };
+  const rec = await loadRec(id);
+  if (!rec) return { username, trial_until: null, paid_until: null, mark: null };
+  return rec;
+}
+
+async function claimTrial(from) {
+  const id = from && from.id;
+  const username = (from && from.username) || null;
+  if (!id) return { username, trial_until: null, paid_until: null, mark: null };
   let rec = await loadRec(id);
-  if (!rec) {
-    rec = {
-      username,
-      trial_until: new Date(Date.now() + TRIAL_MS).toISOString(),
-      paid_until: null,
-      mark: 'trial',
-    };
-    await saveRec(id, rec);
-    return rec;
-  }
-  if (username && rec.username !== username) {
-    rec.username = username;
-    await saveRec(id, rec);
-  }
+  if (!rec) rec = { username, trial_until: null, paid_until: null, mark: null };
+  if (rec.trial_until) return rec;
+  rec.username = username || rec.username || null;
+  rec.trial_until = new Date(Date.now() + TRIAL_MS).toISOString();
+  rec.paid_until = rec.paid_until || null;
+  rec.mark = parseDt(rec.paid_until) && parseDt(rec.paid_until) > now() ? 'paid' : 'trial';
+  await saveRec(id, rec);
   return rec;
 }
 
@@ -214,8 +224,6 @@ async function editCaptionOrText(msg, text, markup) {
 }
 
 async function onStart(msg) {
-  const from = msg.from || {};
-  await ensureTrial(from);
   const chat = msg.chat.id;
   const markup = startKb();
   if (COVER_FILE_ID) {
@@ -240,14 +248,17 @@ async function onCallback(cq) {
   const data = cq.data;
   const from = cq.from || {};
   if (data === 'access') {
-    const rec = await ensureTrial(from);
-    await editCaptionOrText(msg, accessText(from, rec), accessKb(isActive(rec), from.id));
+    const rec = await getRec(from);
+    await editCaptionOrText(msg, accessText(from, rec), accessKb(rec, from.id));
+  } else if (data === 'trial') {
+    const rec = await claimTrial(from);
+    await editCaptionOrText(msg, accessText(from, rec), accessKb(rec, from.id));
   } else if (data === 'info') {
     await editCaptionOrText(msg, INFO_TEXT, backKb());
   } else if (data === 'home') {
     await editCaptionOrText(msg, 'Relocue.', startKb());
   } else if (data === 'connect') {
-    const rec = await ensureTrial(from);
+    const rec = await getRec(from);
     if (!isActive(rec)) return;
     const chat = msg.chat && msg.chat.id;
     if (!chat) return;
