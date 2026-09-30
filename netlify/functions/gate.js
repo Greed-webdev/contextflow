@@ -9,13 +9,13 @@ function parseDt(s) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function isActive(rec) {
-  const a = parseDt(rec && rec.trial_until);
-  const b = parseDt(rec && rec.paid_until);
-  let u = null;
-  if (a && b) u = a > b ? a : b;
-  else u = a || b;
-  return !!(u && u > new Date());
+function accessMark(rec) {
+  const trial = parseDt(rec && rec.trial_until);
+  const paid = parseDt(rec && rec.paid_until);
+  const now = new Date();
+  if (paid && paid > now) return { mark: 'paid', until: paid.toISOString() };
+  if (trial && trial > now) return { mark: 'trial', until: trial.toISOString() };
+  return null;
 }
 
 function checkInitData(initData) {
@@ -74,6 +74,11 @@ exports.handler = async (event) => {
   const user = checkInitData(body.initData);
   if (!user) return { statusCode: 200, headers, body: JSON.stringify({ ok: false }) };
   const rec = await loadRec(user.id);
-  if (!isActive(rec)) return { statusCode: 200, headers, body: JSON.stringify({ ok: false }) };
-  return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+  const acc = accessMark(rec);
+  if (!acc) return { statusCode: 200, headers, body: JSON.stringify({ ok: false }) };
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({ ok: true, mark: acc.mark, until: acc.until }),
+  };
 };

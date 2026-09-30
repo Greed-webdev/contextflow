@@ -293,7 +293,16 @@ try {
   function deny() {
     document.documentElement.classList.add('relocue-locked');
   }
-  function allow() {
+  function watch(untilIso) {
+    var end = Date.parse(untilIso);
+    if (!end) { deny(); return; }
+    function tick() {
+      if (Date.now() >= end) deny();
+      else setTimeout(tick, 15000);
+    }
+    tick();
+  }
+  function allow(j) {
     document.documentElement.classList.remove('relocue-locked');
     try {
       if (window.Telegram && Telegram.WebApp) {
@@ -301,6 +310,7 @@ try {
         Telegram.WebApp.expand();
       }
     } catch (e) {}
+    watch(j && j.until);
     loadNext(0);
   }
   var initData = '';
@@ -313,7 +323,7 @@ try {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ initData: initData })
   }).then(function (r) { return r.json(); }).then(function (j) {
-    if (j && j.ok) allow(); else deny();
+    if (j && j.ok) allow(j); else deny();
   }).catch(deny);
 })();
 </script>

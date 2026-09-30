@@ -170,6 +170,7 @@ async function ensureTrial(from) {
       username,
       trial_until: new Date(Date.now() + TRIAL_MS).toISOString(),
       paid_until: null,
+      mark: 'trial',
     };
     await saveRec(id, rec);
     return rec;
